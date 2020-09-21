@@ -12,11 +12,10 @@
 
 #include "mapID.hpp"
 
-using namespace std;
 
-vector<string> intersect_ids(vector<string> a, vector<string> b)
+std::vector<std::string> intersect_ids(std::vector<std::string> a, std::vector<std::string> b)
 {
-	vector<string> out;
+	std::vector<std::string> out;
 	sort(a.begin(), a.end());
 	sort(b.begin(), b.end());
 	set_intersection(a.begin(), a.end(), b.begin(), b.end(), back_inserter(out));
@@ -28,7 +27,7 @@ int id_map::n()
 	return keep.size();
 }
 
-void id_map::setFileIDs(vector<string>& ids)
+void id_map::setFileIDs(std::vector<std::string>& ids)
 {	
 	file = ids;
 	
@@ -37,7 +36,7 @@ void id_map::setFileIDs(vector<string>& ids)
 	}
 }
 
-bool id_map::tryKeep(string& id)
+bool id_map::tryKeep(std::string& id)
 {
 	bool should_keep = true;
 	if( keep.size() > 0 ){
@@ -57,18 +56,18 @@ void id_map::makeIndex()
 	idx.clear();
 	idx_f2k.clear();
 	
-	unordered_map<string, int> file_id_map;
-	unordered_map<string, int> keep_id_map;
+	std::unordered_map<std::string, int> file_id_map;
+	std::unordered_map<std::string, int> keep_id_map;
 	
 	int ii = 0;
-	for( string& id : file )
+	for( std::string& id : file )
 	{
 		file_id_map[id] = ii;
 		ii++;
 	}
 	ii = 0;
-	vector<int> not_in_file;
-	for( string& id : keep )
+	std::vector<int> not_in_file;
+	for( std::string& id : keep )
 	{
 		if( file_id_map.find(id) == file_id_map.end() ){
 			not_in_file.push_back(ii);
@@ -84,12 +83,12 @@ void id_map::makeIndex()
 	
 	
 	ii = 0;
-	for( string& id : keep )
+	for( std::string& id : keep )
 	{
 		keep_id_map[id] = ii;
 		ii++;
 	}
-	for( string& id : file )
+	for( std::string& id : file )
 	{
 		if( keep_id_map.find(id) == keep_id_map.end() ){
 			idx_f2k.push_back(-1);
@@ -99,7 +98,7 @@ void id_map::makeIndex()
 	}
 }
 
-void id_map::setKeepIDs(vector<string>& ids)
+void id_map::setKeepIDs(std::vector<std::string>& ids)
 {	
 	keep = ids;
 	

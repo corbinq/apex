@@ -20,7 +20,6 @@
 
 #include <Eigen/Dense>
 
-using namespace std;
 
 class bed_data
 {
@@ -33,25 +32,25 @@ class bed_data
 		
 		Eigen::MatrixXd data_matrix;
 	
-		vector<string> chr;
-		vector<int> start;
-		vector<int> end;
-		vector<string> gene_id;
+		std::vector<std::string> chr;
+		std::vector<int> start;
+		std::vector<int> end;
+		std::vector<std::string> gene_id;
 		
-		vector<int> block_s;
-		vector<int> block_e;
+		std::vector<int> block_s;
+		std::vector<int> block_e;
 		
-		vector<int> v_s;
-		vector<int> v_e;
+		std::vector<int> v_s;
+		std::vector<int> v_e;
 		
-		vector<double> stdev;
+		std::vector<double> stdev;
 		
-		vector<double> n_var;
-		vector<double> pval;
+		std::vector<double> n_var;
+		std::vector<double> pval;
 		
-		void setKeepIDs(vector<string>& kp_ids){ids.setKeepIDs(kp_ids);};
+		void setKeepIDs(std::vector<std::string>& kp_ids){ids.setKeepIDs(kp_ids);};
 		
-		void readBedFile(const char*, const vector<string>&);
+		void readBedFile(const char*, const std::vector<std::string>&);
 		void readBedHeader(const char*);
 };
 

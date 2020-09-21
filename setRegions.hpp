@@ -15,24 +15,23 @@
 #include "readBED.hpp"
 #include "genotypeData.hpp"
 
-using namespace std;
 
 class block_intervals
 {
 	public:
-		vector<int> bed_s;
-		vector<int> bed_e;
-		vector<int> bcf_s;
-		vector<int> bcf_e;
+		std::vector<int> bed_s;
+		std::vector<int> bed_e;
+		std::vector<int> bcf_s;
+		std::vector<int> bcf_e;
 		
-		vector<int> bcf_id_s;
-		vector<int> bcf_id_e;
+		std::vector<int> bcf_id_s;
+		std::vector<int> bcf_id_e;
 		
-		vector<int> bed_id_s;
-		vector<int> bed_id_e;
+		std::vector<int> bed_id_s;
+		std::vector<int> bed_id_e;
 		
-		vector<string> bcf_regions;
-		//vector<string> gene_bcf_regions;
+		std::vector<std::string> bcf_regions;
+		//std::vector<std::string> gene_bcf_regions;
 	
 		block_intervals(){};	
 		block_intervals(bed_data& bdat, genotype_data& gdat, const int& ws){

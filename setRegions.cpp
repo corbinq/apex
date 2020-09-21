@@ -7,9 +7,8 @@
 
 #include "setRegions.hpp"
 
-using namespace std;
 
-void seek_to(int& i, const vector<string>& chr, const vector<int>& pos, const string& target_chr, const int target_pos){
+void seek_to(int& i, const std::vector<std::string>& chr, const std::vector<int>& pos, const std::string& target_chr, const int target_pos){
 	while( chr[i] != target_chr && i < chr.size() - 1 ){
 		i++;
 	}
@@ -24,18 +23,18 @@ void seek_to(int& i, const vector<string>& chr, const vector<int>& pos, const st
 
 void block_intervals::make_blocks(bed_data& bdat, genotype_data& gdat, const int& ws){
 
-	vector<string>& chr_b = bdat.chr;
-	vector<int>& start_b = bdat.start; 
-	vector<int>& end_b = bdat.end; 
+	std::vector<std::string>& chr_b = bdat.chr;
+	std::vector<int>& start_b = bdat.start; 
+	std::vector<int>& end_b = bdat.end; 
 	
-	vector<string>& chr_g = gdat.chr; 
-	vector<int>& pos_g = gdat.pos;
+	std::vector<std::string>& chr_g = gdat.chr; 
+	std::vector<int>& pos_g = gdat.pos;
 
-	vector<int>& b_s_b = bdat.block_s;
-	vector<int>& b_e_b = bdat.block_e;
+	std::vector<int>& b_s_b = bdat.block_s;
+	std::vector<int>& b_e_b = bdat.block_e;
 	
-	vector<int>& v_s_b = bdat.v_s;
-	vector<int>& v_e_b = bdat.v_e;
+	std::vector<int>& v_s_b = bdat.v_s;
+	std::vector<int>& v_e_b = bdat.v_e;
 	
 
 	bool block_by_variant = false; 
@@ -48,26 +47,28 @@ void block_intervals::make_blocks(bed_data& bdat, genotype_data& gdat, const int
 	int n_b = chr_b.size();
 	int n_g = chr_g.size();
 	
-	bcf_id_s = vector<int>(n_g,-1);
-	bcf_id_e = vector<int>(n_g,-1);
+	bcf_id_s = std::vector<int>(n_g,-1);
+	bcf_id_e = std::vector<int>(n_g,-1);
 	
-	bed_id_s = vector<int>(n_b,-1);
-	bed_id_e = vector<int>(n_b,-1);
+	bed_id_s = std::vector<int>(n_b,-1);
+	bed_id_e = std::vector<int>(n_b,-1);
 	
-	b_s_b = vector<int>(n_b,-1);
-	b_e_b = vector<int>(n_b,-1);
+	b_s_b = std::vector<int>(n_b,-1);
+	b_e_b = std::vector<int>(n_b,-1);
 	
-	v_s_b = vector<int>(n_b,-1);
-	v_e_b = vector<int>(n_b,-1);
+	v_s_b = std::vector<int>(n_b,-1);
+	v_e_b = std::vector<int>(n_b,-1);
 	
 	int i_b = 0; int i_g = 0;
 	int i_b_e = 0; int i_g_e = 0;
+	
+	double magic_fraction = 0.8;
 	
 	while( i_b < n_b ){
 		
 		i_b_e = i_b;
 		
-		seek_to(i_b_e, chr_b, start_b, chr_b[i_b], end_b[i_b] + 0.75 * window);
+		seek_to(i_b_e, chr_b, start_b, chr_b[i_b], end_b[i_b] + magic_fraction * window);
 		seek_to(i_g, chr_g, pos_g, chr_b[i_b], start_b[i_b] - window);
 		
 		if( chr_g[i_g] == chr_b[i_b] ){
@@ -89,7 +90,7 @@ void block_intervals::make_blocks(bed_data& bdat, genotype_data& gdat, const int
 					bcf_id_e[j] = block_id;
 				}
 				
-				string region = chr_g[i_g] + ":" + to_string(pos_g[i_g]) + "-" + to_string(pos_g[i_g_e]);
+				std::string region = chr_g[i_g] + ":" + std::to_string(pos_g[i_g]) + "-" + std::to_string(pos_g[i_g_e]);
 				
 				bcf_regions.push_back(region);
 	
@@ -112,6 +113,7 @@ void block_intervals::make_blocks(bed_data& bdat, genotype_data& gdat, const int
 			}
 		}
 		i_b = i_b_e + 1;
+		// std::cerr << block_id << " blocks ...\n";
 	}
 }
 

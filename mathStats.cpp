@@ -1,6 +1,5 @@
 #include "mathStats.hpp"
 
-using namespace std;
 
 double p_bd = 1e-300;
 double q_bd = 3e+299;
@@ -71,14 +70,14 @@ double pchisq(double x, double df, bool lower){
 	return boost::math::cdf(CHISQ, x);
 }
 
-double ACAT(const vector<double>& pvals){
+double ACAT(const std::vector<double>& pvals){
 	long double sum_c = 0.0;
 	double n = pvals.size();
 	for( const double& p: pvals ){
 		if( p >= 1 ){
 			sum_c += (qcauchy(1 - 1/n, true)/n);
 		}else if( p <= 0 ){
-			cerr << "ACAT failed; input pval <= 0. \n";
+			std::cerr << "ACAT failed; input pval <= 0. \n";
 			exit(1);
 		}else{
 			sum_c += (qcauchy(p, true)/n);
@@ -87,7 +86,7 @@ double ACAT(const vector<double>& pvals){
 	return pcauchy(sum_c, true);
 }
 
-double ACAT(const vector<double>& pvals,const vector<double>& weights){
+double ACAT(const std::vector<double>& pvals,const std::vector<double>& weights){
 	long double sum_c = 0.0;
 	long double denom = 0.0;
 	double n = pvals.size();
@@ -102,7 +101,7 @@ double ACAT(const vector<double>& pvals,const vector<double>& weights){
 		if( p >= 1 ){
 			sum_c += (weights[i] * qcauchy(1 - 1/n, true) / denom);
 		}else if( p <= 0 ){
-			cerr << "ACAT failed; input pval <= 0. \n";
+			std::cerr << "ACAT failed; input pval <= 0. \n";
 			exit(1);
 		}else{
 			sum_c += (weights[i] * qcauchy(p, true) / denom);
@@ -112,15 +111,15 @@ double ACAT(const vector<double>& pvals,const vector<double>& weights){
 	return pcauchy(sum_c, true);
 }
 
-vector<double> filter_lt( const vector<double>& p, double thresh){
-	vector<double> out;
+std::vector<double> filter_lt( const std::vector<double>& p, double thresh){
+	std::vector<double> out;
 	for( const double& x : p ){
 		if( x > thresh ) out.push_back(x);
 	}
 	return out;
 }
 
-double ACAT_non_missing( const vector<double>& pvals){
+double ACAT_non_missing( const std::vector<double>& pvals){
 	long double sum_c = 0.0;
 	double n = 0;
 	double n_p1 = 0;
@@ -147,17 +146,17 @@ double ACAT_non_missing( const vector<double>& pvals){
 }
 
 
-vector<int> rank_vector(const vector<double>& v)
+std::vector<int> rank_vector(const std::vector<double>& v)
 {
 	// This code is adapted from stackoverflow:
 	// https://stackoverflow.com/questions/30822729/create-ranking-for-vector-of-double
 	
-    vector<size_t> w(v.size());
+    std::vector<size_t> w(v.size());
     iota(begin(w), end(w), 0);
     sort(begin(w), end(w), 
         [&v](size_t i, size_t j) { return v[i] < v[j]; });
 
-    vector<int> r(w.size());
+    std::vector<int> r(w.size());
     for (size_t n, i = 0; i < w.size(); i += n)
     {
         n = 1;

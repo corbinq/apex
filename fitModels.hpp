@@ -22,7 +22,6 @@
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
 
-using namespace std;
 
 double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
 
@@ -59,8 +58,8 @@ class LMM_fitter{
 			double sigma2_ = (y_tilde.dot(Di * y_tilde) - XtDy.dot(b))/df_resid;
 			
 			double ll = 0.5*(
-				df_resid*log(sigma2_) + 
-				vals.array().log().sum() + log(XtDX.determinant()) + 1.0
+				df_resid*std::log(sigma2_) + 
+				vals.array().log().sum() + std::log(XtDX.determinant()) + 1.0
 			);
 			
 			return ll;
@@ -110,7 +109,7 @@ class ss_lm_single
 			SSR = SSR_;
 			df = df_;
 			beta = U_/V_;
-			se = sqrt((SSR_/V_ - beta*beta)/( df - 1 ));
+			se = std::sqrt((SSR_/V_ - beta*beta)/( df - 1 ));
 			beta *= scale_;
 			se *= scale_;
 			pval = -99;
@@ -122,7 +121,7 @@ class ss_lm_single
 			}
 		};
 		
-		ss_lm_single(const vector<ss_lm_single>& ss_per_study){
+		ss_lm_single(const std::vector<ss_lm_single>& ss_per_study){
 			beta = 0; se = 0; df = 0; 
 			U = 0; V = 0; SSR = 0;
 			pval = 1.0;
@@ -142,7 +141,7 @@ class ss_lm_single
 				}
 			}
 			beta /= denom_beta;
-			se = sqrt(1/denom_beta);
+			se = std::sqrt(1/denom_beta);
 			U /= denom;
 			V /= denom;
 			SSR /= denom;
@@ -168,7 +167,7 @@ class svar_sumstat
 	
 	double SCALE_Y_SD;
 	
-	vector<int> c;
+	std::vector<int> c;
 	
 	Eigen::MatrixXd V_c;
 	Eigen::MatrixXd C_c;
@@ -187,16 +186,16 @@ class svar_sumstat
 		DF = DF_; SSR = SSR_;
 		DF_0 = DF; SSR_0 = SSR;
 		SCALE_Y_SD = SCALE_Y_SD_;
-		// cout << DF << "\t" << SSR << "\n";
+		// std::cout << DF << "\t" << SSR << "\n";
 		return;
 	};
 	
-	void condition_on( const vector<int>& k, const Eigen::MatrixXd& C_k ){
+	void condition_on( const std::vector<int>& k, const Eigen::MatrixXd& C_k ){
 		
 		int nk = k.size();
 		int nc = c.size();
 		if( C_k.rows() != U.size() || C_k.cols() != nk ){
-			cerr << "\n\nFatal covar dim: " << C_k.rows() << "," << C_k.cols() << " != " << U.size() << "," << C_k.cols() << "\n\n";
+			std::cerr << "\n\nFatal covar dim: " << C_k.rows() << "," << C_k.cols() << " != " << U.size() << "," << C_k.cols() << "\n\n";
 			abort();
 		}
 		
@@ -207,16 +206,16 @@ class svar_sumstat
 			V_k(i, i) = V(k[i]);
 			for( int j = 0; j < c.size(); j++){
 				// omit this later
-				if( abs(C_k(c[j], i) - C_c(k[i], j)) > 0.0001 ){
-					cerr << "\n\nFatal covar mismatch: " << C_k(c[j], i) << ", " << C_c(k[i], j) << "\n\n";
+				if( std::abs(C_k(c[j], i) - C_c(k[i], j)) > 0.0001 ){
+					std::cerr << "\n\nFatal covar mismatch: " << C_k(c[j], i) << ", " << C_c(k[i], j) << "\n\n";
 					abort();
 				}
 				V_ck(j, i) = C_k(c[j], i);
 			}
 			for( int j = i; j < nk; j++){
 				// omit this later
-				if( abs(C_k(k[j], i) - C_k(k[i], j)) > 0.0001 ){
-					cerr << "\n\nFatal covar mismatch: " << C_k(k[j], i) << ", " << C_k(k[i], j) << "\n\n";
+				if( std::abs(C_k(k[j], i) - C_k(k[i], j)) > 0.0001 ){
+					std::cerr << "\n\nFatal covar mismatch: " << C_k(k[j], i) << ", " << C_k(k[i], j) << "\n\n";
 					abort();
 				}
 				V_k(i, j) = C_k(k[j], i);
@@ -248,14 +247,14 @@ class svar_sumstat
 			
 		U = U_0 - CVc_i * U_c;
 		
-		// cout << U(k[0]) << "\n";
+		// std::cout << U(k[0]) << "\n";
 		
 		V = V_0 - C_c.cwiseProduct(CVc_i).rowwise().sum();
 		
 		return;
 	};
 	
-	void condition_on_subset( const vector<int>& k ){
+	void condition_on_subset( const std::vector<int>& k ){
 		
 		int nk = k.size();
 		
@@ -277,7 +276,7 @@ class svar_sumstat
 	
 	void drop_snp( int i ){
 		
-		vector<int> k = seq_int(c.size());
+		std::vector<int> k = seq_int(c.size());
 		k.erase(k.begin() + i);
 		
 		condition_on_subset(k);
@@ -290,7 +289,7 @@ class svar_sumstat
 	ss_lm_single final_model(const int& c_i){
 		
 		if( c_i > c.size() ){
-			cerr << "Attempted SNP #" << c_i << " in a " << c.size() << " SNP model.\n";
+			std::cerr << "Attempted SNP #" << c_i << " in a " << c.size() << " SNP model.\n";
 			abort();
 		}
 		int ii = c[c_i];
@@ -298,21 +297,21 @@ class svar_sumstat
 			return ss_lm_single( U_0(ii), V_0(ii), DF_0, SSR_0 );
 		}
 		
-		vector<int> cc = c;
-		vector<int> cc_i = seq_int(c.size());
+		std::vector<int> cc = c;
+		std::vector<int> cc_i = seq_int(c.size());
 		
 		cc.erase (cc.begin()+c_i);
 		cc_i.erase (cc_i.begin()+c_i);
 		
-		// cout << V_c << "\n\n";
+		// std::cout << V_c << "\n\n";
 		
 		Eigen::MatrixXd V_cc_inv = V_c(cc_i,cc_i).inverse();
 		
-		// cout << V_cc_inv << "\n\n";
+		// std::cout << V_cc_inv << "\n\n";
 		
 		Eigen::VectorXd C_c_i = (C_c.col(c_i))(cc);
 		
-		// cout << C_c_i << "\n\n";
+		// std::cout << C_c_i << "\n\n";
 		
 		return ss_lm_single(
 			U_0(ii) - C_c_i.dot(V_cc_inv* U_0(cc)),
@@ -325,7 +324,7 @@ class svar_sumstat
 	ss_lm_single marginal_model(const int& c_i){
 		
 		if( c_i > c.size() ){
-			cerr << "Attempted SNP #" << c_i << " in a " << c.size() << " SNP model.\n";
+			std::cerr << "Attempted SNP #" << c_i << " in a " << c.size() << " SNP model.\n";
 			abort();
 		}
 		int ii = c[c_i];
@@ -388,15 +387,15 @@ class svar_sumstat
 						}
 					}
 					/*else{
-						cerr << PVAL << ", " << P_VAR(i) << ", " << SSR << ", " << DF << ", " << P_VAR(i)*DF/( SSR - P_VAR(i) ) << "\n\n";
+						std::cerr << PVAL << ", " << P_VAR(i) << ", " << SSR << ", " << DF << ", " << P_VAR(i)*DF/( SSR - P_VAR(i) ) << "\n\n";
 					}*/
 					
 					if( PVAL >= 1){
 						N_PVAL1 += 1;
 					}else if( PVAL < 0 || std::isnan(PVAL) ){
 						
-						cerr << "PVALUE OUT OF BOUNDS:\n";
-						cerr << PVAL << ", " << P_VAR(i) << ", " << SSR << ", " << DF << ", " << P_VAR(i)*DF/( SSR - P_VAR(i) ) << "\n\n";
+						std::cerr << "PVALUE OUT OF BOUNDS:\n";
+						std::cerr << PVAL << ", " << P_VAR(i) << ", " << SSR << ", " << DF << ", " << P_VAR(i)*DF/( SSR - P_VAR(i) ) << "\n\n";
 						abort();
 						
 					}else if( PVAL <= 1e-300 ){
@@ -414,7 +413,7 @@ class svar_sumstat
 				}
 			}
 		}
-		// cout << U(k)/V(k) << "\t" << DF << "\t" << SSR << "\t" << P_VAR(k) << "\n";
+		// std::cout << U(k)/V(k) << "\t" << DF << "\t" << SSR << "\t" << P_VAR(k) << "\n";
 		if( DENOM <= 0 ) DENOM++;
 		double NUDGED_PVAL1 = DENOM >= 4 ? DENOM/(DENOM + 1) : 0.80;
 		
@@ -440,23 +439,23 @@ class svar_sumstat
 class meta_svar_sumstat
 {
 	private:
-		vector<svar_sumstat> ss;
+		std::vector<svar_sumstat> ss;
 		
 		vcov_getter& vg;
-		vector<double>& ivw;
-		vector<Eigen::MatrixXd> covar;
+		std::vector<double>& ivw;
+		std::vector<Eigen::MatrixXd> covar;
 		int nvar;
 		int n_studies;
 		
 		bool init_0;
 		
 	public:
-		vector<int> kept_snps;
+		std::vector<int> kept_snps;
 		
 		svar_sumstat ss_meta;
 		svar_sumstat ss_meta_0;
 	
-		// void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const vector<svar_sumstat>& vss = ss, const svar_sumstat& mss = ss_meta){
+		// void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const std::vector<svar_sumstat>& vss = ss, const svar_sumstat& mss = ss_meta){
 		void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
 			
 			if( ss_meta.V(k) <= 0 || ss_meta.V_0(k) <= 0 || ss_meta.V(k)/ss_meta.V_0(k) < 1.0 - global_opts::RSQ_PRUNE ){
@@ -568,7 +567,7 @@ class meta_svar_sumstat
 			return;
 		};
 		
-		void triform_pval(double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const vector<ss_lm_single>& vss, const ss_lm_single& mss){
+		void triform_pval(double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const std::vector<ss_lm_single>& vss, const ss_lm_single& mss){
 			
 			// Calculate homogeneous-effect p-value.
 			pval_hom = mss.pval;
@@ -690,7 +689,7 @@ class meta_svar_sumstat
 					}
 				}
 			}
-			// cout << U(k)/V(k) << "\t" << DF << "\t" << SSR << "\t" << P_VAR(k) << "\n";
+			// std::cout << U(k)/V(k) << "\t" << DF << "\t" << SSR << "\t" << P_VAR(k) << "\n";
 			if( DENOM <= 0 || NUMER == 0.0 ){
 				k = -1; min_omni_p = -99; acat_omni_p = -99;
 			}else{
@@ -702,10 +701,10 @@ class meta_svar_sumstat
 			return;
 		}
 		
-		meta_svar_sumstat(vcov_getter& vg_, vector<double>& ivw_) : init_0(false), vg(vg_), ivw(ivw_) {n_studies = ivw.size();};
+		meta_svar_sumstat(vcov_getter& vg_, std::vector<double>& ivw_) : init_0(false), vg(vg_), ivw(ivw_) {n_studies = ivw.size();};
 		
 		void add_sstat(const Eigen::VectorXd& U_, const Eigen::VectorXd& V_, const double& DF_, const double& SSR_, const double& SCALE_Y_SD_ = 1.0){
-			// cout << DF_ << "\t" << SSR_ << "\n";
+			// std::cout << DF_ << "\t" << SSR_ << "\n";
 			ss.push_back( svar_sumstat(U_,V_,DF_,SSR_,SCALE_Y_SD_) );
 			nvar = ss[0].U.size();
 		};
@@ -728,9 +727,9 @@ class meta_svar_sumstat
 			U_ /= DENOM;
 			V_ /= DENOM;
 			SSR_ /= DENOM;
-			SCALE_Y_SD_ = sqrt(SCALE_Y_SD_/DENOM);
+			SCALE_Y_SD_ = std::sqrt(SCALE_Y_SD_/DENOM);
 			
-			// cout << DF_ << "\n";
+			// std::cout << DF_ << "\n";
 			
 			ss_meta = svar_sumstat(U_,V_,DF_,SSR_,SCALE_Y_SD_);
 			
@@ -753,14 +752,14 @@ class meta_svar_sumstat
 			kept_snps.erase(kept_snps.begin() + i);
 		}
 		
-		void condition_on_subset(const vector<int>& vi){
+		void condition_on_subset(const std::vector<int>& vi){
 			for( svar_sumstat& ss_i : ss ){
 				ss_i.condition_on_subset(vi);
 			}
 		}
 		
 		ss_lm_single final_model(const int& c_i){
-			vector<ss_lm_single> lm_singles;
+			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.final_model(c_i));
 			}
@@ -768,7 +767,7 @@ class meta_svar_sumstat
 		}
 		
 		ss_lm_single final_model_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
-			vector<ss_lm_single> lm_singles;
+			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.final_model(k));
 			}
@@ -778,7 +777,7 @@ class meta_svar_sumstat
 		};
 				
 		ss_lm_single marginal_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
-			vector<ss_lm_single> lm_singles;
+			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.marginal_model(k));
 			}
@@ -791,15 +790,15 @@ class meta_svar_sumstat
 class lm_output
 {
 	public:
-		vector<string> variable;
+		std::vector<std::string> variable;
 		
-		vector<double> beta;
-		vector<double> se;
-		vector<double> pval;
+		std::vector<double> beta;
+		std::vector<double> se;
+		std::vector<double> pval;
 		
 		double df;
-		string name;
-		string info;
+		std::string name;
+		std::string info;
 		
 		void push_back(double,double,double);
 		void print_coefs();
@@ -809,26 +808,26 @@ class lm_output
 class forward_lm
 {
 	public:
-		vector<string> variable;
+		std::vector<std::string> variable;
 		
-		vector<double> beta;
-		vector<double> se;
-		vector<double> beta_0;
-		vector<double> se_0;
-		vector<double> pval_0;
-		vector<double> pval_seq;
-		vector<double> pval_joint;
-		vector<double> pval_adj;
+		std::vector<double> beta;
+		std::vector<double> se;
+		std::vector<double> beta_0;
+		std::vector<double> se_0;
+		std::vector<double> pval_0;
+		std::vector<double> pval_seq;
+		std::vector<double> pval_joint;
+		std::vector<double> pval_adj;
 		
-		vector<vector<int>> buddy_list;
-		vector<vector<double>> corr_list; 
+		std::vector<std::vector<int>> buddy_list;
+		std::vector<std::vector<double>> corr_list; 
 		
-		vector<int> keep;
-		vector<vector<int>> conditioned;
+		std::vector<int> keep;
+		std::vector<std::vector<int>> conditioned;
 		
 		double df;
-		string name;
-		string info;
+		std::string name;
+		std::string info;
 		
 		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, vcov_getter& vget, double pval_thresh);
 		
@@ -838,7 +837,7 @@ class forward_lm
 		void print_coefs();
 };
 
-lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev = 1.0, const Eigen::VectorXd& U_0 = vec0, const Eigen::MatrixXd& J_0 = mat0, const Eigen::MatrixXd& Cov = vec0, const bool& check_filter = true, const vector<bool>& exclude = vector<bool>(0));
+lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev = 1.0, const Eigen::VectorXd& U_0 = vec0, const Eigen::MatrixXd& J_0 = mat0, const Eigen::MatrixXd& Cov = vec0, const bool& check_filter = true, const std::vector<bool>& exclude = std::vector<bool>(0));
 
 #endif
 

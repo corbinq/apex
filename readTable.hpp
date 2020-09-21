@@ -29,7 +29,6 @@
 
 #include <Eigen/Dense>
 
-using namespace std;
 
 class table
 {
@@ -37,7 +36,7 @@ class table
 		int header_line;
 	
 		int id_column;
-		string id_column_name;
+		std::string id_column_name;
 		
 		int n_rows;
 		int n_cols;
@@ -47,8 +46,8 @@ class table
 		
 		Eigen::MatrixXd data_matrix;
 		
-		void setRows(vector<string>&);
-		void setCols(vector<string>&);
+		void setRows(std::vector<std::string>&);
+		void setCols(std::vector<std::string>&);
 		void readFile(const char*);
 		void readHeader(const char*);
 };

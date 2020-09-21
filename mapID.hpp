@@ -20,24 +20,23 @@
 #include "miscUtils.hpp"
 #include "setOptions.hpp"
 
-using namespace std;
 
-vector<string> intersect_ids(vector<string>, vector<string>);
+std::vector<std::string> intersect_ids(std::vector<std::string>, std::vector<std::string>);
 
 class id_map
 {
 	public:
-		unordered_set<string> keep_set;
+		std::unordered_set<std::string> keep_set;
 	
-		vector<string> file;
-		vector<string> keep;
-		vector<int> idx;
-		vector<int> idx_f2k;
+		std::vector<std::string> file;
+		std::vector<std::string> keep;
+		std::vector<int> idx;
+		std::vector<int> idx_f2k;
 		
 		void makeIndex();
-		bool tryKeep(string&);
-		void setFileIDs(vector<string>&);
-		void setKeepIDs(vector<string>&);
+		bool tryKeep(std::string&);
+		void setFileIDs(std::vector<std::string>&);
+		void setKeepIDs(std::vector<std::string>&);
 		
 		int n();
 };

@@ -9,14 +9,13 @@
 
 #include "setOptions.hpp"
 
-using namespace std;
 
 
 namespace global_opts
 {
 	
 	// GENERAL OPTIONS
-		string out_prefix = "";
+		std::string out_prefix = "";
 		bool low_mem = false;
 	
 	// INPUT OPTIONS 
@@ -81,11 +80,11 @@ namespace global_opts
 	// GENE SUBSETTING OPTIONS
 	
 		bool filter_genes;
-		vector<string> target_genes;
+		std::vector<std::string> target_genes;
 		
 	// GLOBAL VALUES
 	
-		unordered_map<string,int> i_chrom_map({
+		std::unordered_map<std::string,int> i_chrom_map({
 			{"1" , 1},{"2" , 2},{"3" , 3},{"4" , 4},
 			{"5" , 5},{"6" , 6},{"7" , 7},{"8" , 8},
 			{"9" , 9},{"10" , 10},{"11" , 11},{"12" , 12},
@@ -103,7 +102,7 @@ namespace global_opts
 		});
 }
 
-bool global_opts::process_global_opts( const string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const vector<string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
+bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
 	out_prefix = pfx;
 	low_mem = low_memory;
 	cis_window_bp = window;

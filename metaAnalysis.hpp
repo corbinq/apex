@@ -13,79 +13,78 @@
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
 
-using namespace std;
 
 class cis_sumstat_data
 {
 	public:
-		string file_prefix;
-		string region;
+		std::string file_prefix;
+		std::string region;
 	
 		lindex ln;
 	
-		vector<string> chr; 
-		vector<int> start; 
-		vector<int> end;
-		vector<string> gene_id;
+		std::vector<std::string> chr; 
+		std::vector<int> start; 
+		std::vector<int> end;
+		std::vector<std::string> gene_id;
 		
-		vector<double> egene_pval;
+		std::vector<double> egene_pval;
 		
-		vector<int> NS;
-		vector<int> NC;
-		vector<double> SD;
+		std::vector<int> NS;
+		std::vector<int> NC;
+		std::vector<double> SD;
 		
-		vector<int> S_CIS;
-		vector<int> N_CIS; 
+		std::vector<int> S_CIS;
+		std::vector<int> N_CIS; 
 		
-		vector<Eigen::VectorXd> score;
+		std::vector<Eigen::VectorXd> score;
 		
 		int n_genes;
 
-		cis_sumstat_data(const string&,const string& reg = "");
-		void open(const string&,const string& reg = "");
+		cis_sumstat_data(const std::string&,const std::string& reg = "");
+		void open(const std::string&,const std::string& reg = "");
 };
 
 class vcov_meta_data
 {
 	public:
-		vector<vcov_data> vc;
+		std::vector<vcov_data> vc;
 		
-		vector<string> chr;
-		vector<int> pos;
-		vector<string> ref;
-		vector<string> alt;
+		std::vector<std::string> chr;
+		std::vector<int> pos;
+		std::vector<std::string> ref;
+		std::vector<std::string> alt;
 		
-		vector<double> mac;
-		vector<double> var;
+		std::vector<double> mac;
+		std::vector<double> var;
 		
-		vector<vector<double>> var_perStudy;
+		std::vector<std::vector<double>> var_perStudy;
 		
 		// indexes for shared variants within each study
 			// si[i][j] = the index of the jth shared snp
 			//                     within the list of snps for study i 
-		vector<vector<int>> si; 
+		std::vector<std::vector<int>> si; 
 		
 		// one vector per study, indicating whether flipped relative to study #1
-		vector<vector<bool>> sflipped;
+		std::vector<std::vector<bool>> sflipped;
 		
 		vcov_meta_data() {};
-		vcov_meta_data(const vector<string>& v_fn, const string& reg = ""){
+		vcov_meta_data(const std::vector<std::string>& v_fn, const std::string& reg = ""){
 			open(v_fn, reg);
 		};
 		
-		void open(const vector<string>& v_fn, const string& reg = "");
+		void open(const std::vector<std::string>& v_fn, const std::string& reg = "");
 		
-		Eigen::MatrixXd getGtG(const vector<int>&, const vector<double>& w = vector<double>(0), const vector<int>& sl = vector<int>(0) );
-		Eigen::MatrixXd getV(const vector<int>&, const vector<double>& w = vector<double>(0), const vector<int>& sl = vector<int>(0) );
+		Eigen::MatrixXd getGtG(const std::vector<int>&, const std::vector<double>& w = std::vector<double>(0), const std::vector<int>& sl = std::vector<int>(0) );
+		Eigen::MatrixXd getV(const std::vector<int>&, const std::vector<double>& w = std::vector<double>(0), const std::vector<int>& sl = std::vector<int>(0) );
 		
-		Eigen::MatrixXd getGtG(const vector<int>&,const vector<int>&, const vector<double>& w = vector<double>(0), const vector<int>& sl = vector<int>(0) );
-		Eigen::MatrixXd getV(const vector<int>&,const vector<int>&, const vector<double>& w = vector<double>(0), const vector<int>& sl = vector<int>(0) );
+		Eigen::MatrixXd getGtG(const std::vector<int>&,const std::vector<int>&, const std::vector<double>& w = std::vector<double>(0), const std::vector<int>& sl = std::vector<int>(0) );
+		Eigen::MatrixXd getV(const std::vector<int>&,const std::vector<int>&, const std::vector<double>& w = std::vector<double>(0), const std::vector<int>& sl = std::vector<int>(0) );
 		
-		Eigen::MatrixXd getGtG_perStudy(const int&, const vector<int>&);
-		Eigen::MatrixXd getV_perStudy(const int&, const vector<int>&);
+		Eigen::MatrixXd getGtG_perStudy(const int&, const std::vector<int>&);
+		Eigen::MatrixXd getV_perStudy(const int&, const std::vector<int>&);
 		
-		Eigen::MatrixXd getGtG_perStudy(const int&, const vector<int>&,const vector<int>&);
-		Eigen::MatrixXd getV_perStudy(const int&, const vector<int>&,const vector<int>&);
+		Eigen::MatrixXd getGtG_perStudy(const int&, const std::vector<int>&,const std::vector<int>&);
+		Eigen::MatrixXd getV_perStudy(const int&, const std::vector<int>&,const std::vector<int>&);
 		
 	private:
 		void build_index();
@@ -95,58 +94,61 @@ class vcov_meta_data
 class cis_meta_data
 {
 	public:
-		vector<cis_sumstat_data> ss;
+		std::vector<cis_sumstat_data> ss;
 		
 		vcov_meta_data vc;
 		
-		vector<string> chr; 
-		vector<int> start; 
-		vector<int> end;
-		vector<string> gene_id;
+		std::vector<std::string> chr; 
+		std::vector<int> start; 
+		std::vector<int> end;
+		std::vector<std::string> gene_id;
 		
-		vector<vector<int>> study_list;
+		std::vector<std::vector<int>> study_list;
 		
-		vector<double> egene_pval;
+		std::vector<double> egene_pval;
 
-		vector<double> N;
-		vector<double> DF;
-		vector<double> SD;
-		vector<double> ADJ;
+		std::vector<double> N;
+		std::vector<double> DF;
+		std::vector<double> SD;
+		std::vector<double> ADJ;
 		
-		vector<int> S_CIS;
-		vector<int> N_CIS;
+		std::vector<int> S_CIS;
+		std::vector<int> N_CIS;
 		
-		vector<vector<double>> ivw;
-		vector<vector<double>> SD_perStudy;
-		vector<vector<double>> SSR_perStudy;
-		vector<vector<double>> DF_perStudy;
+		std::vector<std::vector<double>> ivw;
+		std::vector<std::vector<double>> SD_perStudy;
+		std::vector<std::vector<double>> SSR_perStudy;
+		std::vector<std::vector<double>> DF_perStudy;
 		
-		vector<Eigen::VectorXd> score;
-		vector<Eigen::VectorXd> var_score;
+		std::vector<Eigen::VectorXd> score;
+		std::vector<Eigen::VectorXd> var_score;
 		
-		vector<vector<Eigen::VectorXd>> score_perStudy;
-		vector<vector<Eigen::VectorXd>> var_score_perStudy;
+		std::vector<std::vector<Eigen::VectorXd>> score_perStudy;
+		std::vector<std::vector<Eigen::VectorXd>> var_score_perStudy;
 		
 		cis_meta_data() {};
-		cis_meta_data(const vector<string>& v_fn, const string& reg = "" ){
+		cis_meta_data(const std::vector<std::string>& v_fn, const std::string& reg = "" ){
 			vc.open(v_fn, reg);
 			open(v_fn, reg);
 			merge(vc.si, vc.sflipped);
 		};
 		
-		void merge_intersection(const vector<vector<int>>&, const vector<vector<bool>>&);
-		void merge(const vector<vector<int>>&, const vector<vector<bool>>&);
+		void merge_intersection(const std::vector<std::vector<int>>&, const std::vector<std::vector<bool>>&);
+		void merge(const std::vector<std::vector<int>>&, const std::vector<std::vector<bool>>&);
 		void meta_analyze();
-		void conditional_analysis(const int&, ostream&, ostream&);
+		
+		void conditional_analysis(const int&, std::ostream&, std::ostream&);
 		void conditional_analysis();
-		void conditional_analysis_het(const int&, ostream&);
+		void conditional_analysis_het(const int&, std::ostream&);
 		void conditional_analysis_het();
 		
-		void add_study(const string& fn, const string& reg = ""){
+		void get_vcov_gene(const int& gene_index, const bool& centered = true);
+		
+		void add_study(const std::string& fn, const std::string& reg = ""){
 			ss.push_back( cis_sumstat_data(fn, reg) );
 		};
-		void open(const vector<string>& v_fn, const string& reg = ""){
-			for( const string& fn : v_fn ){ add_study(fn,reg); }
+		void open(const std::vector<std::string>& v_fn, const std::string& reg = ""){
+			for( const std::string& fn : v_fn ){ add_study(fn,reg); }
 		};
 		
 	private:
@@ -160,10 +162,10 @@ class cis_meta_data
 		double diagV(const int& g, const int& i){
 			double dv_val = 0;
 			for( const int& s : study_list[g] ){
-				// cout << SD_perStudy[g][s] << ", " << vc.var_perStudy[S_CIS[g] + i][s] << "\n";
+				// std::cout << SD_perStudy[g][s] << ", " << vc.var_perStudy[S_CIS[g] + i][s] << "\n";
 				dv_val += diagV_perStudy(g,i,s) * ivw[g][s];
 			}
-			// cout << dv_val << "\n";
+			// std::cout << dv_val << "\n";
 			return dv_val;
 		}
 		
@@ -175,8 +177,8 @@ class cis_meta_data
 			return out;
 		}
 		
-		vector<double> ivw_weight_H1(const int& g, const int& i){
-			vector<double> ivw_H1(ss.size());
+		std::vector<double> ivw_weight_H1(const int& g, const int& i){
+			std::vector<double> ivw_H1(ss.size());
 			for( const int& s : study_list[g] ){
 				double sc = score_perStudy[g][s](i);
 				ivw_H1[s] = (DF_perStudy[g][s]-1)/(SSR_perStudy[g][s] - sc*sc/diagV_perStudy(g,i,s) );
@@ -185,28 +187,28 @@ class cis_meta_data
 		}
 		
 		const int& pos(const int& i){ return vc.pos[i];};
-		const string& ref(const int& i){ return vc.ref[i];};
-		const string& alt(const int& i){ return vc.alt[i];};
+		const std::string& ref(const int& i){ return vc.ref[i];};
+		const std::string& alt(const int& i){ return vc.alt[i];};
 };
 
 
 class vcov_getter
 {
 	private:
-		vector<double>& ivw;
+		std::vector<double>& ivw;
 		vcov_meta_data& vc;
 		int s_var;
 		int n_var;
 		
-		vector<int> use_studies;
+		std::vector<int> use_studies;
 		
-		vector<int> R_CIS;
-		vector<int> add(vector<int> inp, const int& s){
+		std::vector<int> R_CIS;
+		std::vector<int> add(std::vector<int> inp, const int& s){
 			for( int &i : inp ){i += s;}
 			return inp;
 		}
 	public:
-		vcov_getter(vcov_meta_data& vc_, vector<double>& ivw_, int s_var_, int n_var_) : 
+		vcov_getter(vcov_meta_data& vc_, std::vector<double>& ivw_, int s_var_, int n_var_) : 
 			vc(vc_), ivw(ivw_), s_var(s_var_), n_var(n_var_)
 		{
 			for(int i = 0; i < n_var; i++){
@@ -216,18 +218,19 @@ class vcov_getter
 				use_studies.push_back(s);
 			}
 		};
-		vcov_getter(vcov_meta_data& vc_, vector<double>& ivw_, int s_var_, int n_var_, vector<int> use_studies_) : 
+		vcov_getter(vcov_meta_data& vc_, std::vector<double>& ivw_, int s_var_, int n_var_, std::vector<int> use_studies_) : 
 			vc(vc_), ivw(ivw_), s_var(s_var_), n_var(n_var_), use_studies(use_studies_)
 		{
 			for(int i = 0; i < n_var; i++){
 				R_CIS.push_back(s_var + i);
 			}
 		};
-		Eigen::VectorXd Covar(const int& i){ return vc.getV(R_CIS, vector<int>(1,s_var + i), ivw, use_studies);};
-		Eigen::MatrixXd Var(const vector<int>& wh){ return vc.getV(add(wh, s_var), ivw, use_studies);};
+		Eigen::VectorXd Covar(const int& i){ return vc.getV(R_CIS, std::vector<int>(1,s_var + i), ivw, use_studies);};
+		Eigen::MatrixXd Var(const std::vector<int>& wh){ return vc.getV(add(wh, s_var), ivw, use_studies);};
+		Eigen::MatrixXd Var_uncentered(const std::vector<int>& wh){ return vc.getGtG(add(wh, s_var), ivw, use_studies);};
 		
-		Eigen::VectorXd Covar_perStudy(const int& s, const int& i){ return vc.getV_perStudy(use_studies[s], R_CIS, vector<int>(1,s_var + i));};
-		Eigen::MatrixXd Var_perStudy(const int& s, const vector<int>& wh){ return vc.getV_perStudy(use_studies[s], add(wh, s_var) );};
+		Eigen::VectorXd Covar_perStudy(const int& s, const int& i){ return vc.getV_perStudy(use_studies[s], R_CIS, std::vector<int>(1,s_var + i));};
+		Eigen::MatrixXd Var_perStudy(const int& s, const std::vector<int>& wh){ return vc.getV_perStudy(use_studies[s], add(wh, s_var) );};
 };
 
 

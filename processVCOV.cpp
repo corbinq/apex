@@ -1,6 +1,5 @@
 #include "processVCOV.hpp"
 
-using namespace std;
 
 double unflip(const int& f1, const int& f2){
 	if( f1 != f2 ){
@@ -10,7 +9,7 @@ double unflip(const int& f1, const int& f2){
 	}
 }
 
-unsigned int pack_dp(double x, const double& m0, const double& m1){
+unsigned int pack_dp(const double& x, const double& m0, const double& m1){
 	if( m0 > m1 ){
 		return pack_dp(x, m1, m0);
 	}else{
@@ -22,7 +21,7 @@ unsigned int pack_dp(double x, const double& m0, const double& m1){
 	}
 }
 
-double unpack_dp(double x, const double& m0, const double& m1){
+double unpack_dp(const double& x, const double& m0, const double& m1){
 	if( m0 > m1 ){
 		return unpack_dp(x, m1, m0);
 	}else{
@@ -34,44 +33,63 @@ double unpack_dp(double x, const double& m0, const double& m1){
 	}
 }
 
-vcov_bin_gz_out::vcov_bin_gz_out(string fn){
+/*
+vcov_bin_gz_out::vcov_bin_gz_out(std::string fn){
 	open(fn);
 }
 
-void vcov_bin_gz_out::open(string fn){
+void vcov_bin_gz_out::open(std::string fn){
 	file_name = fn;
+	bytes_c = 0;
 	
-	string file_name_gz = file_name + ".gz";
-	fp = bgzf_open(file_name_gz.c_str(), "w\0");
+	if( xz_mode ){
+		buf_size = XZ_BUFFER_SIZE;
+		std::string file_name_xz = file_name + ".xz";
+		
+		fp_xz = shrinkwrap::xz::ostream(file_name_xz.c_str());
+	}else{
+		buf_size = BUFFER_SIZE;
+		std::string file_name_gz = file_name + ".gz";
+		fp = bgzf_open(file_name_gz.c_str(), "w\0");
 
-	bgzf_index_build_init(fp);
+		bgzf_index_build_init(fp);
+	}
 }
+*/
 
 void vcov_bin_gz_out::add_to_queue(vbin_t val){
-	if( queue.size() * sizeof(vbin_t) >= BUFFER_SIZE ){
+	if( queue.size() * sizeof(vbin_t) >= buf_size ){
 		write_queue();
 	}
 	queue.push_back(val);
 }
 
 void vcov_bin_gz_out::write_queue(){
+
+	size_t sz = sizeof(vbin_t);
+	size_t nc = queue.size() * sz;
 	
-	int c = queue.size() * sizeof(vbin_t);
-	
-	int sz = sizeof(vbin_t);
-	
-	void *buffer = malloc(BUFFER_SIZE);
-	
-	for( int ii = 0; ii < queue.size(); ii++ ){
-		((vbin_t*)buffer)[ii] = queue[ii];
+	if( xz_mode ){
+		
+		fp_xz.write(reinterpret_cast<const char*>(queue.data()), nc);
+		fp_xz.flush();
+		
+	}else{
+		
+		void *buffer = malloc(buf_size);
+		
+		for( int ii = 0; ii < queue.size(); ii++ ){
+			((vbin_t*)buffer)[ii] = queue[ii];
+		}
+		
+		if (bgzf_write(fp, buffer, nc) < 0){
+			std::cerr << "Fatal error: Couldn't write to " << file_name << ".gz\n";
+			exit(1);
+		} 
+		
+		free(buffer);
+		
 	}
-	
-	if (bgzf_write(fp, buffer, c) < 0){
-		cerr << "Fatal error: Couldn't write to " << file_name << ".gz\n";
-		exit(1);
-	} 
-	
-	free(buffer);
 	
 	queue.clear();
 }
@@ -80,104 +98,52 @@ void vcov_bin_gz_out::close(){
 	
 	write_queue();
 
-	if ( bgzf_index_dump(fp, file_name.c_str(), ".gz.gzi") < 0 ){
-		cerr << "Fatal error: Couldn't create " << file_name << ".gz.gzi\n";
-		exit(1);
-	}
-
-	if (bgzf_close(fp) < 0){
-		cerr << "Fatal error: Couldn't close " << file_name << ".gz\n";
-		exit(1);
-	}
-}
-
-
-void read_LD_gz_bytes(string file_name)
-{
-	
-	int c;
-    BGZF *fp;
-    void *buffer;
-    long start, end, size;
-	
-    start = 0; size = -1; end = -1;
-
-	vbin_t value;
-	int n_values;
-    
-	if (size >= 0) end = start + size;
-	
-	fp = bgzf_open(file_name.c_str(), "r");
-	
-	buffer = malloc(BUFFER_SIZE);
-
-	if ( bgzf_index_load(fp, file_name.c_str(), ".gzi") < 0 ){
-		cerr << "Fatal error: Couldn't load index file " << file_name << ".gz.gzi\n";
-		exit(1);
-	}
-	
-	if ( bgzf_useek(fp, start, SEEK_SET) < 0 ){
-		cerr << "Fatal error: Couldn't seek to start byte " << start << " in " << file_name << ".gz\n";
-		exit(1);
-	} 
-
-	while (1) {
-		
-		if (end < 0){
-			c = bgzf_read(fp, buffer, BUFFER_SIZE);
-		}else{
-			c = bgzf_read(fp, buffer, (end - start > BUFFER_SIZE)? BUFFER_SIZE:(end - start));
-		}
-		if (c == 0) break;
-		if (c < 0){
-			cerr << "Fatal error reading block starting at " << fp->block_address << "\n";
+	if( !xz_mode ){
+		if ( bgzf_index_dump(fp, file_name.c_str(), ".gz.gzi") < 0 ){
+			std::cerr << "Fatal error: Couldn't create " << file_name << ".gz.gzi\n";
 			exit(1);
 		}
-		start += c;
-		
-		n_values = (int)c/sizeof(vbin_t);
-		
-		for( int i = 0; i < n_values; ++i ){
-			
-			value = *reinterpret_cast<vbin_t*>((char*)buffer+sizeof(vbin_t)*i);
-			
-			cout << value << "\n";
-			
+
+		if (bgzf_close(fp) < 0){
+			std::cerr << "Fatal error: Couldn't close " << file_name << ".gz\n";
+			exit(1);
 		}
-		
-		if (end >= 0 && start >= end) break;
-	}
-	free(buffer);
-	
-	if (bgzf_close(fp) < 0){
-		cerr << "Error: Couldn't close " << file_name << ".gz\n";
-		exit(1);
 	}
 }
 
-vcov_bin_file::vcov_bin_file(string fn){
+vcov_bin_file::vcov_bin_file(std::string fn){
 	open(fn);
 }
 
-void vcov_bin_file::open(string file_name){
+void vcov_bin_file::open(std::string file_name){
 	
-	fp = bgzf_open(file_name.c_str(), "r");
+	is_xz = (file_name.substr( file_name.length() - 2 ) != "gz");
 	
-	if ( bgzf_index_load(fp, file_name.c_str(), ".gzi") < 0 ){
-		cerr << "Error: Couldn't load index file for " << file_name << ".gz\n";
-		exit(1);
+	if(is_xz){
+		
+		fp_xz.open(file_name);
+		
+	}else{
+	
+		fp = bgzf_open(file_name.c_str(), "r");
+		
+		if ( bgzf_index_load(fp, file_name.c_str(), ".gzi") < 0 ){
+			std::cerr << "Error: Couldn't load index file for " << file_name << ".gz\n";
+			exit(1);
+		}
 	}
 }
 
 void vcov_bin_file::close(){
-	if (bgzf_close(fp) < 0){
-		cerr << "Error: Couldn't close " << file_name << ".gz\n";
-		exit(1);
+	if(!is_xz){
+		if (bgzf_close(fp) < 0){
+			std::cerr << "Error: Couldn't close " << file_name << ".gz\n";
+			exit(1);
+		}
 	}
 }
 
-
-vector<vbin_t> vcov_bin_file::get_data(long st, long n_vals){
+std::vector<vbin_t> vcov_bin_file::get_data(long st, long n_vals){
 	
 	int c = 1;
     long start, end, size;
@@ -193,24 +159,32 @@ vector<vbin_t> vcov_bin_file::get_data(long st, long n_vals){
 	
 	void* buffer = malloc(BUFFER_SIZE);
 
-	if ( bgzf_useek(fp, start, SEEK_SET) < 0 ){
-		cerr << "Fatal error: Couldn't seek to byte " << start << " in " << file_name << "\n";
-		exit(1);
-	} 
+	std::vector<vbin_t> out_vec;
 
-	vector<vbin_t> out_vec;
+	if( !is_xz ){
+		if ( bgzf_useek(fp, start, SEEK_SET) < 0 ){
+			std::cerr << "Fatal error: Couldn't seek to byte " << start << " in " << file_name << "\n";
+			exit(1);
+		} 
+	}
 
 	while( start <= end && out_vec.size() < n_vals){
 		
-		if (end < 0){
-			c = bgzf_read(fp, buffer, BUFFER_SIZE);
+		int nbytes = BUFFER_SIZE;
+		
+		if (end >= 0){
+			nbytes = (end - start > BUFFER_SIZE)? BUFFER_SIZE:(end - start);
+		}
+		
+		if( !is_xz ){
+			c = bgzf_read(fp, buffer, nbytes);
 		}else{
-			c = bgzf_read(fp, buffer, (end - start > BUFFER_SIZE)? BUFFER_SIZE:(end - start));
+			c = fp_xz.read(buffer, start, nbytes);
 		}
 		
 		if (c == 0) break;
 		if (c < 0){
-			cerr << "Fatal error reading block starting at " << fp->block_address << "\n";
+			std::cerr << "Fatal error reading from VCOV file.\n";
 			exit(1);
 		}
 		start += c;
@@ -225,24 +199,37 @@ vector<vbin_t> vcov_bin_file::get_data(long st, long n_vals){
 			}
 		}
 	}
+	
 	free(buffer);
 
 	return out_vec;
 }
 
 
-vcov_data::vcov_data(string pf, string reg){
+vcov_data::vcov_data(std::string pf, std::string reg){
 	open(pf, reg);
 }
 
-void vcov_data::open(string pf, string reg){
+bool fileExists(const std::string& filepath) {
+    if (FILE *file = fopen(filepath.c_str(), "r")) {
+        fclose(file);
+        return true;
+    }
+	return false;
+}
+
+void vcov_data::open(std::string pf, std::string reg){
 	
 	file_prefix = pf;
 	region = reg;
 	
-	bin.open(file_prefix + ".vcov.bin.gz");
-
-	string idx_file = file_prefix + ".vcov.idx.gz";
+	if( fileExists(file_prefix + ".vcov.bin") ){
+		bin.open(file_prefix + ".vcov.bin");
+	}else if( fileExists(file_prefix + ".vcov.bin.xz") ){
+		bin.open(file_prefix + ".vcov.bin.xz");
+	}else if( fileExists(file_prefix + ".vcov.bin.gz") ){
+		bin.open(file_prefix + ".vcov.bin.gz");
+	}
 	
 	data_parser dp;
 	
@@ -258,7 +245,7 @@ void vcov_data::open(string pf, string reg){
 	dp.add_field(bin_nvals, 9);
 	dp.add_matrix(GtU, false, 10);
 	
-	dp.parse_file(idx_file, reg);
+	dp.parse_file(file_prefix + ".vcov.idx.gz", reg);
 }
 
 Eigen::MatrixXd vcov_data::getGtG(int i_s, int i_e){
@@ -275,7 +262,7 @@ Eigen::MatrixXd vcov_data::getGtG(int i_s, int i_e){
 		long nv = sz < bin_nvals[k] ? sz : bin_nvals[k];
 		
 		if(  mac_k > 0 ){
-			vector<vbin_t> vals = bin.get_data(bin_start_idx[k] * sizeof(vbin_t), nv);
+			std::vector<vbin_t> vals = bin.get_data(bin_start_idx[k] * sizeof(vbin_t), nv);
 			
 			j = i;
 			for(const vbin_t& v: vals){
@@ -295,14 +282,13 @@ Eigen::MatrixXd vcov_data::getGtG(int i_s, int i_e){
 	return out;
 }
 
-Eigen::MatrixXd vcov_data::getGtG(const vector<int>& v_i, const vector<int>& v_j){
-	int n_row = v_i.size();
-	int n_col = v_j.size();
+Eigen::MatrixXd vcov_data::getGtG(const std::vector<int>& v_i, const std::vector<int>& v_j){
 	
-	int last = v_i[0];
+	int n_row = v_i.size(), n_col = v_j.size();
+	int first = v_i[0], last = v_i[0];
 	for( const auto& x : v_i){
 		if( x < last ){
-			cerr << "Fatal: Unsorted input in getV.\n";
+			std::cerr << "Fatal: Unsorted input in getV.\n";
 			abort();
 		}
 		last = x;
@@ -322,7 +308,7 @@ Eigen::MatrixXd vcov_data::getGtG(const vector<int>& v_i, const vector<int>& v_j
 			long nv = v_i[n_row - 1] - v_i[i] + 1 < bin_nvals[ii] ? v_i[n_row - 1] - v_i[i] + 1 : bin_nvals[ii];
 			
 			if(  mac_ii > 0 ){
-				vector<vbin_t> vals = bin.get_data(bin_start_idx[ii] * sizeof(vbin_t), nv);
+				std::vector<vbin_t> vals = bin.get_data(bin_start_idx[ii] * sizeof(vbin_t), nv);
 				
 				for(int j = i; j < n_row; ++j){
 					int jj = v_i[j] - ii;
@@ -337,7 +323,7 @@ Eigen::MatrixXd vcov_data::getGtG(const vector<int>& v_i, const vector<int>& v_j
 			}
 			i++;
 		}
-		
+
 	}else{
 		out = Eigen::MatrixXd::Zero(n_row, n_col);
 		
@@ -352,30 +338,42 @@ Eigen::MatrixXd vcov_data::getGtG(const vector<int>& v_i, const vector<int>& v_j
 	return out;
 }
 
-Eigen::MatrixXd vcov_data::getV(const vector<int>& v_i, const vector<int>& v_j){
-	int n_row = v_i.size();
-	int n_col = v_j.size();
+Eigen::MatrixXd vcov_data::getV(const std::vector<int>& v_i, const std::vector<int>& v_j){
+	
+	int n_row = v_i.size(), n_col = v_j.size();
+	
+	int first = v_i[0], last = v_i[0];
 	
 	Eigen::MatrixXd out;
 	
 	bool is_sorted = true;
 	
-	int last = v_i[0];
 	for( const auto& x : v_i){
 		if( x < last ){
-			//cerr << "Fatal: Unsorted input in getV.\n";
+			// std::cerr << "Fatal: Unsorted input in getV.\n";
 			// abort();
 			is_sorted = false;
-			break;
+			// break;
 		}
 		last = x;
 	}
+	int nv_total = last - first;
 	
 	if( n_col == 0 ){
 		
-		out = Eigen::MatrixXd::Zero(n_row, n_row);
-		
-		if( is_sorted ){
+		if( n_row >= 250 && n_row >= 0.3*nv_total && is_sorted ){
+			
+			int s_first = bin_start_idx[first];
+			int s_last = bin_start_idx[last];
+			
+			// std::cerr << "\nLoading vcov data ... \n";
+			
+			std::vector<vbin_t> vals = bin.get_data(s_first * sizeof(vbin_t), s_last - s_first + 1);
+			
+			// std::cerr << "Loaded vcov data. Processing matrix ...\n\n";
+
+			out = Eigen::MatrixXd::Zero(n_row, n_row);
+	
 			int i = 0;
 			for(const int& ii : v_i ){
 
@@ -383,15 +381,16 @@ Eigen::MatrixXd vcov_data::getV(const vector<int>& v_i, const vector<int>& v_j){
 				long nv = v_i[n_row - 1] - v_i[i] + 1 < bin_nvals[ii] ? v_i[n_row - 1] - v_i[i] + 1 : bin_nvals[ii];
 				
 				if(  mac_ii > 0 ){
-					vector<vbin_t> vals = bin.get_data(bin_start_idx[ii] * sizeof(vbin_t), nv);
 					
-					for(int j = i; j < n_row; ++j){
+					
+					for(int j = i; j < n_row; j++){
 						int jj = v_i[j] - ii;
+						int jv = v_i[j] - ii + (bin_start_idx[ii] - s_first);
 						if( ii == ii + jj ){
 							out(i,j) = var[ii];
 						}else if( jj < vals.size() ){
 							// out(i,j) = (((double) v) * 2.0 * mac_k)/VBIN_T_MAX;
-							out(i,j) = unpack_dp((double) vals[jj], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
+							out(i,j) = unpack_dp((double) vals[jv], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
 							out(j,i) = out(i,j);
 						}else{
 							break;
@@ -399,16 +398,54 @@ Eigen::MatrixXd vcov_data::getV(const vector<int>& v_i, const vector<int>& v_j){
 					}
 				}
 				i++;
+				// if( i % 1000 == 0 ) std::cerr << i << " rows ...\n";
 			}
+			
+			// std::cerr << "Done processing matrix.\n\n";
+
 		}else{
-			int i = 0, j = 0;
-			for(int i = 0; i < n_row; ++i ){
-				const int& ii = v_i[i];
-				out(i,i) = var[ii];
-				for( int j = i+1; j < n_row; ++j){
-					const int& jj = v_i[j];
-					out(i,j) = getPairV(ii,jj);
-					out(j,i) = out(i,j); 
+			
+			out = Eigen::MatrixXd::Zero(n_row, n_row);
+	
+			if ( is_sorted ){
+				int i = 0;
+				for(const int& ii : v_i ){
+
+					double& mac_ii = mac[ii];
+					long nv = v_i[n_row - 1] - v_i[i] + 1 < bin_nvals[ii] ? v_i[n_row - 1] - v_i[i] + 1 : bin_nvals[ii];
+					
+					if(  mac_ii > 0 ){
+						std::vector<vbin_t> vals = bin.get_data(bin_start_idx[ii] * sizeof(vbin_t), nv);
+						
+						for(int j = i; j < n_row; j++){
+							int jj = v_i[j] - ii;
+							if( ii == ii + jj ){
+								out(i,j) = var[ii];
+							}else if( jj < vals.size() ){
+								// out(i,j) = (((double) v) * 2.0 * mac_k)/VBIN_T_MAX;
+								out(i,j) = unpack_dp((double) vals[jj], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
+								out(j,i) = out(i,j);
+							}else{
+								break;
+							}
+						}
+					}
+					i++;
+					// if( i % 1000 == 0 ) std::cerr << i << " rows ...\n";
+				}
+
+				// std::cerr << "Done processing matrix.\n\n";
+
+			}else{
+				int i = 0, j = 0;
+				for(int i = 0; i < n_row; i++ ){
+					const int& ii = v_i[i];
+					out(i,i) = var[ii];
+					for( int j = i+1; j < n_row; j++ ){
+						const int& jj = v_i[j];
+						out(i,j) = getPairV(ii,jj);
+						out(j,i) = out(i,j); 
+					}
 				}
 			}
 		}
@@ -427,7 +464,7 @@ Eigen::MatrixXd vcov_data::getV(const vector<int>& v_i, const vector<int>& v_j){
 }
 
 
-Eigen::MatrixXd vcov_data::getColGtG(int ii, const vector<int>& v_k ){
+Eigen::MatrixXd vcov_data::getColGtG(int ii, const std::vector<int>& v_k ){
 	
 	int sz = v_k.size();
 	
@@ -508,7 +545,7 @@ Eigen::MatrixXd vcov_data::getV(int i_s, int i_e){
 	return out;
 }
 
-Eigen::MatrixXd vcov_data::getColV(int ii, const vector<int>& v_k){
+Eigen::MatrixXd vcov_data::getColV(int ii, const std::vector<int>& v_k){
 
 	int sz = v_k.size();
 	
@@ -604,7 +641,7 @@ double vcov_data::getPairV(int ii, int jj){
 }
 
 
-Eigen::MatrixXd vcov_data::getV_i(const vector<int>& idx, const int offset){
+Eigen::MatrixXd vcov_data::getV_i(const std::vector<int>& idx, const int offset){
 	
 	Eigen::MatrixXd out(idx.size(), idx.size());
 	
@@ -639,8 +676,8 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 	
 	//Eigen::MatrixXd& UtG = g_data.UtG;
 	
-	string bin_file_path = global_opts::out_prefix + ".vcov.bin";
-	string idx_file_path = global_opts::out_prefix + ".vcov.idx.gz";
+	std::string bin_file_path = global_opts::out_prefix + ".vcov.bin";
+	std::string idx_file_path = global_opts::out_prefix + ".vcov.idx.gz";
 	
 	vcov_bin_gz_out ld_bin_file(bin_file_path);
 	BGZF* ld_idx_file = bgzf_open(idx_file_path.c_str(), "w");
@@ -651,30 +688,30 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 	
 	//Eigen::MatrixXd ld_matrix = G.transpose() * G;
 	
-	vector<double> macs(G.cols()); 
+	std::vector<double> macs(G.cols()); 
 	for(int i = 0; i < G.cols(); ++i){
 		macs[i] = G.col(i).sum(); 
 	}
 	
-	string iter_cerr_suffix = " variants ... ";
+	std::string iter_cerr_suffix = " variants ... ";
 	
-	cerr << "Processed LD for ";
+	std::cerr << "Processed LD for ";
 	
 	int last = 0;
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	
-	string header_string = "# NS=" + to_string(G.rows()) + ",NC=" + to_string(UtG.rows()) + "\n";
+	std::string header_string = "# NS=" + std::to_string(G.rows()) + ",NC=" + std::to_string(UtG.rows()) + "\n";
 	
 	write_to_bgzf(header_string, ld_idx_file);
 	
 	int n_var = 0;
 	for( const auto ld_i : g_data.ld_index_range ){
 	
-		stringstream ld_idx_line;
+		std::stringstream ld_idx_line;
 	
 		ld_idx_line.precision(4);
 	
-		// cout << ld_i.first << ", " << ld_i.second << "\n";
+		// std::cout << ld_i.first << ", " << ld_i.second << "\n";
 	
 		double& mac_i = macs[ld_i.first];
 		
@@ -729,14 +766,14 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 		// if( n_var % 250 == 0 ) print_iter_cerr(n_var - 250, n_var, iter_cerr_suffix);
 		thinned_iter_cerr(last, n_var, iter_cerr_suffix, 250);
 	}
-	cerr << "\rFinished processing LD for " << n_var << " variants.\n";
+	std::cerr << "\rFinished processing LD for " << n_var << " variants.\n";
 	
 	bgzf_close(ld_idx_file);
 	ld_bin_file.close();
 
 	if ( tbx_index_build(idx_file_path.c_str(), 14, &tbx_conf_vcf)!=0 )
 	{
-		cerr << "Fatal error: Couldn't create index " << idx_file_path << ".gz.csi\n";
+		std::cerr << "Fatal error: Couldn't create index " << idx_file_path << ".gz.csi\n";
 		exit(1);
 	}
 	

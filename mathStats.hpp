@@ -19,7 +19,6 @@
 
 #include <Spectra/SymEigsSolver.h>
 
-using namespace std;
 
 double qnorm(double, bool lower = false);
 double pnorm(double, bool lower = false);
@@ -32,13 +31,13 @@ double pchisq(double, double, bool lower = false);
 double qcauchy(double, bool lower = false);
 double pcauchy(double, bool lower = false);
 
-double ACAT(const vector<double>&);
-double ACAT(const vector<double>&,const vector<double>&);
+double ACAT(const std::vector<double>&);
+double ACAT(const std::vector<double>&,const std::vector<double>&);
 
-vector<double> filter_lt( const vector<double>&, double);
-double ACAT_non_missing( const vector<double>&);
+std::vector<double> filter_lt( const std::vector<double>&, double);
+double ACAT_non_missing( const std::vector<double>&);
 
-vector<int> rank_vector(const vector<double>&);
+std::vector<int> rank_vector(const std::vector<double>&);
 
 #endif
 

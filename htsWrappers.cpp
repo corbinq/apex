@@ -1,8 +1,7 @@
 #include "htsWrappers.hpp"
 
-using namespace std;
 
-void indexed_hts_file::open(const string& prefix, const vector<string>& reg)
+void indexed_hts_file::open(const std::string& prefix, const std::vector<std::string>& reg)
 {
 	regions = reg;
 	
@@ -40,15 +39,15 @@ int indexed_hts_file::next_line(kstring_t& str)
 	return 1;
 }
 
-void bcf_seek(bcf_srs_t* sr, const string& chr, const int& start, const int& end){
+void bcf_seek(bcf_srs_t* sr, const std::string& chr, const int& start, const int& end){
 	
-	string region = chr;
+	std::string region = chr;
 	
 	if( start > 0 ){
-		region += ":" + to_string(start);
+		region += ":" + std::to_string(start);
 	}
 	if( end > 0 ){
-		region += "-" + to_string(end);
+		region += "-" + std::to_string(end);
 	}
 	
 	bcf_sr_regions_t *reg = bcf_sr_regions_init(region.c_str(),0,0,1,-2);
@@ -58,7 +57,7 @@ void bcf_seek(bcf_srs_t* sr, const string& chr, const int& start, const int& end
 	return;
 }
 
-void bgzip_file(string file_name, int index){
+void bgzip_file(std::string file_name, int index){
 	
 	// index == 0 => Do not build any index. 
 	// index == 1 => Build gzi byte index. 
@@ -69,7 +68,7 @@ void bgzip_file(string file_name, int index){
 	
 	int f_src = open(file_name.c_str(), O_RDONLY);
 	
-	string file_name_gz = file_name + ".gz";
+	std::string file_name_gz = file_name + ".gz";
 	fp = bgzf_open(file_name_gz.c_str(), "w\0");
 
 	if( index == 1 ) bgzf_index_build_init(fp);
@@ -80,27 +79,27 @@ void bgzip_file(string file_name, int index){
 	
 	while ((c = read(f_src, buffer, BUFFER_SIZE)) > 0){
 		if (bgzf_write(fp, buffer, c) < 0){
-			cerr << "Fatal error: Couldn't write to " << file_name << ".gz\n";
+			std::cerr << "Fatal error: Couldn't write to " << file_name << ".gz\n";
 			exit(1);
 		} 
 	}
 
 	if( index == 1 ){
 		if (bgzf_index_dump(fp, file_name.c_str(), ".gz.gzi") < 0){
-			cerr << "Fatal error: Couldn't create index " << file_name << ".gz.gzi\n";
+			std::cerr << "Fatal error: Couldn't create index " << file_name << ".gz.gzi\n";
 			exit(1);
 		}
 	}
 	
 	if (bgzf_close(fp) < 0){
-			cerr << "Fatal error: Couldn't close " << file_name << ".gz\n";
+			std::cerr << "Fatal error: Couldn't close " << file_name << ".gz\n";
 			exit(1);
 	}
 	
 	if( index == 2 ){
 		if ( tbx_index_build(file_name_gz.c_str(), 14, &tbx_conf_vcf)!=0 )
 		{
-			cerr << "Fatal error: Couldn't create index " << file_name << ".gz.csi\n";
+			std::cerr << "Fatal error: Couldn't create index " << file_name << ".gz.csi\n";
 			exit(1);
 		}
 	}
@@ -110,14 +109,14 @@ void bgzip_file(string file_name, int index){
 	close(f_src);
 }
 
-vector<string> get_chroms(string file_name, vector<int>& n_variants){
+std::vector<std::string> get_chroms(std::string file_name, std::vector<int>& n_variants){
 	
 	// get a list of chromosomes in the file
 	// this code is directly adapted from bcftools:
 	// https://github.com/samtools/bcftools/blob/develop/vcfindex.c
 	
 	n_variants.clear();
-	vector<string> chroms;
+	std::vector<std::string> chroms;
 	
 	const char **seq;
     int nseq, stats;
@@ -149,7 +148,7 @@ vector<string> get_chroms(string file_name, vector<int>& n_variants){
         uint64_t records, v;
         hts_idx_get_stat(tbx ? tbx->idx : idx, i, &records, &v);
         if (stats&2 || !records) continue;
-        chroms.push_back(string(seq[i]));
+        chroms.push_back(std::string(seq[i]));
 		n_variants.push_back( (int) records );
     }
     free(seq);

@@ -3,7 +3,7 @@
 	
 	This header provides a generic interface for parsing multiple,  
 	heterogeneous fields from htsFiles into multiple, heterogeneous 
-	data objects and formats (vector<T> and Eigen::Matrix). 
+	data objects and formats (std::vector<T> and Eigen::Matrix). 
 	
 	See readBed.cpp for an example. 
 	
@@ -17,7 +17,6 @@
 #include "htsWrappers.hpp"
 #include "setOptions.hpp"
 
-using namespace std;
 
 static int int0 = 0;
 
@@ -45,14 +44,14 @@ class matrix_filler
 			is_transposed = is_trans;
 			n = 0;
 			if( n_fields != ( is_trans ? mat->rows() : mat->cols() ) ){
-				cerr << "Fatal: matrix_filler error, mismatched dimensions\n";
-				cerr << n_fields << " != (" << mat->cols() << ", " << mat->rows() << ").\n";
+				std::cerr << "Fatal: matrix_filler error, mismatched dimensions\n";
+				std::cerr << n_fields << " != (" << mat->cols() << ", " << mat->rows() << ").\n";
 				abort();
 			}
 		}
 		
 		// Known matrix size; assign columns from index vector 
-		void set(Eigen::MatrixXd* new_mat, const bool is_trans, const vector<int>& kp_index, int i_offset = 0){
+		void set(Eigen::MatrixXd* new_mat, const bool is_trans, const std::vector<int>& kp_index, int i_offset = 0){
 			mat = new_mat;
 			idx = kp_index;
 			if( i_offset != 0 ){
@@ -63,8 +62,8 @@ class matrix_filler
 			is_transposed = is_trans;
 			n = 0;
 			if( kp_index.size() != ( is_trans ? mat->rows() : mat->cols() ) ){
-				cerr << "Fatal: matrix_filler error, mismatched dimensions\n";
-				cerr << kp_index.size() << " != (" << mat->cols() << ", " << mat->rows() << ").\n";
+				std::cerr << "Fatal: matrix_filler error, mismatched dimensions\n";
+				std::cerr << kp_index.size() << " != (" << mat->cols() << ", " << mat->rows() << ").\n";
 				abort();
 			}
 		}
@@ -76,10 +75,9 @@ class matrix_filler
 				checkResize();
 			}
 			if( n >= 0 ){
-				int j = 0;
-				for(const int& i : idx){
-					assign_value(str, offsets, i, j);
-					j++;
+				int idx_size = idx.size();
+				for(int i = 0; i < idx_size; i++){
+					assign_value(str, offsets, idx[i], i);
 				}
 				n++;
 			}
@@ -96,7 +94,7 @@ class matrix_filler
 	private:
 		Eigen::MatrixXd* mat;
 		bool is_transposed, unknown_dim;
-		vector<int> idx;
+		std::vector<int> idx;
 		int n, start_at, chunk_size;
 		
 		void setSize(int n_fields){
@@ -151,29 +149,29 @@ class data_parser
 			v_matrix[nm].set(&new_mat, is_trans, start, n_fields);
 		}
 		// Matrix of known dimension; keep fixed column indices
-		void add_matrix(Eigen::MatrixXd& new_mat, const bool is_trans, const vector<int>& kp_index, int i_offset = 0){
+		void add_matrix(Eigen::MatrixXd& new_mat, const bool is_trans, const std::vector<int>& kp_index, int i_offset = 0){
 			int nm = v_matrix.size();
 			v_matrix.push_back(matrix_filler());
 			v_matrix[nm].set(&new_mat, is_trans, kp_index, i_offset);
 		}
-		void add_field(vector<string>& v, const int& i){
+		void add_field(std::vector<std::string>& v, const int& i){
 			v_string.push_back(&v);
 			i_string.push_back(i);
 		}
-		void add_field(vector<long>& v, const int& i){
+		void add_field(std::vector<long>& v, const int& i){
 			v_long.push_back(&v);
 			i_long.push_back(i);
 		}
-		void add_field(vector<int>& v, const int& i){
+		void add_field(std::vector<int>& v, const int& i){
 			v_int.push_back(&v);
 			i_int.push_back(i);
 		}
-		void add_field(vector<double>& v, const int& i){
+		void add_field(std::vector<double>& v, const int& i){
 			v_double.push_back(&v);
 			i_double.push_back(i);
 		}
 		
-		void add_target(vector<string>& tg, const int& i, const bool& target_mode_include = true){
+		void add_target(std::vector<std::string>& tg, const int& i, const bool& target_mode_include = true){
 			target_keys.push_back(&tg);
 			target_cols.push_back(i);
 			target_mode.push_back(target_mode_include);
@@ -183,7 +181,7 @@ class data_parser
 		{
 			if( target_cols.size() > 0 ){
 				for( int i = 0; i < target_cols.size(); i++){
-					string key = string(str.s + offsets[target_cols[i]]);
+					std::string key = std::string(str.s + offsets[target_cols[i]]);
 					if( target_mode[i] ){
 						if( !has_element(*target_keys[i], key) ){
 							return;
@@ -196,7 +194,7 @@ class data_parser
 				}
 			}
 			for( int i = 0; i < v_string.size(); i++){
-				v_string[i]->push_back(string(str.s + offsets[i_string[i]]));
+				v_string[i]->push_back(std::string(str.s + offsets[i_string[i]]));
 			}
 			for( int i = 0; i < v_long.size(); i++){
 				v_long[i]->push_back(atol(str.s + offsets[i_long[i]]));
@@ -231,13 +229,13 @@ class data_parser
 			ks_free(&str);
 			clear();
 		}
-		void parse_file(const string& fn, int& n_rows = int0)
+		void parse_file(const std::string& fn, int& n_rows = int0)
 		{
 			basic_hts_file htsf(fn);
 			parse_file(htsf, n_rows);
 			htsf.close();
 		}
-		void parse_file(const string& fn, const string& region, int& n_rows = int0)
+		void parse_file(const std::string& fn, const std::string& region, int& n_rows = int0)
 		{
 			indexed_hts_file htsf(fn, region);
 			parse_file(htsf, n_rows);
@@ -261,19 +259,19 @@ class data_parser
 		};
 
 	private:	
-		vector<matrix_filler> v_matrix;
-		vector<vector<string>*> v_string;
-		vector<int> i_string;
-		vector<vector<long>*> v_long;
-		vector<int> i_long;
-		vector<vector<int>*> v_int;
-		vector<int> i_int;
-		vector<vector<double>*> v_double;
-		vector<int> i_double;
+		std::vector<matrix_filler> v_matrix;
+		std::vector<std::vector<std::string>*> v_string;
+		std::vector<int> i_string;
+		std::vector<std::vector<long>*> v_long;
+		std::vector<int> i_long;
+		std::vector<std::vector<int>*> v_int;
+		std::vector<int> i_int;
+		std::vector<std::vector<double>*> v_double;
+		std::vector<int> i_double;
 		
-		vector<int> target_cols;
-		vector<vector<string>*> target_keys;
-		vector<bool> target_mode;
+		std::vector<int> target_cols;
+		std::vector<std::vector<std::string>*> target_keys;
+		std::vector<bool> target_mode;
 };
 
 #endif

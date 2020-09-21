@@ -1,6 +1,5 @@
 #include "fitModels.hpp"
 
-using namespace std;
 
 double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda )
 {
@@ -18,8 +17,8 @@ double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen:
 	double sigma2 = (y_tilde.dot(Di * y_tilde) - XtDy.dot(b))/df_resid;
 	
 	double ll = -0.5*(
-		df_resid*log(sigma2) + 
-		vals.array().log().sum() + log(XtDX.determinant()) + 1.0
+		df_resid*std::log(sigma2) + 
+		vals.array().log().sum() + std::log(XtDX.determinant()) + 1.0
 	);
 	
 	return ll;
@@ -31,13 +30,13 @@ void meta_svar_sumstat::condition_on_het(const int& k){
 	for( int s = 0; s < ss.size(); s++ ){
 		//Eigen::MatrixXd cov_mat = vg.Covar_perStudy(s, k);
 		//cout << cov_mat << "\n";
-		ss[s].condition_on( vector<int>(1, k), vg.Covar_perStudy(s, k) );
-		// cout << "Conditioned " << s << "\n";
+		ss[s].condition_on( std::vector<int>(1, k), vg.Covar_perStudy(s, k) );
+		// std::cout << "Conditioned " << s << "\n";
 	}
 	update_meta_ss();
 }
 
-lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const Eigen::MatrixXd& Cov, const bool& check_filter, const vector<bool>& exclude ){
+lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const Eigen::MatrixXd& Cov, const bool& check_filter, const std::vector<bool>& exclude ){
 	
 	lm_output out;
 	
@@ -68,7 +67,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 		bool skip = false;
 		if( exclude.size() > 0 ) skip = exclude[i];
 		if( skip && check_filter ){
-			// cerr << "\nskip\n\n";
+			// std::cerr << "\nskip\n\n";
 			out.push_back(-99, -99, -99);
 		}else{
 			double SCORE, VARSC, SSE_i;
@@ -83,7 +82,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 			if( (VARSC > 0 && (VARSC/V(i)) > 1 - global_opts::RSQ_PRUNE && V(i) > 0) || !check_filter ){
 				double beta = stdev * SCORE/VARSC;
 				
-				double se = stdev * sqrt(SSE_i - SCORE*SCORE/VARSC) / sqrt(df*VARSC);
+				double se = stdev * std::sqrt(SSE_i - SCORE*SCORE/VARSC) / std::sqrt(df*VARSC);
 				double pval = -99;
 				
 				double PVAR = SCORE*SCORE/VARSC;
@@ -94,7 +93,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				}
 				out.push_back(beta, se, pval);
 			}else{
-				// cerr << "\nWARNING: RSQ_VIF = " << (VARSC/V(i)) << ", VARSC = "<< VARSC << "\n\n";
+				// std::cerr << "\nWARNING: RSQ_VIF = " << (VARSC/V(i)) << ", VARSC = "<< VARSC << "\n\n";
 				out.push_back(-99, -99, -99);
 			}
 		}
@@ -103,7 +102,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 	return out;
 }
 
-int which_min( const vector<double>& p, bool gt0 ){
+int which_min( const std::vector<double>& p, bool gt0 ){
 	double mp = p[0];
 	int wm = -1;
 	for(int i = 0; i < p.size(); ++i){
@@ -127,19 +126,19 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 	largest_pvalue = 0;
 	
 	int k_i = 0;
-	vector<int> kept_snps = seq_int(keep.size());
+	std::vector<int> kept_snps = seq_int(keep.size());
 	for(const int k : keep ){
-		vector<int> kept_snps_not_k = kept_snps;
+		std::vector<int> kept_snps_not_k = kept_snps;
 		kept_snps_not_k.erase( kept_snps_not_k.begin() + k_i );
 	
 		double current_pvalue;
 
-		Eigen::VectorXd U_k = U(vector<int>(1,k));
-		Eigen::VectorXd V_k = V(vector<int>(1,k));
+		Eigen::VectorXd U_k = U(std::vector<int>(1,k));
+		Eigen::VectorXd V_k = V(std::vector<int>(1,k));
 			
 		Eigen::VectorXd U_0k = U_0(kept_snps_not_k); 
 		Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k); 
-		Eigen::MatrixXd Cov_k = J_0(vector<int>(1,k_i), kept_snps_not_k);
+		Eigen::MatrixXd Cov_k = J_0(std::vector<int>(1,k_i), kept_snps_not_k);
 		
 		lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, 1.00, U_0k, J_0k, Cov_k, false);
 		
@@ -163,19 +162,19 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 	Eigen::MatrixXd Cov = Eigen::VectorXd(0);
 	
 	if( U.size() != V.size() ){
-		cerr << "U.size() != V.size()" << "\n";
+		std::cerr << "U.size() != V.size()" << "\n";
 		exit(1);
 	}
 	
 	if( U.size() <= 0 ){
-		cerr << "U.size() <= 0" << "\n";
+		std::cerr << "U.size() <= 0" << "\n";
 		exit(1);
 	}
 	
 	int n_var = U.size();
 	int nk = 0;
 	
-	vector<bool> excl(n_var,false);
+	std::vector<bool> excl(n_var,false);
 	
 	lm_output reg0;
 	
@@ -187,7 +186,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		int steps_taken = 0;
 		
 		lm_output reg = lm_from_sumstats(U, V, n, m, stdev, U_0, J_0, Cov, true, excl);
-		// cerr << "Fit model.\n";
+		// std::cerr << "Fit model.\n";
 
 		if( nk == 0 && reg0.beta.size() == 0 ){
 			reg0 = reg;
@@ -247,12 +246,12 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 
 				if( new_cov.size() != Cov.rows() )
 				{
-					cerr << "new_cov.size() != Cov.rows()" << "\n";
+					std::cerr << "new_cov.size() != Cov.rows()" << "\n";
 					exit(1);
 				}
 				
-				vector<int> b_list;
-				vector<double> r_list;
+				std::vector<int> b_list;
+				std::vector<double> r_list;
 				
 				for(int i = 0; i < n_var; ++i)
 				{
@@ -260,7 +259,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 					Cov(i, nk-1) = new_cov(i);
 					
 					if( global_opts::RSQ_BUDDY < 1.00 ){
-						double corr = new_cov(i)*new_cov(i)/(V(i)*V(wk));
+						double corr = new_cov(i)/std::sqrt(V(i)*V(wk));
 						
 						// if( corr*corr > global_opts::RSQ_PRUNE ) excl[i] = true;
 						
@@ -294,7 +293,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			
 			if( (max_joint_pvalue > alpha_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
 				
-				vector<int> kept_snps_not_k_rm = seq_int(nk);
+				std::vector<int> kept_snps_not_k_rm = seq_int(nk);
 				kept_snps_not_k_rm.erase( kept_snps_not_k_rm.begin() + k_rm );
 		
 				U_0 = (U_0(kept_snps_not_k_rm)).eval(); 
@@ -319,11 +318,11 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 				
 				nk--;
 				
-				// cout << "backward\n";
+				// std::cout << "backward\n";
 				steps_taken++;
 			}
 		}
-		// cout << steps_taken << "\n";
+		// std::cout << steps_taken << "\n";
 		
 		if( steps_taken == 0 ){
 			break;
@@ -331,11 +330,11 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 	}
 
 	int k_i = 0;
-	vector<int> kept_snps = seq_int(nk);
+	std::vector<int> kept_snps = seq_int(nk);
 	
 	for( const int k : keep ){
 		
-		vector<int> kept_snps_not_k = kept_snps;
+		std::vector<int> kept_snps_not_k = kept_snps;
 		kept_snps_not_k.erase( kept_snps_not_k.begin() + k_i );
 	
 		if( kept_snps_not_k.size() == 0 ){
@@ -346,12 +345,12 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 
 		}else{
 			
-			Eigen::VectorXd U_k = U(vector<int>(1,k));
-			Eigen::VectorXd V_k = V(vector<int>(1,k));
+			Eigen::VectorXd U_k = U(std::vector<int>(1,k));
+			Eigen::VectorXd V_k = V(std::vector<int>(1,k));
 				
 			Eigen::VectorXd U_0k = U_0(kept_snps_not_k); 
 			Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k); 
-			Eigen::MatrixXd Cov_k = J_0(vector<int>(1,k_i), kept_snps_not_k);
+			Eigen::MatrixXd Cov_k = J_0(std::vector<int>(1,k_i), kept_snps_not_k);
 			
 			lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, stdev, U_0k, J_0k, Cov_k, false);
 			
@@ -377,7 +376,7 @@ void lm_output::push_back(double b, double s, double p)
 void lm_output::print_coefs()
 {
 	for(int i = 0; i < pval.size(); ++i){
-		cout << 
+		std::cout << 
 			beta[i] << "\t" << 
 			se[i] << "\t" << 
 			pval[i] << "\n";

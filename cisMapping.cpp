@@ -1,6 +1,5 @@
 #include "GQT.hpp"
 
-using namespace std;
 
 void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long)
 {
@@ -8,49 +7,49 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 	Eigen::MatrixXd &Y = e_data.data_matrix;
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
-	cerr << "Started cis-eQTL analysis ...\n";
+	std::cerr << "Started cis-eQTL analysis ...\n";
 	
 	if( rknorm_y ){
-		cerr << "Rank-normalizing expression traits ... \n";
+		std::cerr << "Rank-normalizing expression traits ... \n";
 		rank_normalize(Y);
 	}
-	cerr << "Scaling expression traits ... \n";
+	std::cerr << "Scaling expression traits ... \n";
 	scale_and_center(Y);
 
 	Eigen::MatrixXd U = get_half_hat_matrix(X);
 
 	if( !global_opts::low_mem ){
 		
-		cerr << "Calculating genotype-covariate covariance...\n";
+		std::cerr << "Calculating genotype-covariate covariance...\n";
 		
 		Eigen::MatrixXd UtG = U.transpose() * g_data.genotypes;
-		cerr << "Calculating genotype residual variances ...";
+		std::cerr << "Calculating genotype residual variances ...";
 		//Eigen::VectorXd SD_vec(UtG.cols());
 		for( int i = 0; i < UtG.cols(); ++i)
 		{
 			
 			g_data.var[i] = g_data.genotypes.col(i).squaredNorm() - UtG.col(i).squaredNorm();
-			//SD_vec[i] = sqrt(g_data.var[i]);
+			//SD_vec[i] = std::sqrt(g_data.var[i]);
 		}
-		cerr << "Done.\n";
+		std::cerr << "Done.\n";
 	}
 	
-	cerr << "Calculating expression residuals...\n";
+	std::cerr << "Calculating expression residuals...\n";
 	Eigen::MatrixXd Y_res = resid_from_half_hat(Y, U);
 	
-	cerr << "Scaling expression residuals ...\n";
+	std::cerr << "Scaling expression residuals ...\n";
 	scale_and_center(Y_res, e_data.stdev);
 	
 	if( rknorm_r ){
-		cerr << "Rank-normalizing expression residuals ...\n";
+		std::cerr << "Rank-normalizing expression residuals ...\n";
 		rank_normalize(Y_res);
-		cerr << "Re-residualizing transformed residuals ...\n";
+		std::cerr << "Re-residualizing transformed residuals ...\n";
 		Eigen::MatrixXd tmp = resid_from_half_hat(Y_res, U);
 		Y_res = tmp;
 		scale_and_center(Y_res);
 	}
 	
-	// cout << Y_res.format(EigenTSV) << "\n";
+	// std::cout << Y_res.format(EigenTSV) << "\n";
 	// return 0;
 	
 	Y_res.transposeInPlace();
@@ -58,9 +57,9 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 	double n_samples = X.rows();
 	double n_covar = X.cols();
 	
-	string block_file_path = global_opts::out_prefix + "." + "cis_sumstats" + ".txt.gz";
-	string bed_block_file_path = global_opts::out_prefix + "." + "cis_gene_table" + ".txt.gz";
-	string long_file_path = global_opts::out_prefix + "." + "cis_long_table" + ".txt.gz";
+	std::string block_file_path = global_opts::out_prefix + "." + "cis_sumstats" + ".txt.gz";
+	std::string bed_block_file_path = global_opts::out_prefix + "." + "cis_gene_table" + ".txt.gz";
+	std::string long_file_path = global_opts::out_prefix + "." + "cis_long_table" + ".txt.gz";
 	
 	BGZF* block_file;
 	BGZF* bed_block_file;
@@ -85,8 +84,8 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 	
 	int bl = 0;
 	
-	string iter_cerr_suffix = " cis-eQTL blocks out of " + to_string(bm.size()) + " total";
-	cerr << "Processed ";
+	std::string iter_cerr_suffix = " cis-eQTL blocks out of " + std::to_string(bm.size()) + " total";
+	std::cerr << "Processed ";
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	
 	for( int i = 0; i < bm.size(); i++ ){
@@ -130,9 +129,9 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 			
 			for( int jj = bm.bed_s[i], jm = 0; jj < bm.bed_s[i] + n_e; ++jj, ++jm){
 				
-				stringstream block_line;
+				std::stringstream block_line;
 				
-				vector<double> pvals;
+				std::vector<double> pvals;
 		
 				int pos_s = -1;
 				int pos_e = -1;
@@ -142,7 +141,7 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 		
 				for( int ii = bm.bcf_s[i], im = 0; ii < bm.bcf_s[i] + n_g; ++ii, ++im){
 				
-					stringstream long_line;
+					std::stringstream long_line;
 				
 					if( g_data.chr[ii] == e_data.chr[jj] && e_data.start[jj] - g_data.pos[ii] < global_opts::cis_window_bp && g_data.pos[ii] - e_data.end[jj] < global_opts::cis_window_bp ){
 						
@@ -161,7 +160,7 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 						
 						if( g_data.var[ii] > 0 ){
 							beta = g_yres_crossprod/g_data.var[ii];
-							beta_se = sqrt( (n_samples - 1)/g_data.var[ii] - beta*beta)/sqrt(n_samples - n_covar - 1);
+							beta_se = std::sqrt( (n_samples - 1)/g_data.var[ii] - beta*beta)/std::sqrt(n_samples - n_covar - 1);
 							zscore = beta/beta_se;
 							pval_esnp = pf( zscore*zscore, 1.0, n_samples - n_covar - 1, true );
 						}else{
@@ -195,11 +194,11 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 						
 						block_line << "\n";
 						
-						string block_line_left = 
+						std::string block_line_left = 
 							clean_chrom(e_data.chr[jj]) + "\t" + 
-							to_string(pos_s) + "\t" + 
-							to_string(pos_e) + "\t" + 
-							to_string(v_s);
+							std::to_string(pos_s) + "\t" + 
+							std::to_string(pos_e) + "\t" + 
+							std::to_string(v_s);
 						
 						write_to_bgzf(block_line_left, block_file);
 						write_to_bgzf(block_line.str().c_str(), block_file);
@@ -208,7 +207,7 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 					
 					if( pvals.size() > 0 ){
 						
-						stringstream bed_block_line;
+						std::stringstream bed_block_line;
 						
 						bed_block_line <<
 							clean_chrom(e_data.chr[jj]) << "\t" << 
@@ -227,7 +226,7 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 			}
 			
 		}else{
-			cerr << "\nERROR: " <<bl << "; " << bm.bed_s[i] << ", " << n_e << "; " << bm.bcf_s[i] << ", " << n_g << "\n"; 
+			std::cerr << "\nERROR: " <<bl << "; " << bm.bed_s[i] << ", " << n_e << "; " << bm.bcf_s[i] << ", " << n_g << "\n"; 
 			abort();
 		}
 		
@@ -235,7 +234,7 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 		
 		bl++;
 	}
-	cerr << "\n";
+	std::cerr << "\n";
 
 	if ( write_long ){
 		bgzf_close(long_file);
@@ -256,15 +255,15 @@ void run_cis_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data
 void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long)
 {
 
-	cerr << "Starting eigendecomposition of GRM ... ";
+	std::cerr << "Starting eigendecomposition of GRM ... ";
 	
 	Eigen::SelfAdjointEigenSolver <Eigen::SparseMatrix<double>> GRM_eig(GRM);
 	
 	if (GRM_eig.info() != Eigen::Success){
-		cerr << "FATAL ERROR: GRM decomposition failed!\n";
+		std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
 		abort();
 	}
-	cerr << "Done!\n";
+	std::cerr << "Done!\n";
 	
 	Eigen::VectorXd GRM_lambda = GRM_eig.eigenvalues();
 	Eigen::SparseMatrix<double> L = GRM_eig.eigenvectors().sparseView(1.00, 5e-3);
@@ -273,62 +272,62 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 	Eigen::MatrixXd &Y = e_data.data_matrix;
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
-	cerr << "Started cis-eQTL analysis ...\n";
+	std::cerr << "Started cis-eQTL analysis ...\n";
 	
 	if( rknorm_y ){
-		cerr << "Rank-normalizing expression traits ... \n";
+		std::cerr << "Rank-normalizing expression traits ... \n";
 		rank_normalize(Y);
 	}
-	cerr << "Scaling expression traits ... \n";
+	std::cerr << "Scaling expression traits ... \n";
 	scale_and_center(Y);
 	
-	cerr << "Rotating expression and covariates ... ";
+	std::cerr << "Rotating expression and covariates ... ";
 	Y = (L.transpose() * Y).eval();
 	X = (L.transpose() * X).eval();
-	cerr << "Done!\n";
+	std::cerr << "Done!\n";
 
 	Eigen::MatrixXd U = get_half_hat_matrix(X);
 	
 	if( !global_opts::low_mem ){
 		
-		cerr << "Rotating genotypes ... ";
+		std::cerr << "Rotating genotypes ... ";
 		g_data.genotypes = (L.transpose()*g_data.genotypes).eval();
 		g_data.genotypes.makeCompressed();
-		cerr << "Done!\n";
+		std::cerr << "Done!\n";
 		
-		cerr << "Calculating genotype-covariate covariance...\n";
+		std::cerr << "Calculating genotype-covariate covariance...\n";
 		
 		Eigen::MatrixXd UtG = U.transpose() * g_data.genotypes;
-		cerr << "Calculating genotype residual variances ...";
+		std::cerr << "Calculating genotype residual variances ...";
 		//Eigen::VectorXd SD_vec(UtG.cols());
 		for( int i = 0; i < UtG.cols(); ++i)
 		{
 			
 			g_data.var[i] = g_data.genotypes.col(i).squaredNorm() - UtG.col(i).squaredNorm();
-			//SD_vec[i] = sqrt(g_data.var[i]);
+			//SD_vec[i] = std::sqrt(g_data.var[i]);
 		}
-		cerr << "Done.\n";
+		std::cerr << "Done.\n";
 	}
 	
 	/* 
-	cerr << "Calculating expression residuals...\n";
+	std::cerr << "Calculating expression residuals...\n";
 	Eigen::MatrixXd Y_res = resid_from_half_hat(Y, U);
 	
-	cerr << "Scaling expression residuals ...\n";
+	std::cerr << "Scaling expression residuals ...\n";
 	scale_and_center(Y_res, e_data.stdev);
 	
 	if( rknorm_r ){
-		// cerr << "Rank-normalizing expression residuals ...\n";
+		// std::cerr << "Rank-normalizing expression residuals ...\n";
 		// rank_normalize(Y_res);
-		// cerr << "Re-residualizing transformed residuals ...\n";
+		// std::cerr << "Re-residualizing transformed residuals ...\n";
 		// Eigen::MatrixXd tmp = resid_from_half_hat(Y_res, U);
 		// Y_res = tmp;
 		// scale_and_center(Y_res);
-		cerr << "FATAL ERROR: Rank-norm resid with LMM is not currently supported.\n";
+		std::cerr << "FATAL ERROR: Rank-norm resid with LMM is not currently supported.\n";
 		abort();
 	}
 	
-	// cout << Y_res.format(EigenTSV) << "\n";
+	// std::cout << Y_res.format(EigenTSV) << "\n";
 	// return 0;
 	
 	Y_res.transposeInPlace();
@@ -337,9 +336,9 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 	double n_samples = X.rows();
 	double n_covar = X.cols();
 	
-	string block_file_path = global_opts::out_prefix + "." + "cis_sumstats" + ".txt.gz";
-	string bed_block_file_path = global_opts::out_prefix + "." + "cis_gene_table" + ".txt.gz";
-	string long_file_path = global_opts::out_prefix + "." + "cis_long_table" + ".txt.gz";
+	std::string block_file_path = global_opts::out_prefix + "." + "cis_sumstats" + ".txt.gz";
+	std::string bed_block_file_path = global_opts::out_prefix + "." + "cis_gene_table" + ".txt.gz";
+	std::string long_file_path = global_opts::out_prefix + "." + "cis_long_table" + ".txt.gz";
 	
 	BGZF* block_file;
 	BGZF* bed_block_file;
@@ -364,8 +363,8 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 	
 	int bl = 0;
 	
-	string iter_cerr_suffix = " cis-eQTL blocks out of " + to_string(bm.size()) + " total";
-	cerr << "Processed ";
+	std::string iter_cerr_suffix = " cis-eQTL blocks out of " + std::to_string(bm.size()) + " total";
+	std::cerr << "Processed ";
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	
 	e_data.stdev.resize( Y.cols() );
@@ -410,9 +409,9 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 			
 			for( int jj = bm.bed_s[i], jm = 0; jj < bm.bed_s[i] + n_e; ++jj, ++jm){
 				
-				stringstream block_line;
+				std::stringstream block_line;
 				
-				vector<double> pvals;
+				std::vector<double> pvals;
 		
 				int pos_s = -1;
 				int pos_e = -1;
@@ -447,7 +446,7 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 				LMM_fitter fit(X, Y.col(jj), GRM_lambda);
 				fit.fit_REML();
 				
-				cout << e_data.gene_id[jj] << "\t" << fit.sigma2 << "\t" << fit.phi << "\n";
+				std::cout << e_data.gene_id[jj] << "\t" << fit.sigma2 << "\t" << fit.phi << "\n";
 
 				
 				Eigen::MatrixXd XtDXi = (X.transpose() * fit.Vi * X).inverse();
@@ -458,7 +457,7 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 				
 				double SSR_0 = y_res.dot(fit.Vi * Y.col(jj))/fit.sigma2;
 				
-				Eigen::VectorXd U_vec = G_slice.transpose() * fit.Vi * y_res/sqrt(fit.sigma2);
+				Eigen::VectorXd U_vec = G_slice.transpose() * fit.Vi * y_res/std::sqrt(fit.sigma2);
 				
 				Eigen::VectorXd diagV(U_vec.size());
 				
@@ -466,11 +465,11 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 					diagV(si) = G_slice.col(si).dot(fit.Vi * G_slice.col(si)) - XtDG.col(si).dot(XtDXi_XtDG.col(si));	
 				}
 				
-				e_data.stdev[jj] = sqrt(fit.sigma2);
+				e_data.stdev[jj] = std::sqrt(fit.sigma2);
 				
 				for( int ii = v_s, im = idx_s, si = 0; im < idx_s + idx_n; ii++, im++, si++){
 				
-					stringstream long_line;
+					std::stringstream long_line;
 				
 					double g_yres_crossprod = U_vec(si);
 					if( g_data.flipped[ii] ) g_yres_crossprod *= -1.0;
@@ -481,7 +480,7 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 					
 					if( g_data.var[ii] > 0 ){
 						beta = g_yres_crossprod/diagV(si);
-						beta_se = sqrt( SSR_0/diagV(si) - beta*beta)/sqrt(n_samples - n_covar - 1);
+						beta_se = std::sqrt( SSR_0/diagV(si) - beta*beta)/std::sqrt(n_samples - n_covar - 1);
 						zscore = beta/beta_se;
 						pval_esnp = pf( zscore*zscore, 1.0, n_samples - n_covar - 1, true );
 					}else{
@@ -515,11 +514,11 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 						
 						block_line << "\n";
 						
-						string block_line_left = 
+						std::string block_line_left = 
 							clean_chrom(e_data.chr[jj]) + "\t" + 
-							to_string(pos_s) + "\t" + 
-							to_string(pos_e) + "\t" + 
-							to_string(v_s);
+							std::to_string(pos_s) + "\t" + 
+							std::to_string(pos_e) + "\t" + 
+							std::to_string(v_s);
 						
 						write_to_bgzf(block_line_left, block_file);
 						write_to_bgzf(block_line.str().c_str(), block_file);
@@ -528,7 +527,7 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 					
 					if( pvals.size() > 0 ){
 						
-						stringstream bed_block_line;
+						std::stringstream bed_block_line;
 						
 						bed_block_line <<
 							clean_chrom(e_data.chr[jj]) << "\t" << 
@@ -547,7 +546,7 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 			}
 			
 		}else{
-			cerr << "\nERROR: " << bl << "; " << bm.bed_s[i] << ", " << n_e << "; " << bm.bcf_s[i] << ", " << n_g << "\n"; 
+			std::cerr << "\nERROR: " << bl << "; " << bm.bed_s[i] << ", " << n_e << "; " << bm.bcf_s[i] << ", " << n_g << "\n"; 
 			abort();
 		}
 		
@@ -555,7 +554,7 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 		
 		bl++;
 	}
-	cerr << "\n";
+	std::cerr << "\n";
 
 	if ( write_long ){
 		bgzf_close(long_file);

@@ -25,14 +25,13 @@
 
 #include "readTable.hpp"
 
-using namespace std;
 
-void table::setRows(vector<string>& keep){
+void table::setRows(std::vector<std::string>& keep){
 	rows.setKeepIDs(keep);
 	return;
 }
 
-void table::setCols(vector<string>& keep){
+void table::setCols(std::vector<std::string>& keep){
 	cols.setKeepIDs(keep);
 	return;
 }
@@ -57,7 +56,7 @@ void table::readHeader(const char *file_name)
 		
 		for( int i = 1; i < n_fields; i++)
 		{
-			cols.file.push_back(string(str.s + offsets[i]));
+			cols.file.push_back(std::string(str.s + offsets[i]));
 		}
 		break;
 	}
@@ -71,7 +70,7 @@ void table::readFile(const char *file_name)
 		readHeader(file_name);
 	}
 	if( cols.keep.size() == 0 ){
-		vector<string> all_cols = cols.file;
+		std::vector<std::string> all_cols = cols.file;
 		all_cols.erase (all_cols.begin());
 		cols.setKeepIDs(all_cols);
 	}else if( cols.idx.size() == 0 ){
@@ -104,7 +103,7 @@ void table::readFile(const char *file_name)
 		int n_fields;
 		int* offsets = ksplit(&str, 0, &n_fields);
 		
-		string id = string(str.s + offsets[0]);
+		std::string id = std::string(str.s + offsets[0]);
 		
 		if ( rows.tryKeep(id) ){
 			dp.parse_fields(str, offsets, n_fields);

@@ -1,21 +1,20 @@
 #include "metaAnalysis.hpp"
 
-using namespace std;
 
-void vcov_meta_data::open(const vector<string>& study_prefixes, const string& region )
+void vcov_meta_data::open(const std::vector<std::string>& study_prefixes, const std::string& region )
 {
 	int i = 0;
-	for( const string& prefix : study_prefixes ){
+	for( const std::string& prefix : study_prefixes ){
 		i++;
-		cerr << "Processing Study #" << i << " ...";
+		std::cerr << "Processing Study #" << i << " ...";
 		vc.push_back(
 			vcov_data(prefix, region)
 		);
 		clear_line_cerr();
-		cerr << "Processed Study #" << i << " (" << prefix << ") with " << vc[i-1].chr.size() << " variants.\n";
+		std::cerr << "Processed Study #" << i << " (" << prefix << ") with " << vc[i-1].chr.size() << " variants.\n";
 		
 	}
-	cerr << "\n";
+	std::cerr << "\n";
 	build_index();
 }
 
@@ -24,23 +23,23 @@ void vcov_meta_data::build_index()
 	
 	int n_studies = vc.size();
 	
-	vector<int> ii(n_studies, 0);
+	std::vector<int> ii(n_studies, 0);
 	
-	vector<int> n_var(n_studies);
+	std::vector<int> n_var(n_studies);
 	
 	si.clear(); 
 	sflipped.clear();
 	
 	for( int i = 0; i < n_studies; i++ ){
-		si.push_back(vector<int>(0));
-		sflipped.push_back(vector<bool>(0));
+		si.push_back(std::vector<int>(0));
+		sflipped.push_back(std::vector<bool>(0));
 		n_var[i] = vc[i].chr.size();
 		
 		//cerr << "Study #" << i << ": " << n_var[i] << " variants.\n";
 	}
-	string iter_cerr_suffix = " shared variants ...";
+	std::string iter_cerr_suffix = " shared variants ...";
 	
-	cerr << "Found ";
+	std::cerr << "Found ";
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	int last = 0;
 	
@@ -132,9 +131,9 @@ void vcov_meta_data::build_index()
 			continue; 
 		}
 		
-		string chr_0 = vc[0].chr[ii[0]];
-		string alt_0 = vc[0].alt[ii[0]];
-		string ref_0 = vc[0].ref[ii[0]];
+		std::string chr_0 = vc[0].chr[ii[0]];
+		std::string alt_0 = vc[0].alt[ii[0]];
+		std::string ref_0 = vc[0].ref[ii[0]];
 		
 		for( int s = 0; s < n_studies; s++ ){
 			if( !( vc[s].ref[ii[s]] == ref_0 && vc[s].alt[ii[s]] == alt_0  ) ){
@@ -152,7 +151,7 @@ void vcov_meta_data::build_index()
 		alt.push_back(alt_0);
 		
 		double var_0 = 0.0, mac_0 = 0.0;
-		vector<double> var_perStudy_0(n_studies);
+		std::vector<double> var_perStudy_0(n_studies);
 		
 		for( int s = 0; s < n_studies; s++ ){
 		
@@ -162,8 +161,8 @@ void vcov_meta_data::build_index()
 			int ns = si[s].size();
 			if( ns > 1 ){
 				if( si[s][ns-1] < si[s][ns-2] ){
-					cout << "FATAL\n";
-					cout << s << ": " << ns << ", " << si[s][ns-1] << ", " << si[s][ns-2] << "\n";
+					std::cout << "FATAL\n";
+					std::cout << s << ": " << ns << ", " << si[s][ns-1] << ", " << si[s][ns-2] << "\n";
 					abort();
 				}
 			}
@@ -186,13 +185,13 @@ void vcov_meta_data::build_index()
 		thinned_iter_cerr(last, chr.size(), iter_cerr_suffix);
 	}
 	clear_line_cerr();
-	cerr << "Meta-analysis: " << chr.size() << " total shared variants.\n";
+	std::cerr << "Meta-analysis: " << chr.size() << " total shared variants.\n";
 }
 
-Eigen::MatrixXd vcov_meta_data::getV_perStudy(const int& s, const vector<int>& v_i)
+Eigen::MatrixXd vcov_meta_data::getV_perStudy(const int& s, const std::vector<int>& v_i)
 {
 	int n = v_i.size();
-	vector<int> v_s(n);
+	std::vector<int> v_s(n);
 	
 	for( int j = 0; j < n; ++j){
 		v_s[j] = si[s][v_i[j]];
@@ -201,13 +200,13 @@ Eigen::MatrixXd vcov_meta_data::getV_perStudy(const int& s, const vector<int>& v
 }
 
 
-Eigen::MatrixXd vcov_meta_data::getGtG_perStudy(const int& s, const vector<int>& v_i, const vector<int>& v_j)
+Eigen::MatrixXd vcov_meta_data::getGtG_perStudy(const int& s, const std::vector<int>& v_i, const std::vector<int>& v_j)
 {
 	int n = v_i.size();
 	int m = v_j.size();
 
-	vector<int> v_i_s(n);
-	vector<int> v_j_s(m);
+	std::vector<int> v_i_s(n);
+	std::vector<int> v_j_s(m);
 	
 	for( int k = 0; k < n; ++k){
 		v_i_s[k] = si[s][v_i[k]];
@@ -218,13 +217,13 @@ Eigen::MatrixXd vcov_meta_data::getGtG_perStudy(const int& s, const vector<int>&
 	return vc[s].getGtG(v_i_s, v_j_s);
 }
 
-Eigen::MatrixXd vcov_meta_data::getV_perStudy(const int& s, const vector<int>& v_i, const vector<int>& v_j)
+Eigen::MatrixXd vcov_meta_data::getV_perStudy(const int& s, const std::vector<int>& v_i, const std::vector<int>& v_j)
 {
 	int n = v_i.size();
 	int m = v_j.size();
 
-	vector<int> v_i_s(n);
-	vector<int> v_j_s(m);
+	std::vector<int> v_i_s(n);
+	std::vector<int> v_j_s(m);
 	
 	for( int k = 0; k < n; ++k){
 		v_i_s[k] = si[s][v_i[k]];
@@ -235,10 +234,10 @@ Eigen::MatrixXd vcov_meta_data::getV_perStudy(const int& s, const vector<int>& v
 	return vc[s].getV(v_i_s, v_j_s);
 }
 
-Eigen::MatrixXd vcov_meta_data::getGtG_perStudy(const int& s, const vector<int>& v_i)
+Eigen::MatrixXd vcov_meta_data::getGtG_perStudy(const int& s, const std::vector<int>& v_i)
 {
 	int n = v_i.size();
-	vector<int> v_s(n);
+	std::vector<int> v_s(n);
 	
 	for( int j = 0; j < n; j++){
 		v_s[j] = si[s][v_i[j]];
@@ -246,7 +245,7 @@ Eigen::MatrixXd vcov_meta_data::getGtG_perStudy(const int& s, const vector<int>&
 	return vc[s].getGtG(v_s);
 }
 
-Eigen::MatrixXd vcov_meta_data::getGtG(const vector<int>& v_i, const vector<double>& w, const vector<int>& sl )
+Eigen::MatrixXd vcov_meta_data::getGtG(const std::vector<int>& v_i, const std::vector<double>& w, const std::vector<int>& sl )
 {
 	int n = v_i.size();
 	Eigen::MatrixXd out = Eigen::MatrixXd::Zero(n, n);
@@ -268,7 +267,7 @@ Eigen::MatrixXd vcov_meta_data::getGtG(const vector<int>& v_i, const vector<doub
 	return out;
 }
 
-Eigen::MatrixXd vcov_meta_data::getV(const vector<int>& v_i, const vector<double>& w, const vector<int>& sl )
+Eigen::MatrixXd vcov_meta_data::getV(const std::vector<int>& v_i, const std::vector<double>& w, const std::vector<int>& sl )
 {
 	int n = v_i.size();
 	Eigen::MatrixXd out = Eigen::MatrixXd::Zero(n, n);
@@ -290,7 +289,7 @@ Eigen::MatrixXd vcov_meta_data::getV(const vector<int>& v_i, const vector<double
 	return out;
 }
 
-Eigen::MatrixXd vcov_meta_data::getGtG(const vector<int>& v_i, const vector<int>& v_j, const vector<double>& w, const vector<int>& sl )
+Eigen::MatrixXd vcov_meta_data::getGtG(const std::vector<int>& v_i, const std::vector<int>& v_j, const std::vector<double>& w, const std::vector<int>& sl )
 {
 	int n = v_i.size();
 	int m = v_j.size();
@@ -313,7 +312,7 @@ Eigen::MatrixXd vcov_meta_data::getGtG(const vector<int>& v_i, const vector<int>
 	return out;
 }
 
-Eigen::MatrixXd vcov_meta_data::getV(const vector<int>& v_i, const vector<int>& v_j, const vector<double>& w, const vector<int>& sl )
+Eigen::MatrixXd vcov_meta_data::getV(const std::vector<int>& v_i, const std::vector<int>& v_j, const std::vector<double>& w, const std::vector<int>& sl )
 {
 	int n = v_i.size();
 	int m = v_j.size();
@@ -336,28 +335,28 @@ Eigen::MatrixXd vcov_meta_data::getV(const vector<int>& v_i, const vector<int>& 
 	return out;
 }
 
-cis_sumstat_data::cis_sumstat_data(const string& pf, const string& reg)
+cis_sumstat_data::cis_sumstat_data(const std::string& pf, const std::string& reg)
 {
 	open(pf, reg);
 }
 
-void format_gene_ids(vector<string>& ids)
+void format_gene_ids(std::vector<std::string>& ids)
 {
 	if( global_opts::trim_gene_ids )
 	{
-		for(string& id : ids){
+		for(std::string& id : ids){
 			id = id.substr(0, id.find("."));
 		}
 	}	
 }
 
-void cis_sumstat_data::open(const string& pf, const string& reg)
+void cis_sumstat_data::open(const std::string& pf, const std::string& reg)
 {
 	file_prefix = pf;
 	region = reg;
 	
-	string sumstat_file = file_prefix + ".cis_sumstats.txt.gz";
-	string gene_file = file_prefix + ".cis_gene_table.txt.gz";
+	std::string sumstat_file = file_prefix + ".cis_sumstats.txt.gz";
+	std::string gene_file = file_prefix + ".cis_gene_table.txt.gz";
 	
 	kstring_t str = {0,0,0};
 
@@ -401,7 +400,7 @@ void cis_sumstat_data::open(const string& pf, const string& reg)
 	
 		if( N_CIS[n_genes] != n_fields - 4 ){
 			if( n_matched > 0 ){
-				cerr << "MISMATCHED: " << N_CIS[n_genes] << ", " << n_fields - 4 << "\n";
+				std::cerr << "MISMATCHED: " << N_CIS[n_genes] << ", " << n_fields - 4 << "\n";
 				abort();
 			}
 			continue;
@@ -411,7 +410,7 @@ void cis_sumstat_data::open(const string& pf, const string& reg)
 		
 		dp.parse_fields(str, offsets, n_fields);
 		
-		// cout << S_CIS[n_genes] << "\n";
+		// std::cout << S_CIS[n_genes] << "\n";
 		
 		/*if( global_opts::filter_genes ){
 			if(!has_element(global_opts::target_genes, gene_id[n_genes])){
@@ -434,22 +433,22 @@ void cis_sumstat_data::open(const string& pf, const string& reg)
 	ks_free(&str);
 	ss_hfile.close();
 	
-	cerr << "Processed cis summary statistics for " <<  chr.size() << " genes.\n";
+	std::cerr << "Processed cis summary statistics for " <<  chr.size() << " genes.\n";
 	
 	// ln.set(vcov.pos);
 }
 
-void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vector<vector<bool>>& sflipped)
+void cis_meta_data::merge_intersection(const std::vector<std::vector<int>>& si, const std::vector<std::vector<bool>>& sflipped)
 {
 	// Merge sumstat data, keeping the intersection of genes across studies.
 	
 	int n_studies = ss.size();
 	
 	// gene index
-	vector<int> jj(n_studies, 0);
+	std::vector<int> jj(n_studies, 0);
 	
 	// number of genes per study
-	vector<int> n_genes(n_studies);
+	std::vector<int> n_genes(n_studies);
 	
 	// start and end indexes
 	int i_s = 0, i_e = 0;
@@ -457,9 +456,9 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 	for( int i = 0; i < n_studies; i++ ){
 		n_genes[i] = ss[i].gene_id.size();
 	}
-	string iter_cerr_suffix = " shared genes ...";
+	std::string iter_cerr_suffix = " shared genes ...";
 	
-	cerr << "Found ";
+	std::cerr << "Found ";
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	int last = 0;
 	
@@ -502,7 +501,7 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 			}
 		}
 		
-		// cout << start_0 << "\n";
+		// std::cout << start_0 << "\n";
 		
 		// seq all studies to the max position
 		for( int s = 0; s < n_studies; s++ ){
@@ -528,8 +527,8 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 		
 		// OK, we can now be sure that all studies have the same chr,start.
 		
-		string chr_0 = ss[0].chr[jj[0]];
-		string gene_id_0 = ss[0].gene_id[jj[0]];
+		std::string chr_0 = ss[0].chr[jj[0]];
+		std::string gene_id_0 = ss[0].gene_id[jj[0]];
 		
 		for( int s = 0; s < n_studies; s++ ){
 			if( !( ss[s].gene_id[jj[s]] == gene_id_0 ) ){
@@ -556,11 +555,11 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 		double SD_0 = 0; 
 		double DENOM = 0;
 		
-		vector<double> SD_perStudy_0(n_studies);
-		vector<double> DF_perStudy_0(n_studies);
-		vector<double> SSR_perStudy_0(n_studies);
+		std::vector<double> SD_perStudy_0(n_studies);
+		std::vector<double> DF_perStudy_0(n_studies);
+		std::vector<double> SSR_perStudy_0(n_studies);
 		
-		vector<double> ivw_0(n_studies);
+		std::vector<double> ivw_0(n_studies);
 		
 		for( int s = 0; s < n_studies; s++ ){
 			
@@ -577,10 +576,10 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 			DENOM += ivw_0[s];
 			
 		}
-		SD_0 = sqrt(SD_0 / DENOM);
+		SD_0 = std::sqrt(SD_0 / DENOM);
 
-		vector<int> c_s(n_studies);
-		vector<int> c_e(n_studies);
+		std::vector<int> c_s(n_studies);
+		std::vector<int> c_e(n_studies);
 		
 		
 		// now we want to find the range of overlapping indexes
@@ -602,7 +601,7 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 		}
 
 		Eigen::VectorXd score_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
-		vector<Eigen::VectorXd> score_perStudy_0(n_studies, Eigen::VectorXd::Zero(i_e - i_s + 1));
+		std::vector<Eigen::VectorXd> score_perStudy_0(n_studies, Eigen::VectorXd::Zero(i_e - i_s + 1));
 		//Eigen::VectorXd var_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
 		
 		for( int s = 0; s < n_studies; s++ ){
@@ -611,7 +610,7 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 				int idx = si[s][ii] - ss[s].S_CIS[jj[s]];
 				
 				if( idx < 0 || idx >= sc_s.size() ){
-					cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
+					std::cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
 					abort();
 				}
 				
@@ -631,15 +630,17 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 		// move forward if there are no shared variants
 		// if( score_0.size() == 0 ) continue;
 		
-		// cout << start_0 << "\t" << gene_id_0 << "\n";
+		// std::cout << start_0 << "\t" << gene_id_0 << "\n";
 
 		// OK, now we're sure that the gene is shared across studies
 		
+		/*
 		if( global_opts::filter_genes ){
 			if( !has_element(global_opts::target_genes, gene_id_0) ){
 				continue;
 			}
 		}
+		*/
 		
 		chr.push_back(chr_0);
 		start.push_back(start_0);
@@ -660,7 +661,7 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 		DF_perStudy.push_back(DF_perStudy_0);
 		ivw.push_back(ivw_0);
 		
-		vector<int> all_studies;
+		std::vector<int> all_studies;
 		for(int i = 0; i < n_studies; i++){
 			all_studies.push_back(i);
 		}
@@ -672,21 +673,21 @@ void cis_meta_data::merge_intersection(const vector<vector<int>>& si, const vect
 	}
 	
 	clear_line_cerr();
-	cerr << "Meta-analysis: " << chr.size() << " total shared genes.\n";
+	std::cerr << "Meta-analysis: " << chr.size() << " total shared genes.\n";
 }
 
 
-void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<bool>>& sflipped)
+void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::vector<std::vector<bool>>& sflipped)
 {
 	// Merge sumstat data, keeping the union of genes across studies.
 	
 	int n_studies = ss.size();
 	
 	// gene index
-	vector<int> jj(n_studies, 0);
+	std::vector<int> jj(n_studies, 0);
 	
 	// number of genes per study
-	vector<int> n_genes(n_studies);
+	std::vector<int> n_genes(n_studies);
 	
 	// start and end indexes
 	int i_s = 0, i_e = 0;
@@ -695,21 +696,21 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 		n_genes[i] = ss[i].gene_id.size();
 	}
 	
-	string iter_cerr_suffix = " total genes ...";
+	std::string iter_cerr_suffix = " total genes ...";
 	
-	cerr << "Found ";
+	std::cerr << "Found ";
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	int last = 0;
 	
-	vector<string> all_gene_id;
+	std::vector<std::string> all_gene_id;
 	
-	vector<int> c_studies = which_lt(jj, n_genes);
+	std::vector<int> c_studies = which_lt(jj, n_genes);
 	
 	while( c_studies.size() > 0 ){
 		
 		int c_0 = c_studies[0];
 		
-		vector<int> move_back(c_studies.size(), 0);
+		std::vector<int> move_back(c_studies.size(), 0);
 		
 		int start_0 = ss[c_0].start[jj[c_0]];
 		int end_0 = ss[c_0].end[jj[c_0]];
@@ -731,10 +732,10 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 			}
 		}
 		
-		string chr_0 = ss[s_ref].chr[jj[s_ref]];
-		string gene_id_0 = ss[s_ref].gene_id[jj[s_ref]];
+		std::string chr_0 = ss[s_ref].chr[jj[s_ref]];
+		std::string gene_id_0 = ss[s_ref].gene_id[jj[s_ref]];
 		
-		vector<int> studies_with_gene;
+		std::vector<int> studies_with_gene;
 		
 		for( const int& s : c_studies ){
 			if( ss[s].gene_id[jj[s]] == gene_id_0 ){
@@ -770,11 +771,11 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 		double SD_0 = 0; 
 		double DENOM = 0;
 		
-		vector<double> SD_perStudy_0(n_studies);
-		vector<double> DF_perStudy_0(n_studies);
-		vector<double> SSR_perStudy_0(n_studies);
+		std::vector<double> SD_perStudy_0(n_studies);
+		std::vector<double> DF_perStudy_0(n_studies);
+		std::vector<double> SSR_perStudy_0(n_studies);
 		
-		vector<double> ivw_0(n_studies);
+		std::vector<double> ivw_0(n_studies);
 		
 		for( const int& s : studies_with_gene ){
 			
@@ -791,10 +792,10 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 			DENOM += ivw_0[s];
 			
 		}
-		SD_0 = sqrt(SD_0 / DENOM);
+		SD_0 = std::sqrt(SD_0 / DENOM);
 
-		vector<int> c_s(n_studies);
-		vector<int> c_e(n_studies);
+		std::vector<int> c_s(n_studies);
+		std::vector<int> c_e(n_studies);
 		
 		// move back indices if needed
 		for( const int& s : studies_with_gene ){
@@ -809,16 +810,22 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 		}
 		// now we want to find the range of overlapping indexes
 		for( const int& s : studies_with_gene ){
+			while( i_s >= si[s].size() && i_s > 0){
+				i_s--;
+			}
 			while( si[s][i_s] < c_s[s] && i_s < si[s].size() ){
 				i_s++;
 			}
-			while( si[s][i_e] > c_e[s] && i_e > 0 ){
+			while( i_e >= si[s].size() && i_e > 0){
+				i_e--;
+			}
+			while( si[s][i_e] >= c_e[s] && i_e > 0 ){
 				i_e--;
 			}
 		}
 
 		Eigen::VectorXd score_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
-		vector<Eigen::VectorXd> score_perStudy_0(n_studies, Eigen::VectorXd::Zero(i_e - i_s + 1));
+		std::vector<Eigen::VectorXd> score_perStudy_0(n_studies, Eigen::VectorXd::Zero(i_e - i_s + 1));
 		//Eigen::VectorXd var_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
 		
 		for( const int& s : studies_with_gene ){
@@ -827,7 +834,7 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 				int idx = si[s][ii] - ss[s].S_CIS[jj[s]];
 				
 				if( idx < 0 || idx >= sc_s.size() ){
-					cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
+					std::cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
 					abort();
 				}
 				
@@ -862,11 +869,13 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 			}
 		}
 		
+		/*
 		if( global_opts::filter_genes ){
 			if( !has_element(global_opts::target_genes, gene_id_0) ){
 				continue;
 			}
 		}
+		*/
 		
 		chr.push_back(chr_0);
 		start.push_back(start_0);
@@ -897,23 +906,23 @@ void cis_meta_data::merge(const vector<vector<int>>& si, const vector<vector<boo
 	}
 	
 	clear_line_cerr();
-	cerr << "Meta-analysis: " << chr.size() << " total genes across studies.\n";
+	std::cerr << "Meta-analysis: " << chr.size() << " total genes across studies.\n";
 }
 
 
 void cis_meta_data::meta_analyze()
 {
-	string out_name = global_opts::out_prefix + ".cis_meta.svar.tsv";
-	ofstream os(out_name.c_str(), ofstream::out);
+	std::string out_name = global_opts::out_prefix + ".cis_meta.svar.tsv";
+	std::ofstream os(out_name.c_str(), std::ofstream::out);
 
-	vector<string> col_names{"#chr", "pos", "ref", "alt", "gene", "studies", "beta", "se", "pval"};
+	std::vector<std::string> col_names{"#chr", "pos", "ref", "alt", "gene", "studies", "beta", "se", "pval"};
 	
 	print_header(col_names, os);
 	
 	for(int i = 0; i < chr.size(); ++i){
-		string in_studies = to_string(study_list[i][0] + 1);
+		std::string in_studies = std::to_string(study_list[i][0] + 1);
 		for( int s = 1; s < study_list[i].size(); s++){
-			in_studies += ("," + to_string(study_list[i][s] + 1));
+			in_studies += ("," + std::to_string(study_list[i][s] + 1));
 		}
 		
 		for(int j = S_CIS[i], jj = 0; jj < N_CIS[i]; ++j, ++jj ){
@@ -934,13 +943,13 @@ void cis_meta_data::meta_analyze()
 					beta += sc/sigma_sq;
 				}
 				beta = beta/denom;
-				se = sqrt(1/denom);
+				se = std::sqrt(1/denom);
 				
 			}else{
 				double dv = diagV(i, jj);
 				if(dv > 0 ){
 					beta = score[i](jj)/dv;
-					se = sqrt( (DF[i] - 1)/dv - beta*beta)/sqrt(DF[i] - 1);
+					se = std::sqrt( (DF[i] - 1)/dv - beta*beta)/std::sqrt(DF[i] - 1);
 				}
 			}
 
@@ -970,29 +979,30 @@ void cis_meta_data::meta_analyze()
 	os.close();
 }
 
-vector<int> seq_from(const int& s, const int& n)
+std::vector<int> seq_from(const int& s, const int& n)
 {
-	vector<int> out(n);
+	std::vector<int> out(n);
 	for( int i = 0; i < n; i++){
 		out[i] = s + i;
 	}
 	return out;
 }
 
+const static Eigen::IOFormat CSVFormat(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
 
-void cis_meta_data::conditional_analysis(const int& gene_index, ostream& os, ostream& os_b)
+void cis_meta_data::get_vcov_gene(const int& gene_index, const bool& centered)
 {
 	
 	if( N_CIS[gene_index] <= 0 ){
-		cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
-		cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
+		std::cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
+		std::cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
 		
 		return;
 	}
 	
 	//cout << "0\n";
 	
-	string& gene = gene_id[gene_index];
+	std::string& gene = gene_id[gene_index];
 	Eigen::VectorXd U = score[gene_index];
 	
 	double df0 = DF[gene_index];
@@ -1008,9 +1018,9 @@ void cis_meta_data::conditional_analysis(const int& gene_index, ostream& os, ost
 	//cout << "1\n";
 	
 	if( U.size() != n_var ){
-		cerr << "U.size() != n_var\n";
-		cerr << U.size() << " != " << n_var << "\n";
-		cerr << U(0) << "\t" << U(U.size()-1) << "\n";
+		std::cerr << "U.size() != n_var\n";
+		std::cerr << U.size() << " != " << n_var << "\n";
+		std::cerr << U(0) << "\t" << U(U.size()-1) << "\n";
 		exit(1);
 	}
 	
@@ -1021,16 +1031,75 @@ void cis_meta_data::conditional_analysis(const int& gene_index, ostream& os, ost
 	
 	vcov_getter vget(vc, ivw[gene_index], s_var, n_var, study_list[gene_index]);
 	
-	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
+	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
+	
+	for(int i = 0; i < n_var; i++){
+		if( i + 1 < n_var){
+			std::cout << snp(i) << ",";
+		}else{
+			std::cout << snp(i) << "\n";
+		}
+	}
+	
+	if( centered ){
+		std::cout << vget.Var(seq_from(0,n_var)).format(CSVFormat) << "\n";
+	}else{
+		std::cout << vget.Var_uncentered(seq_from(0,n_var)).format(CSVFormat) << "\n";
+	}
+	
+	return;
+}
+
+
+void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os, std::ostream& os_b)
+{
+	
+	if( N_CIS[gene_index] <= 0 ){
+		std::cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
+		std::cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
+		
+		return;
+	}
+	
+	//cout << "0\n";
+	
+	std::string& gene = gene_id[gene_index];
+	Eigen::VectorXd U = score[gene_index];
+	
+	double df0 = DF[gene_index];
+	double n = N[gene_index];
+	
+	double stdev = SD[gene_index];
+	
+	int n_var = N_CIS[gene_index];
+	int s_var = S_CIS[gene_index];
+	
+	Eigen::VectorXd dV( n_var );
+	
+	if( U.size() != n_var ){
+		std::cerr << "U.size() != n_var\n";
+		std::cerr << U.size() << " != " << n_var << "\n";
+		std::cerr << U(0) << "\t" << U(U.size()-1) << "\n";
+		exit(1);
+	}
+	
+	for( int i = 0; i < n_var; i++ ){
+		//dV(i) = vc.var[i + s_var];
+		dV(i) = diagV(gene_index, i);
+	}
+	
+	vcov_getter vget(vc, ivw[gene_index], s_var, n_var, study_list[gene_index]);
+	
+	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
 	
 	stdev = 1;
 
 	forward_lm out(U, dV, n, df0, stdev, vget, global_opts::LM_ALPHA);
 	
 	//cout << "4\n";
-	string in_studies = to_string(study_list[gene_index][0] + 1);
+	std::string in_studies = std::to_string(study_list[gene_index][0] + 1);
 	for( int s = 1; s < study_list[gene_index].size(); s++){
-		in_studies += ("," + to_string(study_list[gene_index][s] + 1));
+		in_studies += ("," + std::to_string(study_list[gene_index][s] + 1));
 	}
 	
 	if( out.beta.size() > 0 ){
@@ -1060,24 +1129,24 @@ void cis_meta_data::conditional_analysis(const int& gene_index, ostream& os, ost
 		}
 		
 	}else{
-		cerr << "\nERROR: No variant signals reported for " << gene << ", with " << n_var << " total variants.\n\n";
+		std::cerr << "\nERROR: No variant signals reported for " << gene << ", with " << n_var << " total variants.\n\n";
 	}
 }
 
 
-void cis_meta_data::conditional_analysis_het(const int& gene_index, ostream& os)
+void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream& os)
 {
 	
 	if( N_CIS[gene_index] <= 0 ){
-		cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
-		cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
+		std::cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
+		std::cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
 		
 		return;
 	}
 	
 	//cout << "0\n";
 	
-	string& gene = gene_id[gene_index];
+	std::string& gene = gene_id[gene_index];
 
 	int n_var = N_CIS[gene_index];
 	int s_var = S_CIS[gene_index];
@@ -1085,7 +1154,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, ostream& os)
 	Eigen::VectorXd dV( n_var );
 	
 	// Update IVW weights. Only keep elements from studies where gene is non-missing.
-	vector<double> ivw_weights;
+	std::vector<double> ivw_weights;
 	
 	for( const int& s : study_list[gene_index] ){
 		ivw_weights.push_back(ivw[gene_index][s]);
@@ -1099,14 +1168,14 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, ostream& os)
 		meta_ss.add_sstat(score_perStudy[gene_index][s], dV_perStudy(gene_index, s),  DF_perStudy[gene_index][s], SSR_perStudy[gene_index][s]);
 	}
 	
-	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
+	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
 	
 	
 	// p-value stop threshold is global_opts::LM_ALPHA
 	
-	vector<int> top_snps;
-	vector<double> acat_stepwise_pvals;
-	vector<double> svar_stepwise_pvals;
+	std::vector<int> top_snps;
+	std::vector<double> acat_stepwise_pvals;
+	std::vector<double> svar_stepwise_pvals;
 	
 	meta_ss.update_meta_ss();
 	
@@ -1117,12 +1186,12 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, ostream& os)
 		int top_snp;
 		double svar_stepwise_pval, acat_stepwise_pval;
 		
-		// cout << "BEGIN" << "\t" << gene << "\t";
+		// std::cout << "BEGIN" << "\t" << gene << "\t";
 		// meta_ss.ss_meta.acat_min_pval(top_snp, svar_stepwise_pval, acat_stepwise_pval);
 		
 		meta_ss.omni_min_pval(top_snp, svar_stepwise_pval, acat_stepwise_pval);
 		
-		// cout << top_snp << "\t" << svar_stepwise_pval << "\t" << acat_stepwise_pval << "\n";
+		// std::cout << top_snp << "\t" << svar_stepwise_pval << "\t" << acat_stepwise_pval << "\n";
 		
 		double pval_check = global_opts::step_marginal ? svar_stepwise_pval : acat_stepwise_pval;
 		
@@ -1175,12 +1244,12 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, ostream& os)
 	
 	
 	
-	string in_studies = to_string(study_list[gene_index][0] + 1);
+	std::string in_studies = std::to_string(study_list[gene_index][0] + 1);
 	for( int s = 1; s < study_list[gene_index].size(); s++){
-		in_studies += ("," + to_string(study_list[gene_index][s] + 1));
+		in_studies += ("," + std::to_string(study_list[gene_index][s] + 1));
 	}
 	
-	// cout << "\n\nSTARTING OUTPUT:\n";
+	// std::cout << "\n\nSTARTING OUTPUT:\n";
 	
 	for(int i = 0; i < top_snps.size(); i++){
 		double p_hom, p_het, p_aca, p_omn;
@@ -1191,34 +1260,34 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, ostream& os)
 		os << gene << "\t" << in_studies;
 		os << "\t" << i + 1 << ":" <<  top_snps.size() << "\t" << snp(top_snps[i]) << "\t" << fm_i.beta << "\t" << fm_i.se << "\t" << p_omn << "\t" << acat_stepwise_pvals[i] << "\t" << p_omn_m << ":" << p_hom_m << "," << p_het_m << "," << p_aca_m << "\t" << svar_stepwise_pvals[i] << "\n";
 	}
-	// cout << "\nEND.\n\n";
+	// std::cout << "\nEND.\n\n";
 }
 
 void cis_meta_data::conditional_analysis(){
 	
 	// stepwise output
 	
-	string out_name = global_opts::out_prefix + ".cis_meta.stepwise.tsv";
-	ofstream os(out_name.c_str(), ofstream::out);
+	std::string out_name = global_opts::out_prefix + ".cis_meta.stepwise.tsv";
+	std::ofstream os(out_name.c_str(), std::ofstream::out);
 	
-	vector<string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
+	std::vector<std::string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
 	
 	print_header(col_names, os);
 	
 	// ld buddy output.
 	
-	string buddy_out_name = global_opts::out_prefix + ".cis_meta.buddies.tsv";
-	ofstream os_b;
+	std::string buddy_out_name = global_opts::out_prefix + ".cis_meta.buddies.tsv";
+	std::ofstream os_b;
 	if( global_opts::RSQ_BUDDY < 1 ){
-		os_b.open(buddy_out_name.c_str(), ofstream::out);
-		print_header(vector<string>{"#signal_variant", "buddy_variant", "r", "rsq"}, os_b);
+		os_b.open(buddy_out_name.c_str(), std::ofstream::out);
+		print_header(std::vector<std::string>{"#signal_variant", "buddy_variant", "r", "rsq"}, os_b);
 	}
 	
 	// loop through genes.
 	
-	cerr << "Completed stepwise meta-analysis for ";
+	std::cerr << "Completed stepwise meta-analysis for ";
 	
-	string iter_cerr_suffix = " genes out of " + to_string(gene_id.size()) + " ...";
+	std::string iter_cerr_suffix = " genes out of " + std::to_string(gene_id.size()) + " ...";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	for(int i = 0; i < gene_id.size(); ++i){
@@ -1229,7 +1298,7 @@ void cis_meta_data::conditional_analysis(){
 	}
 	
 	clear_line_cerr();
-	cerr << "Completed stepwise meta-analysis of " << to_string(gene_id.size()) << " total genes.\n";
+	std::cerr << "Completed stepwise meta-analysis of " << std::to_string(gene_id.size()) << " total genes.\n";
 	
 	if( global_opts::RSQ_BUDDY < 1 ) os_b.close();
 	os.close();
@@ -1238,16 +1307,16 @@ void cis_meta_data::conditional_analysis(){
 
 void cis_meta_data::conditional_analysis_het(){
 
-	string out_name = global_opts::out_prefix + ".cis_meta.stepwise_het.tsv";
-	ofstream os(out_name.c_str(), ofstream::out);
+	std::string out_name = global_opts::out_prefix + ".cis_meta.stepwise_het.tsv";
+	std::ofstream os(out_name.c_str(), std::ofstream::out);
 	
-	vector<string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
+	std::vector<std::string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
 	
 	print_header(col_names, os);
 	
-	cerr << "Completed heterogeneous stepwise meta-analysis for ";
+	std::cerr << "Completed heterogeneous stepwise meta-analysis for ";
 	
-	string iter_cerr_suffix = " genes out of " + to_string(gene_id.size()) + " ...";
+	std::string iter_cerr_suffix = " genes out of " + std::to_string(gene_id.size()) + " ...";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	for(int i = 0; i < gene_id.size(); ++i){
@@ -1258,13 +1327,13 @@ void cis_meta_data::conditional_analysis_het(){
 	}
 	
 	clear_line_cerr();
-	cerr << "Completed heterogeneous stepwise meta-analysis of " << to_string(gene_id.size()) << " total genes.\n";
+	std::cerr << "Completed heterogeneous stepwise meta-analysis of " << std::to_string(gene_id.size()) << " total genes.\n";
 	
 	os.close();
 }
 
 
-/*int alleles_match(const string& ref_0, const string& alt_0, const double& freq_0, const string& ref_1, const string& alt_1, const double& freq_1)
+/*int alleles_match(const std::string& ref_0, const std::string& alt_0, const double& freq_0, const std::string& ref_1, const std::string& alt_1, const double& freq_1)
 {
 	
 	//  1 => match
@@ -1274,14 +1343,14 @@ void cis_meta_data::conditional_analysis_het(){
 	bool is_ambiguous = ambiguous_snv(ref_0, alt_0);
 
 	if( ref_0 == ref_1 && alt_0 == alt_1 ){
-		if( abs(freq_0 - freq_1) < global_opts::freq_tol )
+		if( std::abs(freq_0 - freq_1) < global_opts::freq_tol )
 		{
 			return 1;
 		}
 		if( is_ambiguous )
 		{
 			if( global_opts::try_match_ambiguous_snv ){
-				if( abs( (1-freq_0) - freq_1) < global_opts::freq_tol )
+				if( std::abs( (1-freq_0) - freq_1) < global_opts::freq_tol )
 				{
 					return -1;
 				}
@@ -1290,7 +1359,7 @@ void cis_meta_data::conditional_analysis_het(){
 	}else if( ref_0 == alt_1 && alt_0 == ref_1 ){
 		if( !is_ambiguous )
 		{
-			if( abs( (1-freq_0) - freq_1) < global_opts::freq_tol )
+			if( std::abs( (1-freq_0) - freq_1) < global_opts::freq_tol )
 			{
 				return -1;
 			}

@@ -1,6 +1,5 @@
 #include "readBED.hpp"
 
-using namespace std;
 
 void bed_data::readBedHeader(const char *file_name)
 {
@@ -22,7 +21,7 @@ void bed_data::readBedHeader(const char *file_name)
 		int *offsets = ksplit(&str, 0, &n_fields);
 		for( int i = 4; i < n_fields; i++)
 		{
-			ids.file.push_back(string(str.s + offsets[i]));
+			ids.file.push_back(std::string(str.s + offsets[i]));
 		}
 		break;
 	}
@@ -32,7 +31,7 @@ void bed_data::readBedHeader(const char *file_name)
 
 }
 
-void bed_data::readBedFile(const char *file_name, const vector<string>& regions)
+void bed_data::readBedFile(const char *file_name, const std::vector<std::string>& regions)
 {
 	if( ids.file.size() == 0 ){
 		readBedHeader(file_name);
@@ -41,7 +40,7 @@ void bed_data::readBedFile(const char *file_name, const vector<string>& regions)
 		ids.setKeepIDs(ids.file);
 	}
 	
-	string file_str = string(file_name);
+	std::string file_str = std::string(file_name);
 	
 	indexed_hts_file htsf(file_str, regions);
 
@@ -81,7 +80,7 @@ void bed_data::readBedFile(const char *file_name, const vector<string>& regions)
 		n_genes++;
 		
 		if(n_genes % 500  == 0 ) {
-			cerr << "Processed expression data for " << n_genes << " genes ... \r";
+			std::cerr << "Processed expression data for " << n_genes << " genes ... \r";
 		}
 	}
 	

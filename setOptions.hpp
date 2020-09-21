@@ -4,7 +4,7 @@
 	GLOBAL OPTIONS
 	
 	setOptions is for setting global options, which are set at 
-	runtime and used throughout (potentially) all source files
+	runtime and used throughout multiple source files
 */
 
 #ifndef SETOPTIONS_HPP
@@ -14,12 +14,11 @@
 #include <vector>
 #include <unordered_map>
 
-using namespace std;
 
 namespace global_opts
 {
 	// GENERAL OPTIONS
-		extern string out_prefix;
+		extern std::string out_prefix;
 		extern bool low_mem;
 	
 	// INPUT OPTIONS
@@ -33,12 +32,12 @@ namespace global_opts
 		
 		// COVARIATE OPTIONS 
 		extern bool filter_covariates;
-		extern vector<string> use_covariates;
+		extern std::vector<std::string> use_covariates;
 		
 		// SAMPLE SUBSETTING
 		extern bool filter_iids;
-		extern vector<string> include_iids;
-		extern vector<string> exclude_iids;
+		extern std::vector<std::string> include_iids;
+		extern std::vector<std::string> exclude_iids;
 		
 		// GENE OPTIONS
 		extern bool trim_gene_ids;
@@ -79,7 +78,7 @@ namespace global_opts
 	// GENE SUBSETTING OPTIONS
 	
 		extern bool filter_genes;
-		extern vector<string> target_genes;
+		extern std::vector<std::string> target_genes;
 		
 	// VARIANT MATCHING OPTIONS
 	
@@ -88,11 +87,11 @@ namespace global_opts
 		
 	// GLOBAL VARIABLES
 		
-		extern unordered_map<string,int> i_chrom_map;
+		extern std::unordered_map<std::string,int> i_chrom_map;
 		
 	// PROCESS OPTIONS
     
-		bool process_global_opts(const string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const vector<string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
+		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
 }
 
 # endif

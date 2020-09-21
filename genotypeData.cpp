@@ -1,8 +1,7 @@
 #include "genotypeData.hpp"
 
-using namespace std;
 
-void read_sparse_GRM(const string& filename, Eigen::SparseMatrix<double>& GRM, const vector<string>& kp_ids, const double& r_scale, const int& r_col)
+void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col)
 {
 	int n = kp_ids.size();
 	
@@ -13,13 +12,13 @@ void read_sparse_GRM(const string& filename, Eigen::SparseMatrix<double>& GRM, c
 		return;
 	}
 	
-	unordered_map<string, int> id_map;
+	std::unordered_map<std::string, int> id_map;
 	for(int i = 0; i < n; ++i){
 		id_map[ kp_ids[i] ] = i;
 	}
 	
-	vector<string> id1, id2;
-	vector<double> val;
+	std::vector<std::string> id1, id2;
+	std::vector<double> val;
 	
 	data_parser dp;
 	dp.add_field(id1, 0);
@@ -31,7 +30,7 @@ void read_sparse_GRM(const string& filename, Eigen::SparseMatrix<double>& GRM, c
 
 	using td = Eigen::Triplet<double>;
 
-	vector<td> triplets;
+	std::vector<td> triplets;
 	
 	bool add_diag = true;
 	
@@ -66,11 +65,11 @@ void genotype_data::read_bcf_variants(bcf_srs_t*& sr, bcf_hdr_t*& hdr, int& n_va
 {
 
 	if( store_geno ){
-		cerr << "Processed genotype data for ";
+		std::cerr << "Processed genotype data for ";
 	}else{
-		cerr << "Processed variant data for ";
+		std::cerr << "Processed variant data for ";
 	}
-	string iter_cerr_suffix = " variants ... ";
+	std::string iter_cerr_suffix = " variants ... ";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	int last = 0;
@@ -114,7 +113,7 @@ int genotype_data::get_ld_index()
 			ii_e++;
 		}
 		
-		ld_index_range.push_back( make_pair(ii, ii_e) );
+		ld_index_range.push_back( std::make_pair(ii, ii_e) );
 		
 		if( ii_e - ii - 1 > max_entries ){
 			max_entries = ii_e - ii - 1;
@@ -159,8 +158,8 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 	int n_2 = 0;
 	int n_1 = 0;
 	
-	for(const int& i: ids.idx)
-	{
+	for(const int& i: ids.idx){
+
 		int a1 = bcf_gt_allele(gt_rec[i*2+0]);
 		int a2 = bcf_gt_allele(gt_rec[i*2+1]);
 		if(a1 < 0 || a2 < 0)
@@ -264,7 +263,7 @@ void genotype_data::freeze_genotypes(){
 inline bool genotype_data::process_bcf_variant(bcf1_t*& rec, bcf_hdr_t*& hdr, bool store_geno, bool scan_geno){
 	
 	if( rec->n_allele != 2 ){
-		cerr << "failed rec->n_allele" << rec->n_allele << "\n";
+		std::cerr << "failed rec->n_allele" << rec->n_allele << "\n";
 		return false;
 	}
 	
@@ -300,7 +299,7 @@ inline bool genotype_data::process_bcf_variant(bcf1_t*& rec, bcf_hdr_t*& hdr, bo
 		
 		if( !keep_ ){
 			//genotypes.conservativeResize(n_variants, Eigen::NoChange);
-			cout << "FAILED\n";
+			std::cout << "FAILED\n";
 			return false;
 		}
 		
@@ -344,7 +343,7 @@ void genotype_data::read_genotypes(bcf_srs_t*& sr, bcf_hdr_t*& hdr, const int& i
 	
 	int i_e = i_s + n_s - 1;
 	if( chr[i_s] != chr[i_e] ){
-		cerr << "Fatal: regional chr mismatch in genotype_data::read_genotypes. \n";
+		std::cerr << "Fatal: regional chr mismatch in genotype_data::read_genotypes. \n";
 		exit(1);
 	}
 	bcf_seek(sr, chr[i_s], pos[i_s]);
@@ -392,8 +391,8 @@ void genotype_data::read_genotypes(bcf_srs_t*& sr, bcf_hdr_t*& hdr, const int& i
 		}
 	}
 	if( i_i < i_e ){
-		cerr << "Fatal: Failed to fill region in genotype_data::read_genotypes. \n";
-		cerr << i_s << ", " << i_i << ", " << i_e << "\n";
+		std::cerr << "Fatal: Failed to fill region in genotype_data::read_genotypes. \n";
+		std::cerr << i_s << ", " << i_i << ", " << i_e << "\n";
 		exit(1);
 	}
 	freeze_genotypes();

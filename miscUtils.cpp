@@ -1,8 +1,7 @@
 #include "miscUtils.hpp"
 
-using namespace std;
 
-bool all_lt( const vector<int>& ii, const vector<int>& nn ){
+bool all_lt( const std::vector<int>& ii, const std::vector<int>& nn ){
 	for(int i = 0; i < ii.size(); ++i){
 		if( ii[i] >= nn[i] ){
 			return false;
@@ -11,7 +10,7 @@ bool all_lt( const vector<int>& ii, const vector<int>& nn ){
 	return true;
 }
 
-bool any_lt( const vector<int>& ii, const vector<int>& nn ){
+bool any_lt( const std::vector<int>& ii, const std::vector<int>& nn ){
 	for(int i = 0; i < ii.size(); ++i){
 		if( ii[i] < nn[i] ){
 			return true;
@@ -20,8 +19,8 @@ bool any_lt( const vector<int>& ii, const vector<int>& nn ){
 	return false;
 }
 
-vector<int> which_lt(const vector<int>& ii, const vector<int>& nn){
-	vector<int> out;
+std::vector<int> which_lt(const std::vector<int>& ii, const std::vector<int>& nn){
+	std::vector<int> out;
 	for(int i = 0; i < ii.size(); ++i){
 		if( ii[i] < nn[i] ){
 			out.push_back(i);
@@ -31,26 +30,26 @@ vector<int> which_lt(const vector<int>& ii, const vector<int>& nn){
 }
 
 
-void remove_gene_version_number( vector<string>& ids){
-	for( string& id : ids ){
+void remove_gene_version_number( std::vector<std::string>& ids){
+	for( std::string& id : ids ){
 		 id = id.substr(0, id.find("."));
 	}
 	return;
 }
 
-vector<int> seq_int(const int& n){
-	vector<int> out;
+std::vector<int> seq_int(const int& n){
+	std::vector<int> out;
 	for(int i = 0; i < n; i++){
 		out.push_back(i);
 	}
 	return out;
 }
 
-vector<string> split_string(const string& input, const char delim)
+std::vector<std::string> split_string(const std::string& input, const char delim)
 {
-	stringstream ss(input);
-	string field;
-	vector<string> out;
+	std::stringstream ss(input);
+	std::string field;
+	std::vector<std::string> out;
 	
 	while( getline(ss, field, delim) ){
 		out.push_back(field);
@@ -58,7 +57,7 @@ vector<string> split_string(const string& input, const char delim)
 	return out;
 }
 		
-string clean_chrom(const string& x){
+std::string clean_chrom(const std::string& x){
 	if( x.length() >= 3 ){
 		if( x.substr(0,3) == "chr" || x.substr(0,3) == "CHR" ){
 			return x.substr(3, x.length() - 3);
@@ -67,7 +66,7 @@ string clean_chrom(const string& x){
 	return x;
 }
 
-int i_chrom( const string& chrom )
+int i_chrom( const std::string& chrom )
 {
 	auto f_chrom = global_opts::i_chrom_map.find(chrom);
 	if( f_chrom == global_opts::i_chrom_map.end() ){
@@ -77,15 +76,15 @@ int i_chrom( const string& chrom )
 	}
 }
 
-vector<string> sort_chroms( vector<string> chroms ){
+std::vector<std::string> sort_chroms( std::vector<std::string> chroms ){
 	sort(chroms.begin(), chroms.end(), 
-          [](const string& x, const string& y){ return i_chrom(x) < i_chrom(y); }
+          [](const std::string& x, const std::string& y){ return i_chrom(x) < i_chrom(y); }
 	);
 	return chroms;
 }
 
 
-bool ambiguous_snv( const string& ref, const string& alt )
+bool ambiguous_snv( const std::string& ref, const std::string& alt )
 {
 	if( ref == "T" || ref == "G" ){
 		return ambiguous_snv(alt, ref);
@@ -97,7 +96,7 @@ bool ambiguous_snv( const string& ref, const string& alt )
 	return false;
 }
 
-string flip_nucleotide(const string& ref)
+std::string flip_nucleotide(const std::string& ref)
 {
 	if( ref == "A" ) return "T";
 	if( ref == "T" ) return "A";
@@ -106,30 +105,30 @@ string flip_nucleotide(const string& ref)
 	return "";
 }
 
-void print_iter_cerr(int i_last, int i_curr, string& suffix){
-	string s_last = to_string(i_last);
-	string s_curr = to_string(i_curr);
+void print_iter_cerr(int i_last, int i_curr, std::string& suffix){
+	std::string s_last = std::to_string(i_last);
+	std::string s_curr = std::to_string(i_curr);
 	if( i_last < i_curr ){
 		move_back_cerr(s_last.length());
 	}
-	cerr << i_curr;
+	std::cerr << i_curr;
 	if( s_last.length() != s_curr.length() || i_last > i_curr ){
-		cerr << suffix;
+		std::cerr << suffix;
 		move_back_cerr(suffix.length());
 	}
 	return;
 }
 
-void thinned_iter_cerr(int& i_last, const int& i_curr, string& suffix, const int& print_every){
+void thinned_iter_cerr(int& i_last, const int& i_curr, std::string& suffix, const int& print_every){
 	if( rand() % print_every == 0 ){
-		string s_last = to_string(i_last);
-		string s_curr = to_string(i_curr);
+		std::string s_last = std::to_string(i_last);
+		std::string s_curr = std::to_string(i_curr);
 		if( i_last < i_curr ){
 			move_back_cerr(s_last.length());
 		}
-		cerr << i_curr;
+		std::cerr << i_curr;
 		if( s_last.length() != s_curr.length() || i_last > i_curr ){
-			cerr << suffix;
+			std::cerr << suffix;
 			move_back_cerr(suffix.length());
 		}
 		i_last = i_curr;
@@ -137,9 +136,9 @@ void thinned_iter_cerr(int& i_last, const int& i_curr, string& suffix, const int
 	return;
 }
 
-void print_header(const vector<string>& cn, ostream& os){
+void print_header(const std::vector<std::string>& cn, std::ostream& os){
 	bool is_first = true;
-	for( const string& s : cn ){
+	for( const std::string& s : cn ){
 		if( is_first ){
 			is_first = false;
 		}else{

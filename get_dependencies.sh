@@ -9,6 +9,8 @@ git clone https://gitlab.com/libeigen/eigen.git
 # Spectra library for sparse, high-dimensional eigenvalue problems
 git clone https://github.com/yixuan/spectra.git
 
+git clone https://github.com/jonathonl/shrinkwrap.git
+
 # Brent's algorithm
 
 # mkdir -p BRENT && cd BRENT
