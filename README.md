@@ -17,14 +17,15 @@ YAX is primarily written in C++, and depends on the Eigen matrix library, HTSlib
     make
 Precompiled binaries are also available as follows:
 ## Analysis modes
-**cis-xQTL analysis:** `./yax cis {options}`
-**trans-xQTL analysis**  `./yax trans {options}`
-**xQTL meta-analysis**  `./yax meta {options}`
-**xQTL summary data storage**  `./yax store {options}`
+ - **cis-xQTL analysis:** `./yax cis {options}`
+ - **trans-xQTL analysis**  `./yax trans {options}`
+ - **xQTL meta-analysis**  `./yax meta {options}`
+ - **xQTL summary data storage**  `./yax store {options}`
 ## Software dependencies
 
  - [Eigen C++ matrix library](http://eigen.tuxfamily.org/)
  - [HTSlib C library](http://www.htslib.org/)
+ - [github.com/jonathonl/shrinkwrap](https://github.com/jonathonl/shrinkwrap)
  - [github.com/Taywee/args](https://github.com/Taywee/args)
  - [Boost math C++ library](https://www.boost.org/)
 
