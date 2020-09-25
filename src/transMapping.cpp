@@ -1,0 +1,347 @@
+#include "GQT.hpp"
+
+
+Eigen::VectorXd getVectorXd(const std::vector<double>& v, const int& s, const int& n){
+	Eigen::VectorXd ev(n);
+	for(int i = 0, ii = s; i < n; i++, ii++){
+		ev(i) = v[ii];
+	}
+	return ev;
+}
+
+
+double u_stat_pval(const double& u_stat, const double& m, const double& n){
+	double f_stat = u_stat * u_stat;
+	f_stat = (n - m - 1)*f_stat/(n - 1 - f_stat);
+	return pf(f_stat, 1, n - m - 1, true);
+	
+}
+
+void run_trans_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size)
+{
+
+	Eigen::MatrixXd &Y = e_data.data_matrix;
+	Eigen::MatrixXd &X = c_data.data_matrix;
+	
+	std::cerr << "Started trans-eQTL analysis ...\n";
+	
+	if( rknorm_y ){
+		std::cerr << "Rank-normalizing expression traits ... \n";
+		rank_normalize(Y);
+	}
+	std::cerr << "Scaling expression traits ... \n";
+	scale_and_center(Y);
+
+	Eigen::MatrixXd U = get_half_hat_matrix(X);
+
+	if( !global_opts::low_mem ){
+		
+		std::cerr << "Calculating genotype-covariate covariance...\n";
+		
+		Eigen::MatrixXd UtG = U.transpose() * g_data.genotypes;
+		std::cerr << "Calculating genotype residual variances ...";
+		//Eigen::VectorXd SD_vec(UtG.cols());
+		for( int i = 0; i < UtG.cols(); ++i)
+		{
+			
+			g_data.var[i] = g_data.genotypes.col(i).squaredNorm() - UtG.col(i).squaredNorm();
+			//SD_vec[i] = std::sqrt(g_data.var[i]);
+		}
+		std::cerr << "Done.\n";
+	}
+	
+	std::cerr << "Calculating expression residuals...\n";
+	Eigen::MatrixXd Y_res = resid_from_half_hat(Y, U);
+	
+	std::cerr << "Scaling expression residuals ...\n";
+	scale_and_center(Y_res, e_data.stdev);
+	
+	if( rknorm_r ){
+		std::cerr << "Rank-normalizing expression residuals ...\n";
+		rank_normalize(Y_res);
+		std::cerr << "Re-residualizing transformed residuals ...\n";
+		Eigen::MatrixXd tmp = resid_from_half_hat(Y_res, U);
+		Y_res = tmp;
+		scale_and_center(Y_res);
+	}
+	
+	// std::cout << Y_res.format(EigenTSV) << "\n";
+	// return 0;
+	
+	Y_res.transposeInPlace();
+	
+	double n_samples = X.rows();
+	double n_covar = X.cols();
+	
+	int n_genes = Y_res.rows();
+	
+	std::vector<double> gene_max_val(n_genes, 0.0);
+	std::vector<int> gene_max_idx(n_genes, 0);
+	
+	std::string block_file_path = global_opts::out_prefix + "." + "trans_sumstats" + ".txt.gz";
+	std::string gene_file_path = global_opts::out_prefix + "." + "trans_gene_table" + ".txt.gz";
+	std::string long_file_path = global_opts::out_prefix + "." + "trans_long_table" + ".txt.gz";
+	
+	BGZF* block_file;
+	BGZF* gene_file;
+	BGZF* long_file;
+	
+	
+	/*
+	if( !just_long ){
+		
+		block_file = bgzf_open(block_file_path.c_str(), "w");
+		
+		bed_block_file = bgzf_open(bed_block_file_path.c_str(), "w");
+		
+		write_to_bgzf("#chrom\tstart\tend\tgene\tegene_pval\tn_samples\tn_covar\tresid_sd\tn_cis_variants\n", bed_block_file);
+		
+	}
+	
+	bool write_long = (make_long || just_long);
+	
+	*/
+	
+	gene_file = bgzf_open(gene_file_path.c_str(), "w");
+	write_to_bgzf("#chrom\tpos\tref\talt\tgene_chrom\tgene_id\tbeta\tse\tpval\n", gene_file);
+	
+	long_file = bgzf_open(long_file_path.c_str(), "w");
+	write_to_bgzf("#chrom\tpos\tref\talt\tgene_chrom\tgene_id\tbeta\tse\tpval\n", long_file);
+	
+	
+	int bl = 0;
+	
+	int n_blocks = ceil(g_data.n_variants/chunk_size);
+	
+	std::string iter_cerr_suffix = " genotype blocks out of " + std::to_string(n_blocks) + " total";
+	std::cerr << "Processed ";
+	print_iter_cerr(1, 0, iter_cerr_suffix);
+	
+	double F_crit = qf(global_opts::LM_ALPHA, 1, n_samples - n_covar - 1, true);
+	double P_crit = std::sqrt(F_crit * (n_samples - 1)/( F_crit + n_samples - n_covar - 1));
+	
+	for( ; ; bl++ ){
+		
+		int s_g = bl * chunk_size;
+		int n_g = chunk_size;
+		n_g = n_g < g_data.n_variants ? n_g : g_data.n_variants-1;
+		n_g = n_g < g_data.n_variants - s_g ? n_g : g_data.n_variants - s_g;
+		
+		if( s_g >= g_data.n_variants || n_g <= 0 ){
+			break; 
+		}
+		
+		if( n_g > 0 && s_g < g_data.n_variants ){
+			
+			Eigen::MatrixXd StdScore;
+			Eigen::VectorXd dV;
+			
+			if( global_opts::low_mem ){
+				
+				g_data.read_genotypes(sr, hdr, s_g, n_g );
+				
+				Eigen::SparseMatrix<double>& G = g_data.genotypes;
+				
+				Eigen::VectorXd UtG_block_sqnm = (U.transpose() * G).colwise().squaredNorm().eval(); 
+				
+				for( int si = s_g, ii = 0; si < s_g + n_g; si++, ii++)
+				{
+					g_data.var[si] = G.col(ii).squaredNorm() - UtG_block_sqnm(ii);
+					//cout << g_data.var[i] << "\n";
+				}
+				dV = getVectorXd(g_data.var, s_g, n_g);
+
+				StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y_res * G).transpose().eval();
+				
+			}else{
+				
+				const Eigen::SparseMatrix<double>& G = g_data.genotypes.middleCols(s_g, n_g);
+				
+				dV = getVectorXd(g_data.var, s_g, n_g);
+				StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y_res * G).transpose().eval();
+			}
+			
+			std::stringstream long_line;
+			
+			for(int j = 0; j < StdScore.cols(); j++){
+				for(int i = 0; i < StdScore.rows(); i++){
+					const auto& val = StdScore(i,j);
+					
+					if( std::abs(val) > std::abs(gene_max_val[j]) ){
+						gene_max_val[j] = val;
+						gene_max_idx[j] = s_g + i;
+					}
+					
+					if( val > P_crit || val < - P_crit ){
+						const double& V = dV(i);
+						const double& scale = e_data.stdev[j];
+						double U = val * std::sqrt(V);
+						double beta = U/V;
+						double beta_se = std::sqrt( ((n_samples - 1)/V- beta*beta)/(n_samples - n_covar - 1) );
+						
+						double pval_esnp = u_stat_pval(val, n_covar, n_samples);
+						
+						int ii = s_g + i;
+						long_line << 
+							clean_chrom(g_data.chr[ii]) << "\t" <<
+							g_data.pos[ii] << "\t" <<
+							g_data.ref[ii] << "\t" <<
+							g_data.alt[ii] << "\t" <<
+							clean_chrom(e_data.chr[j]) << "\t" <<
+							e_data.gene_id[j] << "\t" <<
+							scale*beta << "\t" <<
+							scale*beta_se  << "\t" <<
+							pval_esnp << "\n";
+					}
+				}
+			}
+			
+			write_to_bgzf(long_line.str().c_str(), long_file);
+			
+			/*
+			for( int j = 0; j < Y_res.rows(); j++){
+				
+				std::stringstream block_line;
+				
+				// std::vector<double> pvals;
+		
+				for( int ii = s_g, im = 0; ii < s_g + n_g; ++ii, ++im){
+				
+					std::stringstream long_line;
+			
+					double g_yres_crossprod = Score(im, j);
+					if( g_data.flipped[ii] ) g_yres_crossprod *= -1.0;
+					
+					// if( !just_long ) block_line << "\t" << g_yres_crossprod;
+					
+					double beta, beta_se, zscore, pval_esnp;
+					
+					if( g_data.var[ii] > 0 ){
+						beta = g_yres_crossprod/g_data.var[ii];
+						// beta_se = std::sqrt( (n_samples - 1)/g_data.var[ii] - beta*beta)/std::sqrt(n_samples - n_covar - 1);
+						zscore = beta/beta_se;
+						// pval_esnp = pf( zscore*zscore, 1.0, n_samples - n_covar - 1, true );
+					}else{
+						beta = 0;
+						beta_se = 0;
+						zscore = 0;
+						pval_esnp = -1;
+					}
+
+					// pvals.push_back(pval_esnp);
+
+					if( write_long ){
+
+						long_line << 
+							clean_chrom(g_data.chr[ii]) << "\t" <<
+							g_data.pos[ii] << "\t" <<
+							g_data.ref[ii] << "\t" <<
+							g_data.alt[ii] << "\t" <<
+							e_data.gene_id[j] << "\t" <<
+							e_data.stdev[j]*beta << "\t" <<
+							e_data.stdev[j]*beta_se  << "\t" <<
+							pval_esnp << "\n";
+					}
+
+					// if( write_long ) write_to_bgzf(long_line.str().c_str(), long_file);
+				}
+				
+				
+				
+				if( !just_long ){
+					
+					// if( pos_s > 0 && pos_e > 0 ){
+						
+						block_line << "\n";
+						
+						std::string block_line_left = 
+							clean_chrom(e_data.chr[j]) + "\t" + 
+							std::to_string(pos_s) + "\t" + 
+							std::to_string(pos_e) + "\t" + 
+							std::to_string(v_s);
+						
+						write_to_bgzf(block_line_left, block_file);
+						write_to_bgzf(block_line.str().c_str(), block_file);
+						
+					}
+					
+					if( pvals.size() > 0 ){
+						
+						std::stringstream bed_block_line;
+						
+						bed_block_line <<
+							clean_chrom(e_data.chr[jj]) << "\t" << 
+							e_data.start[jj] << "\t" << 
+							e_data.end[jj] << "\t" << 
+							e_data.gene_id[jj] << "\t" << 
+							ACAT_non_missing(pvals) << "\t" << 
+							X.rows() << "\t" << 
+							X.cols() << "\t" << 
+							e_data.stdev[jj] << "\t" <<
+							v_e - v_s + 1 << "\n";
+						
+						write_to_bgzf(bed_block_line.str().c_str(), bed_block_file);
+					}
+				}
+				
+			}
+			*/
+		}else{
+			std::cerr << "\nERROR: " <<bl << ", " << s_g << ", " << n_g << "\n"; 
+			abort();
+		}
+		
+		print_iter_cerr(bl, bl+1, iter_cerr_suffix);
+	}
+	std::cerr << "\n";
+
+	bgzf_close(long_file);
+	
+	for( int j = 0; j < n_genes; j++){
+		
+		const int& ii = gene_max_idx[j];
+		const int& val = gene_max_val[j];
+
+		const double& V = g_data.var[ii];
+		const double& scale = e_data.stdev[j];
+		double U = val * std::sqrt(V);
+		double beta = U/V;
+		double beta_se = std::sqrt( ((n_samples - 1)/V- beta*beta)/(n_samples - n_covar - 1) );
+
+		std::stringstream gene_line;
+		gene_line << 
+			clean_chrom(g_data.chr[ii]) << "\t" <<
+			g_data.pos[ii] << "\t" <<
+			g_data.ref[ii] << "\t" <<
+			g_data.alt[ii] << "\t" <<
+			clean_chrom(e_data.chr[j]) << "\t" <<
+			e_data.gene_id[j] << "\t" <<
+			scale*beta << "\t" <<
+			scale*beta_se  << "\t" <<
+			u_stat_pval(val, n_covar, n_samples) << "\n";
+		
+		write_to_bgzf(gene_line.str().c_str(), gene_file);	
+	}
+	
+	
+	bgzf_close(gene_file);
+	
+	
+
+	/*
+	if ( write_long ){
+		bgzf_close(long_file);
+		//build_tabix_index(long_file_path);
+	}
+
+	if( !just_long ){
+		bgzf_close(block_file);
+		bgzf_close(bed_block_file);
+		build_tabix_index(block_file_path, 1);
+		build_tabix_index(bed_block_file_path, 1);
+	}
+	*/
+
+	return;
+}
+
