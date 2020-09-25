@@ -14,7 +14,6 @@
 #include <vector>
 #include <unordered_map>
 
-
 namespace global_opts
 {
 	// GENERAL OPTIONS

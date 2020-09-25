@@ -23,7 +23,7 @@
 #include "mathStats.hpp"
 
 
-double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
+// double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
 
 class LMM_fitter{
 	
@@ -59,7 +59,7 @@ class LMM_fitter{
 			
 			double ll = 0.5*(
 				df_resid*std::log(sigma2_) + 
-				vals.array().log().sum() + std::log(XtDX.determinant()) + 1.0
+				vals.array().log().sum() + std::log(XtDX.determinant())
 			);
 			
 			return ll;
@@ -68,7 +68,7 @@ class LMM_fitter{
 		void fit_REML(){
 			
 			std::function<double(double)> f = [this](double x){return neg_logLik_REML(x);};
-			phi = Brent_fmin(0.00, 5000, f, 2e-5);
+			phi = Brent_fmin(0.00, 50000, f, 2e-5);
 			Eigen::VectorXd vals = 1.00 + phi*lambda.array();
 			
 			Vi = vals.asDiagonal().inverse();

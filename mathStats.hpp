@@ -19,7 +19,15 @@
 
 #include <Spectra/SymEigsSolver.h>
 
+// ------------------------------------
+//  Eigen matrix printing formats
+// ------------------------------------
+const static Eigen::IOFormat EigenCSV(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
+const static Eigen::IOFormat EigenTSV(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
 
+// ------------------------------------
+//  R-like pdf and cdf (TODO: switch to libRmath)
+// ------------------------------------
 double qnorm(double, bool lower = false);
 double pnorm(double, bool lower = false);
 double qt(double, double, bool lower = false);

@@ -1,7 +1,7 @@
 #include "genotypeData.hpp"
 
 
-void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col)
+void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col, std::vector<int>& related)
 {
 	int n = kp_ids.size();
 	
@@ -34,7 +34,7 @@ void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& G
 	
 	bool add_diag = true;
 	
-	for( int i = 0; i < nr; ++i )
+	for( int i = 0; i < nr; i++ )
 	{
 		const auto f1 = id_map.find(id1[i]);
 		const auto f2 = id_map.find(id2[i]);
@@ -49,6 +49,10 @@ void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& G
 		{
 			int& ii = f1->second;
 			int& jj = f2->second;
+			if( ii != jj ){
+				related.push_back(ii);
+				related.push_back(jj);
+			}
 			triplets.push_back(td(ii,jj,r_scale*val[i]));
 			triplets.push_back(td(jj,ii,r_scale*val[i]));
 		}
@@ -57,6 +61,9 @@ void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& G
 	if( add_diag ){
 		for(int i = 0; i < n; ++i) triplets.push_back(td(i,i,1.0));
 	}
+	
+	std::sort( related.begin(), related.end() );
+	related.erase( std::unique( related.begin(), related.end() ), related.end() );
 	
 	GRM.setFromTriplets(triplets.begin(), triplets.end());
 }

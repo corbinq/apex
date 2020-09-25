@@ -1,6 +1,6 @@
 #include "fitModels.hpp"
 
-
+/*
 double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda )
 {
 	
@@ -23,6 +23,7 @@ double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen:
 	
 	return ll;
 }
+*/
 
 
 void meta_svar_sumstat::condition_on_het(const int& k){

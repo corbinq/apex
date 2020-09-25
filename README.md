@@ -1,13 +1,19 @@
 # YAX: *Y*et *a*nother *x*QTL toolkit
 YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). Some unique features of YAX include
 
-  **xQTL mapping**
+**Fast, scalable linear mixed model for xQTL mapping**
  - Highly optimized linear mixed model (LMM) framework to account for cryptic or familial relatedness in cis and trans xQTL analysis. 
+ - Optimized ordinary least squares (OLS) framework for cis and trans xQTL analysis with no related individuals (similar to FastQTL).
+
+**Multiple-variant and omnibus xQTL analysis**
+ - Fast, rigorous analytic p-values for cis-region omnibus tests. 
  - Variable selection and conditional analysis procedures to identify multiple association signals for a single molecular trait.
  
-**xQTL meta-analysis**
- - Single and multiple-variant xQTL meta-analysis procedures. 
- - Highly condensed storage formats for xQTL summary statistics, including study-specific LD information.  These allow joint and conditional analysis, Bayesian finemapping, and aggregation tests across 1 or more xQTL studies while protecting genetic privacy.  
+**Flexible multiple-variant xQTL meta-analysis framework** 
+ - Highly condensed storage formats for xQTL summary statistics, including study-specific LD information. 
+ - Single and multiple-variant xQTL meta-analysis procedures.
+ - R interface for joint and conditional analysis, Bayesian finemapping, and aggregation tests across 1 or more xQTL studies while protecting genetic privacy.
+
 ## Installation
 YAX is primarily written in C++, and depends on the Eigen matrix library, HTSlib, and Boost. To compile YAX from source, run:
 

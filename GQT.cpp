@@ -2,12 +2,6 @@
 #include <string>
 
 // ------------------------------------
-//  Eigen matrix printing formats
-// ------------------------------------
-const static Eigen::IOFormat EigenCSV(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
-const static Eigen::IOFormat EigenTSV(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
-
-// ------------------------------------
 //  Default global options. 
 // ------------------------------------
 
@@ -43,19 +37,19 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 using mode_fun = std::function<int(const std::string &, std::vector<std::string>::const_iterator, std::vector<std::string>::const_iterator)>;
 
 std::string help_string = 
-"\n"
+"\n" 
 "  GQT: Toolkit for xQTL analysis\n" 
 "     (c) 2019-2020 Corbin Quick and Li Guan.\n" 
 "\n" 
 "  Usage and options:\n" 
-"     ./gqt [mode] --help       Print help menu for [mode].\n"
-"\n"  
+"     ./gqt [mode] --help       Print help menu for [mode].\n" 
+"\n" 
 "  Analysis modes:\n" 
 "     ./gqt cis {OPTIONS}       cis-xQTL analysis from\n" 
 "                                 individual-level data.\n" 
 "\n" 
 "     ./gqt trans {OPTIONS}     trans-xQTL analysis from\n" 
-"                                 individual-level data.\n"
+"                                 individual-level data.\n" 
 "\n" 
 "     ./gqt meta {OPTIONS}      Single and multi-variant\n" 
 "                                 xQTL meta-analysis from\n" 
@@ -63,7 +57,7 @@ std::string help_string =
 "\n" 
 "     ./gqt store {OPTIONS}     Store vcov (LD) data for\n" 
 "                                 xQTL meta-analysis or\n" 
-"                                 data sharing.\n"
+"                                 data sharing.\n" 
 "\n" 
 "  Contact: corbinq@gmail.com\n";
 
@@ -464,14 +458,15 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
 	Eigen::SparseMatrix<double> GRM;
+	std::vector<int> relateds;
 	if( grm_path != "" ){
-		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3);
+		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
 	if( grm_path == "" ){
 		run_cis_eQTL_analysis(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long);
 	}else{
-		run_cis_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+		run_cis_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, bm, rknorm_y, rknorm_r, true, make_long, just_long);
 	}
 	
     return 0;
@@ -765,8 +760,9 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
 	Eigen::SparseMatrix<double> GRM;
+	std::vector<int> relateds;
 	if( grm_path != "" ){
-		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3);
+		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
 	bool make_sumstat = true;
@@ -1272,8 +1268,9 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
 	Eigen::SparseMatrix<double> GRM;
+	std::vector<int> relateds;
 	if( grm_path != "" ){
-		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3);
+		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
 	std::cerr << "Making variance-covariance (vcov) files ...\n";
