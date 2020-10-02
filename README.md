@@ -1,9 +1,10 @@
+
 # YAX: *Y*et *a*nother *x*QTL toolkit
-YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). Some unique features of YAX include
+YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). To install YAX, [please see documentation below](##installation). Key features of YAX include
 
 **Fast, scalable linear mixed model for xQTL mapping**
  - Highly optimized linear mixed model (LMM) framework to account for cryptic or familial relatedness in cis and trans xQTL analysis. 
- - Optimized ordinary least squares (OLS) framework for cis and trans xQTL analysis with no related individuals (similar to FastQTL).
+ - Optimized ordinary least squares (OLS) framework for cis and trans xQTL analysis with no related individuals.
 
 **Multiple-variant and omnibus xQTL analysis**
  - Fast, rigorous analytic p-values for cis-region omnibus tests. 
@@ -13,20 +14,32 @@ YAX is a comprehensive software toolkit for analysis of molecular quantitative t
  - Highly condensed storage formats for xQTL summary statistics, including study-specific LD information. 
  - Single and multiple-variant xQTL meta-analysis procedures.
  - R interface for joint and conditional analysis, Bayesian finemapping, and aggregation tests across 1 or more xQTL studies while protecting genetic privacy.
-
+ 
+## Analysis modes
+ - [**cis-xQTL analysis.**](#cis) `./yax cis {options}`
+	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
+ - [**trans-xQTL analysis.**](#trans)  `./yax trans {options}`
+	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region.   
+ - [**xQTL meta-analysis.**](meta)  `./yax meta {options}`
+	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
+ - [**xQTL summary data storage.**](store)  `./yax store {options}`
+	 -  Store genotypic variance-covariance (LD) data matrices for data-sharing or meta-analysis. These files enable accurate multiple-variant analysis from xQTL summary statistics, including joint and conditional regression analysis, Bayesian finemapping, aggregation tests, and penalized regression / variable selection.    
+ 
+## Documentation pages
+ Tutorials for each analysis mode (cis, trans, meta, store) are listed in the previous paragraph ([Analysis modes](##analysis-modes)).  Additional documentation pages are listed below. 
+ - **[Input file formats for individual-level analysis](input)** in modes `yax cis`, `yax trans`, and `yax store`. 
+ - **[YAX xQTL summary association data file formats](input)**. 
+ - **[Bayesian finemapping using YAX xQTL summary association data files](input)**. 
+ 
 ## Installation
-YAX is primarily written in C++, and depends on the Eigen matrix library, HTSlib, and Boost. To compile YAX from source, run:
+YAX is primarily written in C++. To compile YAX from source, run:
 
     git clone https://github.com/corbinq/yax.git
     cd yax 
     bash get_dependencies.sh
     make
 Precompiled binaries are also available as follows:
-## Analysis modes
- - **cis-xQTL analysis:** `./yax cis {options}`
- - **trans-xQTL analysis**  `./yax trans {options}`
- - **xQTL meta-analysis**  `./yax meta {options}`
- - **xQTL summary data storage**  `./yax store {options}`
+
 ## Software dependencies
 
  - [Eigen C++ matrix library](http://eigen.tuxfamily.org/)

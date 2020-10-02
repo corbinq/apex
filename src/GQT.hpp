@@ -24,6 +24,7 @@
 #include "readTable.hpp"
 #include "genotypeData.hpp"
 
+#include "transMapping.hpp"
 #include "cisMapping.hpp"
 #include "metaAnalysis.hpp"
 #include "fitUtils.hpp"

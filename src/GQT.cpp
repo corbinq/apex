@@ -768,7 +768,11 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	bool make_sumstat = true;
 	bool make_long = true;
 	
-	run_trans_eQTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size);
+	if( grm_path == "" ){
+		run_trans_eQTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size);
+	}else{
+		run_trans_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size);
+	}
 	
     return 0;
 };
