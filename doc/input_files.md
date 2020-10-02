@@ -9,7 +9,7 @@ YAX uses the intersection of sample IDs present across trait, covariate, and gen
 [Covariate data](#covariate-data)  
 [Genetic relatedness and kinship matrices](#genetic-relatedness-and-kinship-matrices)  
 <br />
-[Return to YAX main page.](https://github.com/corbinq/yax)
+[*Return to YAX main page.*](https://github.com/corbinq/yax)
 
 ## Genotype data
 **Relevant flags:** `--bcf {FILE}`, `--vcf {FILE}`.  <br />
@@ -46,5 +46,5 @@ Covariate files should be white-space delimited.  Uncompressed or GZIP/BGZIP-com
     sample_1     sample_20      0.05
     sample_1     sample_22      0.15
 ```
-If diagonal elements (self-kinship or inbreeding coefficients) are listed, then YAX will analyze only sample IDs present in the GRM file.  If diagonal elements are not listed, then YAX assumes that diagonal elements are equal to 0.5 for kinship matrices or 1 for GRMs, and assumes that samples not listed in the GRM file are unrelated.  Uncompressed or GZIP/BGZIP-compressed white-space delimited text files are supported.
+If diagonal elements are listed in the kinship or GRM file (rows where `id1==id2`), then YAX analyzes the intersection of sample IDs present in the GRM/kinship,  genotype, trait, and covariate files.  Otherwise, YAX fixes diagonal elements of the kinship matrix to 0.5 (or 1 for GRMs), and assumes that any samples not listed in the GRM file (but present in other files) are unrelated.  Uncompressed or GZIP/BGZIP-compressed white-space delimited text files are currently supported.
 

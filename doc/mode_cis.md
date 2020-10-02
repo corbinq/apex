@@ -10,7 +10,7 @@ cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelat
 [LMM cis-xQTL analysis](#lmm-cis-xqtl-analysis)  
 [Command line options](#command-line-arguments)  
 <br />
-[Return to YAX main page.](https://github.com/corbinq/yax)
+[*Return to YAX main page.*](https://github.com/corbinq/yax)
 
 ## OLS cis-xQTL analysis with unrelated samples
 **Example command:** <br />
