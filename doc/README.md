@@ -16,20 +16,20 @@ YAX is a comprehensive software toolkit for analysis of molecular quantitative t
  - R interface for joint and conditional analysis, Bayesian finemapping, and aggregation tests across 1 or more xQTL studies while protecting genetic privacy.
  
 ## Analysis modes
- - [**cis-xQTL analysis.**](#cis) `./yax cis {options}`
+ - [**cis-xQTL analysis.**](https://github.com/corbinq/yax/blob/master/doc/mode_cis.md) `./yax cis {options}`
 	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
- - [**trans-xQTL analysis.**](#trans)  `./yax trans {options}`
+ - [**trans-xQTL analysis.**](https://github.com/corbinq/yax/blob/master/doc/mode_trans.md)  `./yax trans {options}`
 	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region.   
- - [**xQTL meta-analysis.**](meta)  `./yax meta {options}`
+ - [**xQTL meta-analysis.**](https://github.com/corbinq/yax/blob/master/doc/mode_meta.md)  `./yax meta {options}`
 	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
- - [**xQTL summary data storage.**](store)  `./yax store {options}`
+ - [**xQTL summary data storage.**](https://github.com/corbinq/yax/blob/master/doc/mode_store.md)  `./yax store {options}`
 	 -  Store genotypic variance-covariance (LD) data matrices for data-sharing or meta-analysis. These files enable accurate multiple-variant analysis from xQTL summary statistics, including joint and conditional regression analysis, Bayesian finemapping, aggregation tests, and penalized regression / variable selection.    
  
 ## Documentation pages
  Tutorials for each analysis mode (cis, trans, meta, store) are listed in the previous paragraph ([Analysis modes](##analysis-modes)).  Additional documentation pages are listed below. 
- - **[Input file formats for individual-level analysis](input)** in modes `yax cis`, `yax trans`, and `yax store`. 
- - **[YAX xQTL summary association data file formats](input)**. 
- - **[Bayesian finemapping using YAX xQTL summary association data files](input)**. 
+ - **[Input file formats for individual-level analysis](https://github.com/corbinq/yax/blob/master/doc/input_files.md)** in modes `yax cis`, `yax trans`, and `yax store`. 
+ - **[YAX xQTL summary association data file formats](https://github.com/corbinq/yax/blob/master/doc/sumstat_files.md)**. 
+ - **[Bayesian finemapping using YAX xQTL summary association data files](https://github.com/corbinq/yax/blob/master/doc/example_finemapping.md)**. 
  
 ## Installation
 YAX is primarily written in C++. To compile YAX from source, run:
