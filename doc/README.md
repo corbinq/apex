@@ -50,7 +50,7 @@ Precompiled binaries are also available as follows:
  - [Boost math C++ library](https://www.boost.org/)
 
 ## Contact, feedback, bug reports
-YAX is a work in progress, and under active development. Feedback, suggestions and bug reports are greatly appreciated. Contact: [qcorbin@hsph.harvard.edu](qcorbin@hsph.harvard.edu).  
+YAX is a work in progress, and under active development. Feedback, suggestions and bug reports are greatly appreciated. **Contact:** <qcorbin@hsph.harvard.edu>.  
 
 ## Acknowledgements
  - Li Guan
