@@ -25,6 +25,117 @@ double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen:
 }
 */
 
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, PermutXd& Tr, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda ){
+	
+	double delta_thresh = 0.01;
+	double drop0_thresh = 1e-3;
+
+	std::vector<int> unrelateds;
+	Tr = PermutXd(GRM.rows()); 
+	
+	int i = 0;
+	for( int j = 0; j < GRM.cols(); j++ ){
+		if( i < relateds.size() ){
+			if( relateds[i] == j ){
+				i++;
+			}else{
+				unrelateds.push_back(j);
+			}
+		}else{
+			unrelateds.push_back(j);
+		}
+	}
+	i = 0;
+	for( const int& ii : relateds ){
+		Tr.indices()[ii] = i;
+		i++;
+	}
+	for( const int& ii : unrelateds ){
+		Tr.indices()[ii] = i;
+		i++;
+	}
+
+	int nrel = relateds.size();
+	int nind = unrelateds.size();
+	
+	std::cerr << "Found "<< nrel << " related individuals ... \n";
+	
+	std::cerr << "Reordering related GRM blocks ... ";
+	
+	// A better way to do this would be  
+	//    grm = grm.twistedBy(Tr);
+	// Oddly, this fails on my system. 
+	
+	GRM = (Tr * GRM).eval();
+	GRM = (GRM * Tr.transpose()).eval();
+	
+	GRM.makeCompressed();
+
+	std::cerr << "Done.\n";
+
+	Eigen::SparseMatrix<double> GRM_rel = GRM.topLeftCorner(nrel,nrel);
+	GRM_rel.makeCompressed();
+
+	std::cerr << "GRM eigendecomposition ... ";
+	
+	Eigen::SelfAdjointEigenSolver <Eigen::SparseMatrix<double>> GRM_eig(GRM_rel);
+	
+	if (GRM_eig.info() != Eigen::Success){
+		std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
+		abort();
+	}
+	std::cerr << "Done.\n";
+	
+	L_lambda = GRM_eig.eigenvalues();
+	
+	L_lambda.conservativeResize(nrel + nind);
+	for(int i = nrel; i < nrel + nind; i++){
+		L_lambda(i) = 1;
+	}
+	
+	
+	L = GRM_eig.eigenvectors().sparseView(drop0_thresh, 1.0 - std::numeric_limits<double>::epsilon());
+	
+	L.conservativeResize(nrel + nind,nrel + nind);
+	
+	for(int i = nrel; i < nrel + nind; i++){
+		L.coeffRef(i,i) = 1.00;
+	}
+	
+	L.makeCompressed();
+	
+	std::vector<int> kp;
+	for( int i = 0; i < L_lambda.size(); i++ ){
+		if( std::abs( L_lambda(i) - 1 ) > delta_thresh ){
+			kp.push_back(i);
+		}
+	}
+	
+	// Permutation matrix to extract selected eigenvectors.
+	using td = Eigen::Triplet<double>;
+	Eigen::SparseMatrix<double> PC_sel(L_lambda.size(),kp.size());
+	std::vector<td> PC_trips;
+	
+	// Selected eigenvalues.
+	Q_lambda = Eigen::VectorXd(kp.size());
+	
+	i = 0;
+	for( const int& k : kp){
+		PC_trips.push_back(td(k,i,1.00));
+		Q_lambda(i) =  L_lambda(k) - 1.00;
+		i++;
+	}
+	PC_sel.setFromTriplets(PC_trips.begin(), PC_trips.end());
+	
+	std::cerr << "Selected " << kp.size() << " eigenvectors.\n";
+	
+
+	Q = (L * PC_sel).eval();
+	Q.makeCompressed();
+	
+	return;
+}
+
 
 void meta_svar_sumstat::condition_on_het(const int& k){
 	kept_snps.push_back(k);

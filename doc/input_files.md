@@ -29,7 +29,7 @@ YAX requires the first 4 columns as shown above, where 1-3 (chr, start, end) spe
 **Missing data.** YAX does not currently support missing molecular trait values. We recommend filtering out traits with high proportions of missingness (e.g., >5%) prior to analysis, and imputing remaining missing values using [single-imputation](https://en.wikipedia.org/wiki/Imputation_%28statistics%29#Single_imputation) for other missing values.    
 ## Covariate data
 **Relevant flags:** `--cov {FILE}`, `-c {FILE}`. <br />
-**File format**. Covariate files are stored similar to molecular traits, with 1 row per covariate and 1 column per sample. For example, below is a covariate file with 4 samples and 3 covariates:
+**File format**. Covariate files are stored similar to molecular traits, with 1 row per covariate and 1 column per sample. YAX supports only numeric covariate data; any character-valued categorical variables must be converted to `0`-`1` dummy variables. For example, below is a covariate file with 4 samples and 3 covariates:
 ```
     #ID   sample_1    sample_2    sample_3    sample_4
     PC1   0.0139      0.0145      0.0141      0.0135
@@ -37,6 +37,7 @@ YAX requires the first 4 columns as shown above, where 1-3 (chr, start, end) spe
     PC3   0.0067      0.0096     -0.0036     -0.0041
 ```
 Covariate files should be white-space delimited.  Uncompressed or GZIP/BGZIP-compressed white-space delimited text files are supported.  Users are encouraged to verify that their covariate data matrix has full column rank.   
+
 ## Genetic relatedness and kinship matrices
 **Relevant flags:** `--grm {FILE}`, `--kin {FILE}`. <br />
 **File format**. Kinship or genetic relatedness matrices (GRMs) can be specified in a sparse matrix format as follows:

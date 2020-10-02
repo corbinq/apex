@@ -297,112 +297,13 @@ Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq ){
 void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long)
 {
 	
-	double delta_thresh = 0.01;
-	double drop0_thresh = 1e-3;
+	PermutXd Tr;
+	Eigen::SparseMatrix<double> Q;
+	Eigen::VectorXd Q_lambda;
+	Eigen::SparseMatrix<double> L;
+	Eigen::VectorXd GRM_lambda;
 
-	Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> Tr(GRM.rows()); 
-
-	std::vector<int> unrelateds;
-	
-	int i = 0;
-	for( int j = 0; j < GRM.cols(); j++ ){
-		if( i < relateds.size() ){
-			if( relateds[i] == j ){
-				i++;
-			}else{
-				unrelateds.push_back(j);
-			}
-		}else{
-			unrelateds.push_back(j);
-		}
-	}
-	i = 0;
-	for( const int& ii : relateds ){
-		Tr.indices()[ii] = i;
-		i++;
-	}
-	for( const int& ii : unrelateds ){
-		Tr.indices()[ii] = i;
-		i++;
-	}
-
-	int nrel = relateds.size();
-	int nind = unrelateds.size();
-	
-	std::cerr << "Found "<< nrel << " related individuals ... \n";
-	
-	std::cerr << "Reordering related GRM blocks ... ";
-	
-	// A better way to do this would be  
-	//    grm = grm.twistedBy(Tr);
-	// Oddly, this fails on my system. 
-	
-	GRM = (Tr * GRM).eval();
-	GRM = (GRM * Tr.transpose()).eval();
-	
-	GRM.makeCompressed();
-
-	std::cerr << "Done.\n";
-
-	Eigen::SparseMatrix<double> GRM_rel = GRM.topLeftCorner(nrel,nrel);
-	GRM_rel.makeCompressed();
-
-	std::cerr << "GRM eigendecomposition ... ";
-	
-	Eigen::SelfAdjointEigenSolver <Eigen::SparseMatrix<double>> GRM_eig(GRM_rel);
-	
-	if (GRM_eig.info() != Eigen::Success){
-		std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
-		abort();
-	}
-	std::cerr << "Done.\n";
-	
-	Eigen::VectorXd GRM_lambda = GRM_eig.eigenvalues();
-	
-	GRM_lambda.conservativeResize(nrel + nind);
-	for(int i = nrel; i < nrel + nind; i++){
-		GRM_lambda(i) = 1;
-	}
-	
-	
-	Eigen::SparseMatrix<double> L = GRM_eig.eigenvectors().sparseView(drop0_thresh, 1.0 - std::numeric_limits<double>::epsilon());
-	
-	L.conservativeResize(nrel + nind,nrel + nind);
-	
-	for(int i = nrel; i < nrel + nind; i++){
-		L.coeffRef(i,i) = 1.00;
-	}
-	
-	L.makeCompressed();
-	
-	std::vector<int> kp;
-	for( int i = 0; i < GRM_lambda.size(); i++ ){
-		if( std::abs( GRM_lambda(i) - 1 ) > delta_thresh ){
-			kp.push_back(i);
-		}
-	}
-	
-	// Permutation matrix to extract selected eigenvectors.
-	using td = Eigen::Triplet<double>;
-	Eigen::SparseMatrix<double> PC_sel(GRM_lambda.size(),kp.size());
-	std::vector<td> PC_trips;
-	
-	// Selected eigenvalues.
-	Eigen::VectorXd Q_lambda(kp.size());
-	
-	i = 0;
-	for( const int& k : kp){
-		PC_trips.push_back(td(k,i,1.00));
-		Q_lambda(i) =  GRM_lambda(k) - 1.00;
-		i++;
-	}
-	PC_sel.setFromTriplets(PC_trips.begin(), PC_trips.end());
-	
-	std::cerr << "Selected " << kp.size() << " eigenvectors.\n";
-	
-
-	Eigen::SparseMatrix<double> Q = (L * PC_sel).eval();
-	Q.makeCompressed();
+	GRM_decomp(GRM, relateds, Tr, L, GRM_lambda, Q, Q_lambda);
 	
 	std::cerr << "Reordering trait and covariate matrices ...\n";
 	

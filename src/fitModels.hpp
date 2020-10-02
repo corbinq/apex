@@ -22,8 +22,11 @@
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
 
-
 // double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
+
+typedef Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> PermutXd;
+
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, PermutXd& Tr, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
 
 class LMM_fitter{
 	
