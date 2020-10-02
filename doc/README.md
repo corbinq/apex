@@ -34,10 +34,10 @@ YAX is a comprehensive software toolkit for analysis of molecular quantitative t
 ## Installation
 YAX is primarily written in C++. To compile YAX from source, run:
 ```
-    git clone https://github.com/corbinq/yax.git
-    cd yax 
-    bash get_dependencies.sh
-    make
+git clone https://github.com/corbinq/yax.git
+cd yax 
+bash get_dependencies.sh
+make
 ```
 Precompiled binaries are also available as follows:
 
