@@ -4,10 +4,10 @@ This page summarizes individual-level data file formats accepted by the YAX comm
 YAX uses the intersection of sample IDs present across trait, covariate, and genotype files for statistical analysis.  Sample IDs need not be listed in the same order across files. Detailed descriptions of input data formats are provided below. 
 
 ##### Table of Contents  
-[Genotype data](##genotype-data)  
-[Molecular trait data](##molecular-trait-data)  
-[Covariate data](##covariate-data)  
-[Genetic relatedness and kinship matrices](##genetic-relatedness-and-kinship-matrices)  
+[Genotype data](#genotype-data)  
+[Molecular trait data](#molecular-trait-data)  
+[Covariate data](#covariate-data)  
+[Genetic relatedness and kinship matrices](#genetic-relatedness-and-kinship-matrices)  
 
 ## Genotype data
 **Relevant flags:** `--bcf {FILE}`, `--vcf {FILE}`.
