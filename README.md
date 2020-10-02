@@ -39,7 +39,13 @@ cd yax
 bash get_dependencies.sh
 make
 ```
-Precompiled binaries are also available as follows:
+Precompiled binaries are also available for 64-bit Linux systems as follows:
+```
+git clone https://github.com/corbinq/yax.git
+mv yax/bin/yax_Linux_x86_64.gz yax.gz 
+gunzip yax.gz
+./yax --help
+```
 
 ## Software dependencies
 
