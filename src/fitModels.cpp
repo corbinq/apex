@@ -25,6 +25,123 @@ double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen:
 }
 */
 
+static const double min_hsq_thresh = 1e-5;
+
+DiagonalXd calc_Vi(const double& phi, const Eigen::VectorXd& lambdas){
+	Eigen::VectorXd vals = 1.00 + phi*lambdas.array();
+	return vals.asDiagonal().inverse();
+}
+
+DiagonalXd calc_Psi(const double& phi, const Eigen::VectorXd& lambdas){
+	
+	double hsq = phi/(1.00 + phi);
+	
+	if( hsq <= min_hsq_thresh ){
+		return Eigen::VectorXd::Zero(lambdas.size()).asDiagonal();
+	}
+	Eigen::VectorXd numer = hsq * lambdas;
+	Eigen::VectorXd denom = hsq * lambdas;
+	denom.array() += 1.00;
+	return (numer.cwiseQuotient(denom)).asDiagonal();	
+}
+
+Eigen::MatrixXd getVBeta(const std::vector<double>& hsq_v, const std::vector<double>& phi_v, const int& p){
+
+	int q = hsq_v.size();
+
+	Eigen::MatrixXd Beta(p, q);
+	
+	for(int i = 0; i < p; i++){
+		for( int j = 0; j < q; j++){
+			if( i == 0 ){
+				Beta(i, j) = 1.00/(1.00 + phi_v[j]);
+			}else{
+				Beta(i, j) = std::pow(hsq_v[j], (double) i)/(1.00 + phi_v[j]);
+			}
+		}
+	}
+	return Beta;
+}
+
+Eigen::MatrixXd getPredParams( const std::vector<double>& vals ){
+	int n = vals.size();
+	Eigen::MatrixXd X(n,n);
+	for(int i = 0; i < n; i++){
+		for(int j = 0; j < n; j++){
+			if ( i == 0 && j == 0 ){
+				X(i,j) = 1.0;
+			}else{
+				X(i,j) = std::pow(vals[i], (double) j );
+			}
+		}
+	}
+	return (X.transpose() * X).ldlt().solve(X.transpose());
+}
+
+Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq ){
+	Eigen::VectorXd out = vv.col(0);
+	
+	Eigen::VectorXd Beta(vv.cols());
+	
+	Beta(0) = 1.00;
+	
+	for(int i = 1; i < vv.cols(); i++){
+		Beta(i) = std::pow(hsq, (double) i);
+	}
+	return vv * Beta;
+}
+
+void calcVBasis( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda ){
+	
+	int n_hsq = hsq_vals.size();
+	int n_snps = g_data.genotypes.cols();
+	
+	std::vector<Eigen::MatrixXd> M_list;
+	V_mat = Eigen::MatrixXd(n_snps, n_hsq);
+	
+	for( const double& hsq : hsq_vals ){
+		M_list.push_back(
+			(CtC - (QtC.transpose() * calc_Psi(hsq, Q_lambda) * QtC)).inverse()
+		);
+	}
+	
+	std::cerr << "Calculating genotype-covariate covariance ... \n";
+	Eigen::MatrixXd CtG = (C.transpose() * g_data.genotypes).eval();
+	
+	std::vector<double> GtG_diag(n_snps);		
+	
+	std::cerr << "Calculating genotype residual variances ...";
+
+	for( int i = 0; i < n_snps; i++)
+	{
+		GtG_diag[i] = g_data.genotypes.col(i).squaredNorm();
+		g_data.var[i] = GtG_diag[i] - CtG.col(i).dot(CtC_i * CtG.col(i));
+		V_mat(i,0) = g_data.var[i];
+	}
+	std::cerr << "Done.\n";
+	
+	for(int j = 1; j < n_hsq; j++){
+		std::cerr << "Calculating genotype variance basis (" << j+1 << "/" << n_hsq << ") ... \n";
+
+		Eigen::MatrixXd Psi_a = calc_Psi(hsq_vals[j], Q_lambda) * QtG;
+		Eigen::MatrixXd Res = CtG - QtC.transpose() * Psi_a;
+		
+		for( int i = 0; i < n_snps; i++)
+		{
+			V_mat(i,j) = (
+				GtG_diag[i] - QtG.col(i).dot(Psi_a.col(i)) - Res.col(i).dot(M_list[j] * Res.col(i))
+			);
+		}
+	}
+	
+	V_mat = (V_mat * (getPredParams(hsq_vals).transpose())).eval();
+	
+	std::cerr << "Done.\n";
+	
+	return;
+}
+
+
 void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, PermutXd& Tr, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda ){
 	
 	double delta_thresh = 0.01;

@@ -58,6 +58,9 @@ gunzip yax.gz
 ## Contact, feedback, bug reports
 YAX is a work in progress, and under active development. Feedback, suggestions and bug reports are greatly appreciated. **Contact:** <qcorbin@hsph.harvard.edu>.  
 
+## Citation
+If you use YAX, please cite `Quick, C; Guan, L; Lin, X (2020). URL: https://github.com/corbinq/yax` (preprint currently pending). 
+
 ## Acknowledgements
  - Li Guan
  - Laura Scott

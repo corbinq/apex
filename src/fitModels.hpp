@@ -26,7 +26,24 @@
 
 typedef Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> PermutXd;
 
+typedef Eigen::DiagonalMatrix<double, Eigen::Dynamic> DiagonalXd;
+
+
+DiagonalXd calc_Vi(const double& phi, const Eigen::VectorXd& lambdas);
+
+DiagonalXd calc_Psi(const double& phi, const Eigen::VectorXd& lambdas);
+
+Eigen::MatrixXd getPredParams( const std::vector<double>& vals );
+
+Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq );
+
+Eigen::MatrixXd getVBeta(const std::vector<double>& hsq_v, const std::vector<double>& phi_v, const int& p);
+
+void calcVBasis( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda );
+
 void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, PermutXd& Tr, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
+
+
 
 class LMM_fitter{
 	
@@ -86,7 +103,56 @@ class LMM_fitter{
 		}
 		
 };
-	
+
+class theta_data
+{
+	private:
+		std::vector<std::string> chr;
+		std::vector<int> start;
+		std::vector<int> end;
+		std::vector<std::string> gene_id;
+		std::vector<double> sigma2;
+		std::vector<double> tau2;
+		std::vector<double> phi;
+		
+		std::unordered_map<std::string, int> gene_map; 
+		
+	public:
+		void open(const std::string& file_path, const std::string& region = ""){
+			data_parser dp;
+			
+			dp.add_field(chr, 0);
+			dp.add_field(start, 1);
+			dp.add_field(end, 2);
+			dp.add_field(gene_id, 3);
+			dp.add_field(sigma2, 4);
+			dp.add_field(tau2, 5);
+			dp.add_field(phi, 6);
+			
+			dp.parse_file(file_path, region);
+			
+			for( int i = 0; i < gene_id.size(); i++){
+				gene_map[gene_id[i]] = i;
+			}
+			return;
+		};
+		theta_data() {}; 
+		void getTheta(const int& i, const std::string& gene, double& sigma2_, double& tau2_, double& phi_){
+			int j;
+			if( gene_id[i] == gene ){
+				j = i;
+			}else{
+				j = gene_map[gene];
+			}
+			
+			sigma2_ = sigma2[j];
+			tau2_ = tau2[j];
+			phi_ = phi[j];
+			return;
+		};
+};
+
+
 class vcov_getter;
 
 static const Eigen::VectorXd vec0 = Eigen::VectorXd(0);

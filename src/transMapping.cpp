@@ -355,28 +355,8 @@ void run_trans_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_d
 	return;
 }
 
-static const double min_hsq_thresh = 1e-5;
 
-Eigen::MatrixXd getVBeta(const std::vector<double>& hsq_v, const std::vector<double>& phi_v, const int& p){
-
-	int q = hsq_v.size();
-
-	Eigen::MatrixXd Beta(p, q);
-	
-	for(int i = 0; i < p; i++){
-		for( int j = 0; j < q; j++){
-			if( i == 0 ){
-				Beta(i, j) = 1.00/(1.00 + phi_v[j]);
-			}else{
-				Beta(i, j) = std::pow(hsq_v[j], (double) i)/(1.00 + phi_v[j]);
-			}
-		}
-	}
-	return Beta;
-}
-
-
-void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size)
+void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& theta_path)
 {
 	
 	PermutXd Tr;
@@ -410,9 +390,6 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 	std::cerr << "Scaling expression traits ... \n";
 	scale_and_center(Y);
 	
-	std::cerr << "Calculating genotype-covariate covariance ... \n";
-	Eigen::MatrixXd CtG = (C.transpose() * g_data.genotypes).eval();
-	
 	std::cerr << "Calculating partial rotations ...\n";
 	Eigen::MatrixXd QtC = (Q.transpose() * C).eval();
 	Eigen::MatrixXd QtG = (Q.transpose() * g_data.genotypes).eval();
@@ -427,70 +404,10 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 	Eigen::MatrixXd X = (L.transpose() * C).eval();
 	std::cerr << "Done.\n";
 
-	Eigen::MatrixXd U = get_half_hat_matrix(X);
-	
-	std::vector<double> GtG_diag(n_snps);
-	
 	std::vector<double> hsq_vals{0.0, 0.5, 1.0};
-	int n_hsq = hsq_vals.size();
 	
-	std::vector<Eigen::MatrixXd> M_list;
-	Eigen::MatrixXd V_mat( (int) n_snps, (int) n_hsq);
-	
-	for( const double& hsq : hsq_vals ){
-		M_list.push_back(
-			(CtC - (QtC.transpose() * calc_Psi(hsq, Q_lambda) * QtC)).inverse()
-		);
-	}
-	
-	if( !global_opts::low_mem ){
-		
-		// std::cerr << "Calculating genotype-covariate covariance...\n";
-		
-		// Eigen::MatrixXd UtG = U.transpose() * g_data.genotypes;
-		std::cerr << "Calculating genotype residual variances ...";
-		//Eigen::VectorXd SD_vec(UtG.cols());
-		for( int i = 0; i < CtG.cols(); i++)
-		{
-			
-			// g_data.var[i] = g_data.genotypes.col(i).squaredNorm() - UtG.col(i).squaredNorm();
-			GtG_diag[i] = g_data.genotypes.col(i).squaredNorm();
-			g_data.var[i] = GtG_diag[i] - CtG.col(i).dot(CtC_i * CtG.col(i));
-			//SD_vec[i] = std::sqrt(g_data.var[i]);
-			
-			V_mat(i,0) = g_data.var[i];
-		}
-		std::cerr << "Done.\n";
-		
-		// std::cerr << "Rotating genotypes ... ";
-		
-		// g_data.genotypes = (L.transpose()*g_data.genotypes).eval();
-		g_data.genotypes.makeCompressed();
-		// std::cerr << "Done.\n";
-		
-		
-		
-		for(int j = 1; j < n_hsq; j++){
-			std::cerr << "Calculating genotype variance basis (" << j+1 << "/" << n_hsq << ") ... \n";
-
-			Eigen::MatrixXd Psi_a = calc_Psi(hsq_vals[j], Q_lambda) * QtG;
-			Eigen::MatrixXd Res = CtG - QtC.transpose() * Psi_a;
-			// Eigen::Matrix MRes = M_list[j] * Res;
-			// V_list[j].resize(n_snps);
-			
-			for( int i = 0; i < n_snps; i++)
-			{
-				V_mat(i,j) = (
-					GtG_diag[i] - QtG.col(i).dot(Psi_a.col(i)) - Res.col(i).dot(M_list[j] * Res.col(i))
-				);
-			}
-		}
-		
-		V_mat = (V_mat * (getPredParams(hsq_vals).transpose())).eval();
-		
-		std::cerr << "Done.\n";
-	}
-	
+	Eigen::MatrixXd V_mat;
+	calcVBasis(V_mat, g_data, C, hsq_vals, CtC, CtC_i, QtG, QtC, Q_lambda);
 	
 	std::vector<double> gene_max_val((int) n_traits, 0.0);
 	std::vector<int> gene_max_idx((int) n_traits, 0);
@@ -526,10 +443,6 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 	write_to_bgzf("#chrom\tpos\tref\talt\tgene_chrom\tgene_id\tbeta\tse\tpval\n", long_file);
 	
 	
-	std::string iter_cerr_suffix = " traits out of " + std::to_string(Y.cols()) + " total";
-	std::cerr << "Fit null model for ";
-	print_iter_cerr(1, 0, iter_cerr_suffix);
-	
 	std::vector<double> phi_v(Y.cols());
 	std::vector<double> hsq_v(Y.cols());
 	std::vector<double> sigma_v(Y.cols());
@@ -539,20 +452,44 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 	
 	e_data.stdev.resize(Y.cols());
 	
+	theta_data t_data;
+	bool use_theta = false;
+	
+	if( theta_path != "" ){
+		std::cerr << "Set null model for ";
+		t_data.open(theta_path);
+		use_theta = true;
+	}else{
+		std::cerr << "Fit null model for ";
+	}
+	
+	std::string iter_cerr_suffix = " traits out of " + std::to_string(Y.cols()) + " total";
+	print_iter_cerr(1, 0, iter_cerr_suffix);
+	
+	int last_j = 0;
 	for(int j = 0; j < Y.cols(); j++ ){
+		DiagonalXd Vi;
+		double sigma2;
+		double phi;
+		double tau2;
 
-		LMM_fitter fit(X, Y.col(j), GRM_lambda);
-		fit.fit_REML();
-		
-		const DiagonalXd& Vi = fit.Vi;
-		const double& sigma2 = fit.sigma2;
-		const double& phi = fit.phi;
+		if( use_theta ){
+			t_data.getTheta(j, e_data.gene_id[j], sigma2, tau2, phi);
+			Vi = calc_Vi(phi, GRM_lambda);
+		}else{
+			LMM_fitter fit(X, Y.col(j), GRM_lambda);
+			fit.fit_REML();
+			
+			Vi = fit.Vi;
+			sigma2 = fit.sigma2;
+			phi = fit.phi;
+			tau2 = phi*sigma2;
+		}
 		
 		// DiagonalXd Vi = Eigen::VectorXd::Ones(Y.col(j).size()).asDiagonal();
 		// double sigma2 = 1.00;
 		// double phi = 0.05;
 		
-		double tau2 = phi*sigma2;
 		double hsq = tau2 / (tau2 + sigma2);
 		double scale = std::sqrt(tau2 + sigma2);
 		
@@ -572,8 +509,9 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 		
 		e_data.stdev[j] = std::sqrt(sigma2);
 		
-		print_iter_cerr(j, j+1, iter_cerr_suffix);
+		thinned_iter_cerr(last_j, j+1, iter_cerr_suffix, 20);
 	}
+	print_iter_cerr(last_j, Y.cols(), iter_cerr_suffix);
 	
 	Eigen::MatrixXd VBeta = getVBeta(hsq_v, phi_v, hsq_vals.size());
 	
@@ -635,6 +573,13 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 			Eigen::MatrixXd U_b = G.transpose() * PY;
 			Eigen::MatrixXd V_b = V_mat.middleRows(s_g, n_g) * VBeta;
 			
+			Eigen::VectorXd scale_vec(U_b.cols());
+			for(int i = 0; i < U_b.cols(); i++){
+				scale_vec(i) = (n_samples - 1)/SSR_v[i];
+			}
+			
+			Eigen::MatrixXd StdScore2 = (U_b.cwiseAbs2() * scale_vec.asDiagonal()).cwiseQuotient(V_b);
+			
 			// dV = getVectorXd(g_data.var, s_g, n_g);
 			// StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y_res * G).transpose().eval();
 			
@@ -644,8 +589,10 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 			
 			for(int j = 0; j < U_b.cols(); j++){
 				for(int i = 0; i < U_b.rows(); i++){
-					double scale_fac = (n_samples - 1)/SSR_v[j];
-					double val2 = scale_fac*(U_b(i,j) * U_b(i,j) )/V_b(i,j);
+					// double scale_fac = (n_samples - 1)/SSR_v[j];
+					// double val2 = scale_fac*(U_b(i,j) * U_b(i,j) )/V_b(i,j);
+					
+					const double& val2 = StdScore2(i,j);
 					
 					if( val2 > gene_max_val[j] ){
 						gene_max_val[j] = val2;
@@ -825,6 +772,8 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 	return;
 }
 
+
+
 void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r)
 {
 	
@@ -914,6 +863,8 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 			phi << "\n";
 		
 		write_to_bgzf(theta_line.str().c_str(), theta_file);
+		
+		print_iter_cerr(j, j+1, iter_cerr_suffix);
 	}
 	
 	

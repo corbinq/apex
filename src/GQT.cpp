@@ -179,6 +179,10 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 
 	p.Prog(progname);
 
+	args::Group analysis_args(p, "Analysis options");
+		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
+
 	args::Group cis_args(p, "Output options");
 		args::Flag make_long(cis_args, "", "Write cis-eQTL results in long table format.", {'l', "long"});
 		args::Flag just_long(cis_args, "", "Only write long-table cis-eQTL results.", {'L', "just-long"});
@@ -228,6 +232,8 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	// ----------------------------------
 	// I/O File Paths
 	// ----------------------------------
+	
+	std::string theta_path = args::get(theta_arg);
 	
 	prefix = args::get(out_arg);
 	std::string e_path = args::get(bed_arg);
@@ -440,7 +446,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		return 0;
 	}
 	
-	if( low_mem ){
+	if( low_mem || fit_null ){
 		clear_line_cerr();
 		std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
 		g_data.genotypes.resize(0,0);
@@ -461,6 +467,16 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	std::vector<int> relateds;
 	if( grm_path != "" ){
 		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
+	}
+	
+	if( fit_null ){
+		if( grm_path == "" ){
+			std::cerr << "Error: GRM is required to fit null models.\n";
+			return 1;
+		}
+		fit_LMM_null_models(c_data, e_data, GRM, relateds, rknorm_y, rknorm_r);
+		std::cerr << "\nNull model estimation complete. \nSpecify --theta-file {prefix}.theta.gz to re-use estimates for analysis.\n";
+		return 0;
 	}
 	
 	if( grm_path == "" ){
@@ -484,6 +500,10 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	args::CompletionFlag completion(p, {"complete"});
 	
 	p.Prog(progname);
+
+	args::Group analysis_args(p, "Analysis options");
+		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
 
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -529,6 +549,8 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// ----------------------------------
 	// I/O File Paths
 	// ----------------------------------
+	
+	std::string theta_path = args::get(theta_arg);
 	
 	prefix = args::get(out_arg);
 	std::string e_path = args::get(bed_arg);
@@ -744,7 +766,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		return 0;
 	}
 	
-	if( low_mem ){
+	if( low_mem || fit_null ){
 		clear_line_cerr();
 		std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
 		g_data.genotypes.resize(0,0);
@@ -768,10 +790,20 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	bool make_sumstat = true;
 	bool make_long = true;
 	
+	if( fit_null ){
+		if( grm_path == "" ){
+			std::cerr << "Error: GRM is required to fit null models.\n";
+			return 1;
+		}
+		fit_LMM_null_models(c_data, e_data, GRM, relateds, rknorm_y, rknorm_r);
+		std::cerr << "Analysis complete. Specify --null-params {theta-file} to re-use null model estimates.\n";
+		return 0;
+	}
+	
 	if( grm_path == "" ){
 		run_trans_eQTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size);
 	}else{
-		run_trans_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size);
+		run_trans_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
 	}
 	
     return 0;
