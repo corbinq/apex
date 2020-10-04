@@ -1,4 +1,5 @@
 
+
 # YAX: cis-xQTL analysis guide
 This page describes cis-xQTL analysis using YAX. Once installed, you can quickly get started by running  ` ./yax cis --help`. <br />
 
@@ -14,14 +15,44 @@ cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelat
 
 ## OLS cis-xQTL analysis with unrelated samples
 **Example command:** <br />
- `./yax cis --vcf {vcf} --bed {expression-file} --cov {covariate-file} --prefix {output-prefix}` <br />
- <br />
+ `./yax cis --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name} --long` <br />
+
+ **Output files.** The above command generates 3 output files, `{out-name}.cis_sumstats.tsv.gz`, `{out-name}.cis_gene_table.tsv.gz`, `{out-name}.cis_long_table.tsv.gz`.  The `cis_sumstats` output file contains association score statistics in a condensed format, which can be used for downstream analysis with the command `./yax meta`.  Human-readable output files are described below: <br />
+ 
+`*.cis_long_table.tsv.gz` (flag `--long`) columns: 
+ 1. `#chrom` : Variant chromosome.
+ 2. `pos` : Variant chromosomal position (basepairs).
+ 3. `ref` : Variant reference allele (`A`, `C`, `T`, or `G`).
+ 4. `alt` : Variant alternate allele. 
+ 5. `gene` : Molecular trait identifier (as specified in `--bed {trait-file}`).
+ 6. `beta` : OLS regression slope for variant on trait. 
+ 7. `se` : Standard error of regression slope.
+ 8. `pval` : Single-variant association nominal p-value.  
+
+`*.cis_gene_table.tsv.gz` columns:
+ 1. `#chrom` : Molecular trait chromosome.
+ 2. `start` : Molecular trait start position.
+ 3. `end` : Molecular trait end position.
+ 4. `gene` : Molecular trait identifier.
+ 5. `gene_pval` : Trait-level p-value calculated across all variants in the *cis* region using the [Cauchy combination test](https://arxiv.org/abs/1808.09011), comparable to beta-approximated permutation p-values. 
+ 6. `n_samples` : Number of samples included in analysis.
+ 7. `n_covar` : Number of covariates included in analysis, including intercept.
+ 8. `resid_sd` : Square root of regression mean squared error under the null model. 
+ 9. `n_cis_variants` : Number of variants in the *cis* region (which were used to calculate `gene_pval`). 
+
 **QTL software concordance.** When no GRM is specified, YAX single-variant output is equivalent to the R regression model `lm(traits[,j] ~ covariates + genotype[,k])` for each trait `j` and genotype `k`. YAX output is additionally equivalent to [FastQTL](http://fastqtl.sourceforge.net/) single-variant output.  Note that some tools, such as [QTLtools](https://qtltools.github.io/qtltools/), instead fit the model `lm(residuals[,j] ~ genotype[,k])` where `residuals[,j] = resid(lm(traits[,j] ~ covariates))`. YAX can mimic this model if the flag `--no-resid-geno` is specified.  This approach is slightly faster that standard OLS, but can cause [conservative p-values (loss of statistical power)](https://onlinelibrary.wiley.com/doi/abs/10.1002/gepi.22325). 
 ## LMM cis-xQTL analysis 
 **Example command:** <br />
- `./yax cis --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --prefix {output-prefix}` <br />
+ `./yax cis --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --prefix {out-name}` <br />
 <br />
-YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in cis-eQTL analysis. To use this feature, specify a genetic relatedness matrix (GRM) file to YAX using  `--grm {grm-file}`.  Output files and options are otherwise similar to those from OLS cis-xQTL analysis (when `--grm` is not specified). <br />
+YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in cis-eQTL analysis of the form <img src="https://render.githubusercontent.com/render/math?math=y = X\beta %2B g %2B \varepsilon "> where <img src="https://render.githubusercontent.com/render/math?math=g\sim\mathcal{N}(0,\tau^{2}\GRM)"> and <img src="https://render.githubusercontent.com/render/math?math=\varepsilon\sim\mathcal{N}(0,\sigma^{2}I)">. To use this feature, specify a genetic relatedness matrix (GRM) file to YAX using  `--grm {grm-file}`.  Output files and options are otherwise similar to those from OLS cis-xQTL analysis (when `--grm` is not specified). <br />
+ 
+**Example command:** <br />
+ `./yax cis --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name} --long` <br />
+
+ **Output files.** Output files from LMM analysis are broadly similar to OLS. One additional output file, `{out-name}.theta.gz`, contains variance component parameter estimates from the LMM. The first 4 columns of this file list trait chromosomal position and identifier, and columns 5-7 list the residual variance component estimate <img src="https://render.githubusercontent.com/render/math?math=\sigma^2"> (independent error variance), heritable variance component estimate <img src="https://render.githubusercontent.com/render/math?math=\tau^2">, and their ratio <img src="https://render.githubusercontent.com/render/math?math=\phi=\tau^2/\sigma^2">. 
+ 6. Genetic variance component estimate (due to GRM). 
+ 7. Residual-genetic variance ratio.
  **LMM software concordance.** YAX's LMM estimates are consistent with the R packages [GMMAT](https://github.com/hanchenphd/GMMAT) and [GENESIS](http://www.bioconductor.org/packages/release/bioc/html/GENESIS.html) using AI-REML. 
 
 ## Command line arguments

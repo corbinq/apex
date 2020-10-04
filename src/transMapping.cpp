@@ -14,17 +14,15 @@ double u_stat_pval(const double& u_stat, const double& m, const double& n){
 	double f_stat = u_stat * u_stat;
 	f_stat = (n - m - 1)*f_stat/(n - 1 - f_stat);
 	return pf(f_stat, 1, n - m - 1, true);
-	
 }
 
 double usq_stat_pval(const double& usq_stat, const double& m, const double& n){
-	double f_stat = (n - m - 1)*usq_stat/(n - 1 - f_stat);
+	double f_stat = (n - m - 1)*usq_stat/(n - 1 - usq_stat);
 	if( f_stat < 0 ){
 		std::cerr << "ERROR: F statistic < 0\n";
 		return -1.00;
 	}
 	return pf(f_stat, 1, n - m - 1, true);
-	
 }
 
 void run_trans_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size)
@@ -604,7 +602,7 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 						const double& scale = e_data.stdev[j];
 						const double& U = U_b(i,j);
 						double beta = U/V;
-						double beta_se = std::sqrt( ((n_samples - 1)/V- beta*beta)/(n_samples - n_covar - 1) );
+						double beta_se = std::sqrt( (SSR_v[j]/V- beta*beta)/(n_samples - n_covar - 1) );
 						
 						double pval_esnp = usq_stat_pval(val2, n_covar, n_samples);
 						
@@ -869,4 +867,5 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 	
 	
 	bgzf_close(theta_file);
+	build_tabix_index(theta_file_path, 1);
 }

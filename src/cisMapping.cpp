@@ -286,8 +286,8 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 	std::cerr << "Scaling expression traits ... \n";
 	scale_and_center(Y);
 	
-	std::cerr << "Calculating genotype-covariate covariance ... \n";
-	Eigen::MatrixXd CtG = (C.transpose() * g_data.genotypes).eval();
+	// std::cerr << "Calculating genotype-covariate covariance ... \n";
+	// Eigen::MatrixXd CtG = (C.transpose() * g_data.genotypes).eval();
 	
 	std::cerr << "Calculating partial rotations ...\n";
 	Eigen::MatrixXd QtC = (Q.transpose() * C).eval();
@@ -308,13 +308,17 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 	Eigen::MatrixXd V_mat;
 	calcVBasis(V_mat, g_data, C, hsq_vals, CtC, CtC_i, QtG, QtC, Q_lambda);
 	
+	std::string theta_file_path = global_opts::out_prefix + "." + "theta" + ".gz";
 	std::string block_file_path = global_opts::out_prefix + "." + "cis_sumstats" + ".txt.gz";
 	std::string bed_block_file_path = global_opts::out_prefix + "." + "cis_gene_table" + ".txt.gz";
 	std::string long_file_path = global_opts::out_prefix + "." + "cis_long_table" + ".txt.gz";
 	
+	BGZF* theta_file;
 	BGZF* block_file;
 	BGZF* bed_block_file;
 	BGZF* long_file;
+	
+	theta_file = bgzf_open(theta_file_path.c_str(), "w");
 	
 	if( !just_long ){
 		
@@ -416,24 +420,44 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 		
 				const Eigen::SparseMatrix<double>& G_slice = G.middleCols(idx_s, idx_n);
 				const Eigen::MatrixXd& QtG_slice = QtG.middleCols(s_slice, n_slice).middleCols(idx_s, idx_n);
-				const Eigen::MatrixXd& CtG_slice = CtG.middleCols(s_slice, n_slice).middleCols(idx_s, idx_n);
+				// const Eigen::MatrixXd& CtG_slice = CtG.middleCols(s_slice, n_slice).middleCols(idx_s, idx_n);
 								
 				LMM_fitter fit(X, Y.col(jj), GRM_lambda);
 				fit.fit_REML();
 				
-				double tau2 = fit.phi*fit.sigma2;
-				double hsq = tau2 / (tau2 + fit.sigma2);
-				double S2 = tau2 + fit.sigma2;
+				const double& sigma2 = fit.sigma2;
+				const double& phi = fit.phi;
+				double tau2 = phi*sigma2;
+				double hsq = tau2 / (tau2 + sigma2);
+				double S2 = tau2 + sigma2;
 				
-				std::cout << e_data.gene_id[jj] << "\t" << fit.sigma2 << "\t" << tau2 << "\t" << hsq << "\n";
+				// ------------------------------------------------
+				
+				// std::cout << e_data.gene_id[jj] << "\t" << fit.sigma2 << "\t" << tau2 << "\t" << hsq << "\n";
+						
+				std::stringstream theta_line;
+				
+				theta_line <<
+					clean_chrom(e_data.chr[jj]) << "\t" << 
+					e_data.start[jj] << "\t" << 
+					e_data.end[jj] << "\t" << 
+					e_data.gene_id[jj] << "\t" << 
+					sigma2 << "\t" << 
+					tau2 << "\t" << 
+					phi << "\n";
+				
+				write_to_bgzf(theta_line.str().c_str(), theta_file);
+				
+
+				// ------------------------------------------------
 
 				// Eigen::MatrixXd XtDXi_true = (X.transpose() * fit.Vi * X).inverse();
 				// Eigen::MatrixXd XtDG_true = X.transpose() * fit.Vi * G_slice;
 				// Eigen::MatrixXd XtDXi_XtDG = XtDXi * XtDG;
 				
-				double ADJ = 1.00/(1.00 + fit.phi);
+				double ADJ = 1.00/(1.00 + phi);
 				
-				DiagonalXd Psi = calc_Psi(fit.phi, Q_lambda);
+				DiagonalXd Psi = calc_Psi(phi, Q_lambda);
 				Eigen::MatrixXd XtDXi = ((CtC - QtC.transpose() * Psi * QtC ).inverse())/ADJ;
 				// Eigen::MatrixXd XtDG = ( CtG_slice -  QtC.transpose() * Psi * QtG_slice )*ADJ;
 				
@@ -473,9 +497,9 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 				
 				// -------- This works. Faster than expected. -----------------
 				Eigen::VectorXd y_res = Y.col(jj) - X * XtDXi * X.transpose() * fit.Vi * Y.col(jj);
-				double SSR_0 = y_res.dot(fit.Vi * Y.col(jj))/fit.sigma2;
+				double SSR_0 = y_res.dot(fit.Vi * Y.col(jj))/sigma2;
 				
-				Eigen::VectorXd U_vec = G_slice.transpose() * (L * (fit.Vi * y_res/std::sqrt(fit.sigma2)));
+				Eigen::VectorXd U_vec = G_slice.transpose() * (L * (fit.Vi * y_res/std::sqrt(sigma2)));
 				// ------------------------------------------------------------
 				
 				//Eigen::VectorXd diagV(U_vec.size());
@@ -591,6 +615,8 @@ void run_cis_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_
 		bl++;
 	}
 	std::cerr << "\n";
+
+	bgzf_close(theta_file);
 
 	if ( write_long ){
 		bgzf_close(long_file);
