@@ -8,8 +8,8 @@ The command `yax meta` can be used for xQTL meta-analysis, including single-vari
 ##### Table of Contents  
   1. [Single-variant xQTL meta-analysis](#single-variant-xqtl-meta-analysis)  
   2. [Multiple-variant xQTL meta-analysis](#multiple-variant-xqtl-meta-analysis)  
-  3. [Command line options](#command-line-arguments)  
-<br />
+  3. [Command line options](#command-line-arguments) <br />
+ 
  [*Return to YAX main page.*](https://github.com/corbinq/yax)
 
 ## Single-variant xQTL meta-analysis
