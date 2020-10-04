@@ -7,9 +7,11 @@ This page describes cis-xQTL analysis using YAX. Once installed, you can quickly
 cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML).  For OLS, YAX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, YAX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](https://github.com/corbinq/yax/blob/master/doc/input_files.md). <br />
 
 ##### Table of Contents  
-[Vanilla cis-xQTL analysis (no related samples)](#ols-cis-xqtl-analysis-with-unrelated-samples)  
-[LMM cis-xQTL analysis](#lmm-cis-xqtl-analysis)  
-[Command line options](#command-line-arguments)  
+
+ 1. [Vanilla cis-xQTL analysis (no related samples)](#ols-cis-xqtl-analysis-with-unrelated-samples)   
+ 2. [LMM cis-xQTL analysis](#lmm-cis-xqtl-analysis)
+ 3. [Command line options](#command-line-arguments)
+
 <br />
 [*Return to YAX main page.*](https://github.com/corbinq/yax)
 

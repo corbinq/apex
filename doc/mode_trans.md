@@ -7,9 +7,9 @@ The command `yax trans` can be used to analyze genome-wide associations between 
 Similar to `yax cis` mode, trans-xQTL analysis in YAX (`yax trans`) uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML). For OLS, YAX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, YAX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](https://github.com/corbinq/yax/blob/master/doc/input_files.md). <br />
 
 ##### Table of Contents  
-[Vanilla trans-xQTL analysis (no related samples)](#ols-trans-xqtl-analysis-with-unrelated-samples)  
-[LMM trans-xQTL analysis](#lmm-trans-xqtl-analysis)  
-[Command line options](#command-line-arguments)  
+  1. [Vanilla trans-xQTL analysis (no related samples)](#ols-trans-xqtl-analysis-with-unrelated-samples)  
+  2. [LMM trans-xQTL analysis](#lmm-trans-xqtl-analysis)  
+  3. [Command line options](#command-line-arguments)  
 <br />
 [*Return to YAX main page.*](https://github.com/corbinq/yax)
 

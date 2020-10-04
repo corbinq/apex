@@ -4,10 +4,10 @@ This page summarizes individual-level data file formats accepted by the YAX comm
 YAX uses the intersection of sample IDs present across trait, covariate, and genotype files for statistical analysis.  Sample IDs need not be listed in the same order across files. Detailed descriptions of input data formats are provided below. 
 
 ##### Table of Contents  
-[Genotype data](#genotype-data)  
-[Molecular trait data](#molecular-trait-data)  
-[Covariate data](#covariate-data)  
-[Genetic relatedness and kinship matrices](#genetic-relatedness-and-kinship-matrices)  
+  1. [Genotype data](#genotype-data)  
+  2. [Molecular trait data](#molecular-trait-data)  
+  3. [Covariate data](#covariate-data)  
+  4. [Genetic relatedness and kinship matrices](#genetic-relatedness-and-kinship-matrices)  
 <br />
 [*Return to YAX main page.*](https://github.com/corbinq/yax)
 
