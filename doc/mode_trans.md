@@ -11,7 +11,7 @@ Similar to `yax cis` mode, trans-xQTL analysis in YAX (`yax trans`) uses either 
   2. [LMM trans-xQTL analysis](#lmm-trans-xqtl-analysis)  
   3. [Command line options](#command-line-arguments)  
 <br />
-[*Return to YAX main page.*](https://github.com/corbinq/yax)
+ [*Return to YAX main page.*](https://github.com/corbinq/yax)
 
 ## OLS trans-xQTL analysis with unrelated samples
 **Example command:** <br />

@@ -9,7 +9,7 @@ YAX uses the intersection of sample IDs present across trait, covariate, and gen
   3. [Covariate data](#covariate-data)  
   4. [Genetic relatedness and kinship matrices](#genetic-relatedness-and-kinship-matrices)  
 <br />
-[*Return to YAX main page.*](https://github.com/corbinq/yax)
+ [*Return to YAX main page.*](https://github.com/corbinq/yax)
 
 ## Genotype data
 **Relevant flags:** `--bcf {FILE}`, `--vcf {FILE}`.  <br />
