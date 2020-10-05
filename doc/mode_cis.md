@@ -41,7 +41,7 @@ cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelat
  8. `resid_sd` : Square root of regression mean squared error under the null model. 
  9. `n_cis_variants` : Number of variants in the *cis* region (which were used to calculate `gene_pval`). 
 
-**QTL software concordance.** When no GRM is specified, YAX single-variant output is equivalent to the R regression model `lm(traits[,j] ~ covariates + genotype[,k])` for each trait `j` and genotype `k`. YAX output is additionally equivalent to [FastQTL](http://fastqtl.sourceforge.net/) single-variant output.  Note that some tools, such as [QTLtools](https://qtltools.github.io/qtltools/), instead fit the model `lm(residuals[,j] ~ genotype[,k])` where `residuals[,j] = resid(lm(traits[,j] ~ covariates))`. YAX can mimic this model if the flag `--no-resid-geno` is specified.  This approach is slightly faster that standard OLS, but can cause [conservative p-values (loss of statistical power)](https://onlinelibrary.wiley.com/doi/abs/10.1002/gepi.22325). 
+**QTL software concordance.** When no GRM is specified, YAX single-variant output is numerically equivalent to the R regression model `lm(traits[,j] ~ covariates + genotype[,k])` for each trait `j` and genotype `k`. YAX output is additionally equivalent to [FastQTL](http://fastqtl.sourceforge.net/) single-variant output.  Note that some tools, such as [QTLtools](https://qtltools.github.io/qtltools/), instead fit the model `lm(residuals[,j] ~ genotype[,k])` where `residuals[,j] = resid(lm(traits[,j] ~ covariates))`. YAX can mimic this model if the flag `--no-resid-geno` is specified.  This approach is slightly faster that standard OLS, but can cause [conservative p-values (loss of statistical power)](https://onlinelibrary.wiley.com/doi/abs/10.1002/gepi.22325). 
 ## LMM cis-xQTL analysis 
 **Example command:** <br />
  `./yax cis --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --prefix {out-name}` <br />
@@ -54,7 +54,7 @@ YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedne
  **Output files.** Output files from LMM analysis are broadly similar to OLS. One additional output file, `{out-name}.theta.gz`, contains variance component parameter estimates from the LMM. The first 4 columns of this file list trait chromosomal position and identifier, and columns 5-7 list the residual variance component estimate <img src="https://render.githubusercontent.com/render/math?math=\sigma^2"> (independent error variance), heritable variance component estimate <img src="https://render.githubusercontent.com/render/math?math=\tau^2">, and their ratio <img src="https://render.githubusercontent.com/render/math?math=\phi=\tau^2/\sigma^2">. 
  6. Genetic variance component estimate (due to GRM). 
  7. Residual-genetic variance ratio.
- **LMM software concordance.** YAX's LMM estimates are consistent with the R packages [GMMAT](https://github.com/hanchenphd/GMMAT) and [GENESIS](http://www.bioconductor.org/packages/release/bioc/html/GENESIS.html) using AI-REML. 
+ **LMM software concordance.** YAX's LMM estimates are consistent (nearly numerically equivalent) with the R packages [GMMAT](https://github.com/hanchenphd/GMMAT) and [GENESIS](http://www.bioconductor.org/packages/release/bioc/html/GENESIS.html) using AI-REML. 
 
 ## Command line arguments
 A partial list of options is given below.  Please run `./yax cis --help` to see a complete list of command line flags and options. 
