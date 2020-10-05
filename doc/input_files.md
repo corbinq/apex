@@ -36,7 +36,7 @@ YAX requires the first 4 columns as shown above, where 1-3 (chr, start, end) spe
     PC2  -0.0097     -0.0059     -0.0025     -0.0064
     PC3   0.0067      0.0096     -0.0036     -0.0041
 ```
-Covariate files should be white-space delimited.  Uncompressed or GZIP/BGZIP-compressed white-space delimited text files are supported.  Users are encouraged to verify that their covariate data matrix has full column rank.   
+Uncompressed or GZIP/BGZIP-compressed white-space delimited text files are supported for covariate data.  Users are encouraged to verify that their covariate data matrix has full column rank.   
 
 ## Genetic relatedness and kinship matrices
 **Relevant flags:** `--grm {FILE}`, `--kin {FILE}`. <br />

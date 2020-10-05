@@ -17,7 +17,7 @@ Similar to `yax cis` mode, trans-xQTL analysis in YAX (`yax trans`) uses either 
 **Example command:** <br />
  `./yax trans --vcf {vcf} --bed {expression-file} --cov {covariate-file} --prefix {output-prefix}` <br />
  <br />
-**QTL software concordance.** When no GRM is specified, YAX single-variant output is equivalent to the R regression model `lm(traits[,j] ~ covariates + genotype[,k])` for each trait `j` and genotype `k`. YAX output is additionally equivalent to [FastQTL](http://fastqtl.sourceforge.net/) single-variant output.  Note that some tools, such as [QTLtools](https://qtltools.github.io/qtltools/), instead fit the model `lm(residuals[,j] ~ genotype[,k])` where `residuals[,j] = resid(lm(traits[,j] ~ covariates))`. YAX can mimic this model if the flag `--no-resid-geno` is specified.  This approach is slightly faster that standard OLS, but can cause [conservative p-values (loss of statistical power)](https://onlinelibrary.wiley.com/doi/abs/10.1002/gepi.22325). 
+**QTL software concordance.** When no GRM is specified, YAX single-variant output is equivalent to the R regression model `lm(traits[,j] ~ covariates + genotype[,k])` for each trait `j` and genotype `k`. YAX output is additionally equivalent to [FastQTL](http://fastqtl.sourceforge.net/) single-variant output.  Note that some tools, such as [QTLtools](https://qtltools.github.io/qtltools/), instead fit the model `lm(residuals[,j] ~ genotype[,k])` where `residuals[,j] = resid(lm(traits[,j] ~ covariates))`. YAX can mimic this model if the flag `--no-resid-geno` is specified.  This approach is slightly faster that standard OLS, but can cause [conservative p-values (loss of statistical power)](https://onlinelibrary.wiley.com/doi/abs/10.1002/gepi.22325).  To see accepted input file formats, [please see here.](https://github.com/corbinq/yax/blob/master/doc/input_files.md)
 ## LMM trans-xQTL analysis 
 **Example command:** <br />
 ```
@@ -29,7 +29,7 @@ Similar to `yax cis` mode, trans-xQTL analysis in YAX (`yax trans`) uses either 
  ./yax trans --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --theta-file {theta-prefix}.theta.gz --prefix {output-prefix}
 ```
 <br />
-YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in trans-eQTL analysis. To use this feature, specify a genetic relatedness matrix (GRM) file to YAX using  `--grm {grm-file}`. <br />
+YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in trans-eQTL analysis. To use this feature, specify a genetic relatedness matrix (GRM) file to YAX using  `--grm {grm-file}`. To see accepted input file formats, [please see here.](https://github.com/corbinq/yax/blob/master/doc/input_files.md) <br />
 Unlike `yax cis`, LMM analysis in `yax trans` is divided into two steps. First, we estimate variance component parameters for all molecular traits under the null hypothesis (no single-variant genetic effects), and store these estimates for later use. Second, we use these estimates to quickly calculate trans-xQTL association statistics. When jobs are parallelizes across chromosomes, this 2-step approach saves substantial computational resources, as the null model for each molecular trait need only be estimated once. <br />
 
  **LMM software concordance.** YAX's LMM estimates are consistent with the R packages [GMMAT](https://github.com/hanchenphd/GMMAT) and [GENESIS](http://www.bioconductor.org/packages/release/bioc/html/GENESIS.html) using AI-REML. 
