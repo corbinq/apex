@@ -1,6 +1,5 @@
-# 1 "yax/src/GQT.hpp.c"
 #ifndef GQT_HPP
-#define GQT_HPP 
+#define GQT_HPP
 
 #include <stdexcept>
 #include <algorithm>
@@ -37,3 +36,4 @@
 
 
 #endif
+

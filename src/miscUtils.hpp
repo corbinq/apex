@@ -1,6 +1,5 @@
-# 1 "yax/src/miscUtils.hpp.c"
 #ifndef MISCUTILS_HPP
-#define MISCUTILS_HPP 
+#define MISCUTILS_HPP
 
 #include <cmath>
 #include <sstream>
@@ -23,7 +22,7 @@ std::vector<int> seq_int(const int& n);
 
 template<typename T>
 inline bool has_element(const std::vector<T>& v, const T& x){
- return find(v.begin(), v.end(), x) != v.end();
+	return find(v.begin(), v.end(), x) != v.end();
 };
 
 void remove_gene_version_number( std::vector<std::string>& );
@@ -46,21 +45,37 @@ void thinned_iter_cerr(int& i_last, const int& i_curr, std::string& suffix, cons
 
 void print_header(const std::vector<std::string>& cn, std::ostream& os);
 
-class lindex
+class lindex 
 {
- public:
-  void set(std::vector<int>& a){ vals = a; build(); };
-
-  lindex() : vals(null_vec), n(-1), a(-1), b(-1) {};
-  lindex(std::vector<int>& a) : vals(a) { build(); };
-
-  int index(const int&, bool left = true);
- private:
-  int n;
-  double a;
-  double b;
-  std::vector<int>& vals;
-  void build();
+	public:
+		void set(std::vector<int>& a){ vals = a; build(); };
+		
+		lindex() : vals(null_vec), n(-1), a(-1), b(-1) {};
+		lindex(std::vector<int>& a) : vals(a) { build(); };
+		
+		int index(const int&, bool left = true);
+	private:
+		int n;
+		double a;
+		double b;
+		std::vector<int>& vals;
+		void build();
 };
-# 80 "yax/src/miscUtils.hpp.c"
+
+/*
+class block_lindex 
+{
+	public:
+		//lindex();
+		block_lindex(std::vector<std::string>& chr, std::vector<int>& pos) : blks(chr),vals(pos) { build(); };
+		int index(const std::string&, const int&);
+	private:
+		std::vector<std::string>& blks;
+		std::vector<int>& vals;
+		void build();
+};
+*/
+
+
 #endif
+

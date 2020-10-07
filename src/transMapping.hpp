@@ -1,6 +1,5 @@
-# 1 "yax/src/transMapping.hpp.c"
 #ifndef TRANSMAPPING_HPP
-#define TRANSMAPPING_HPP 
+#define TRANSMAPPING_HPP
 
 #include "setOptions.hpp"
 #include "readBED.hpp"
@@ -21,3 +20,4 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r);
 
 #endif
+
