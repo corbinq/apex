@@ -1,5 +1,6 @@
+# 1 "yax/src/mathStats.hpp.c"
 #ifndef MATHSTATS_HPP
-#define MATHSTATS_HPP
+#define MATHSTATS_HPP 
 
 #include <vector>
 #include <numeric>
@@ -19,15 +20,15 @@
 
 #include <Spectra/SymEigsSolver.h>
 
-// ------------------------------------
-//  Eigen matrix printing formats
-// ------------------------------------
+
+
+
 const static Eigen::IOFormat EigenCSV(Eigen::StreamPrecision, Eigen::DontAlignCols, ",", "\n");
 const static Eigen::IOFormat EigenTSV(Eigen::StreamPrecision, Eigen::DontAlignCols, "\t", "\n");
 
-// ------------------------------------
-//  R-like pdf and cdf (TODO: switch to libRmath)
-// ------------------------------------
+
+
+
 double qnorm(double, bool lower = false);
 double pnorm(double, bool lower = false);
 double qt(double, double, bool lower = false);
@@ -48,4 +49,3 @@ double ACAT_non_missing( const std::vector<double>&);
 std::vector<int> rank_vector(const std::vector<double>&);
 
 #endif
-

@@ -1,9 +1,6 @@
-/*
-	Centering, scaling, residualizing, and transformations
-*/
-
+# 5 "yax/src/fitUtils.hpp.c"
 #ifndef FITUTILS_HPP
-#define FITUTILS_HPP
+#define FITUTILS_HPP 
 
 #include <math.h>
 #include <vector>
@@ -24,4 +21,3 @@ void scale_and_center(Eigen::MatrixXd&);
 void rank_normalize (Eigen::MatrixXd&);
 
 #endif
-
