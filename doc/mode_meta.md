@@ -41,7 +41,7 @@ A partial list of options is given below.  Please run `./yax meta --help` to see
  - **Analysis options**
  	  - `--tests=[hom,het,alt]` : Assumptions under which the pvalues for the SNPs of interestes are estimated. Comma-seperated options. Will estimate under all of the assumptions specified, i.e. [hom,het] will provide pvalues assuming incomplete! here.
 	  - `--het` : if specified, assume the conditional SNPs have heterogeneous effects across studies; otherwise assume homogeneous effects. 
-	  - `--rsq` : maximum multiple R2 threshold, consider only SNPs with multiple R2 less than this threshold to avoid collinearity.
+	  - `--rsq` : maximum multiple R2 threshold, consider only SNPs with multiple R2 less than this threshold to avoid collinearity. If not specified, default is 0.7
 	  - `--marginal` : if specified, use the raw (unadjusted for the number of tested SNPs) in the stepwise selection procedure; otherwise, use the ACAT pavlues (adjusted for the number of tested SNPs).
 	  - `--pvalue`: pvalue threshold for the stepwise selection procedure. 
 	  - `--backward`: if specified, perform forward and backward selection in the stepwise selection procedure; otherwise, only perform forward selection, i.e. do not drop SNPs failling the pvalue threshold in the joint model of all selected SNPs.
