@@ -823,29 +823,42 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 				i_e--;
 			}
 		}
-
+		
+		
+		bool has_zero_snps = false;
+		if( i_e - i_s < 0 ){
+			has_zero_snps = true;
+		}
+		
 		Eigen::VectorXd score_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
 		std::vector<Eigen::VectorXd> score_perStudy_0(n_studies, Eigen::VectorXd::Zero(i_e - i_s + 1));
 		//Eigen::VectorXd var_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
 		
+		
+		
 		for( const int& s : studies_with_gene ){
+			
 			const Eigen::VectorXd& sc_s = ss[s].score[jj[s]];
-			for( int i = 0, ii = i_s; ii <= i_e; ++ii, ++i ){
-				int idx = si[s][ii] - ss[s].S_CIS[jj[s]];
-				
-				if( idx < 0 || idx >= sc_s.size() ){
-					std::cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
-					abort();
-				}
-				
-				double adj_s = ivw_0[s]*SD_perStudy_0[s];
-				
-				if( sflipped[s][ii] ){
-					score_0(i) -= sc_s( idx )*adj_s;
-					score_perStudy_0[s](i) -= sc_s( idx )*SD_perStudy_0[s];
-				}else{
-					score_0(i) += sc_s( idx )*adj_s;
-					score_perStudy_0[s](i) += sc_s( idx )*SD_perStudy_0[s];
+		
+			if( !has_zero_snps ){
+				for( int i = 0, ii = i_s; ii <= i_e; ii++, i++ ){
+					
+					int idx = si[s][ii] - ss[s].S_CIS[jj[s]];
+					
+					if( idx < 0 || idx >= sc_s.size() ){
+						std::cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
+						abort();
+					}
+					
+					double adj_s = ivw_0[s]*SD_perStudy_0[s];
+					
+					if( sflipped[s][ii] ){
+						score_0(i) -= sc_s( idx )*adj_s;
+						score_perStudy_0[s](i) -= sc_s( idx )*SD_perStudy_0[s];
+					}else{
+						score_0(i) += sc_s( idx )*adj_s;
+						score_perStudy_0[s](i) += sc_s( idx )*SD_perStudy_0[s];
+					}
 				}
 			}
 			// now increment to the next gene
@@ -867,6 +880,10 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 					break;
 				}
 			}
+		}
+		
+		if( has_zero_snps ){
+			continue;
 		}
 		
 		/*
@@ -1090,8 +1107,6 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	
 	vcov_getter vget(vc, ivw[gene_index], s_var, n_var, study_list[gene_index]);
 	
-	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
-	
 	stdev = 1;
 
 	forward_lm out(U, dV, n, df0, stdev, vget, global_opts::LM_ALPHA);
@@ -1101,6 +1116,8 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	for( int s = 1; s < study_list[gene_index].size(); s++){
 		in_studies += ("," + std::to_string(study_list[gene_index][s] + 1));
 	}
+	
+	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
 	
 	if( out.beta.size() > 0 ){
 		

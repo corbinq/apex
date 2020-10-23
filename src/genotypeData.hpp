@@ -31,16 +31,26 @@ class rel_blocks
 
 class sparse_gt
 {
-	public:
-		sparse_gt() : last(-1) {};
+	private:
 		std::vector<std::pair<int, int>> entries;
+		double sum_gt;
+		int n_samples;
+		int n_missing;
 		int last;
+	public:
+		sparse_gt(const int& ns) : sum_gt(0.00), n_samples(ns), n_missing(0), last(-1) {};
 		int size(){
 			return entries.size();
 		};
 		void set_gt(const int& n, const int& gt){
 			if( n > last ){
-				if( gt != 0 ) entries.push_back(std::make_pair(n,gt));
+				if( gt < 0 ){
+					entries.push_back(std::make_pair(n,-1));
+					n_missing++;
+				}else if( gt > 0 ){
+					entries.push_back(std::make_pair(n,gt));
+					sum_gt += gt;
+				}
 				last = n;
 			}else{
 				std::cerr << "Fatal: Tried to add gt out of order!\n";
@@ -57,7 +67,9 @@ class sparse_gt
 						i++;
 					}
 					if( i == entries[j].first ){
-						if( entries[j].second == 1 ){
+						if( entries[j].second < 0 ){
+							flipped.push_back(entries[j]);
+						}else if( entries[j].second == 1 ){
 							flipped.push_back(entries[j]);
 						}else if(entries[j].second != 2){
 							std::cerr <<"\n\n" << entries[j].second << "\n\n";
@@ -75,12 +87,18 @@ class sparse_gt
 					i++;
 				}
 			}
+			sum_gt = 2.00 * ( (double) (n_samples - n_missing) ) - sum_gt;
 			entries = flipped;
 		};
 		void add_gt_sparsemat(Eigen::SparseMatrix<double>& smat, const int& col_n){
 			smat.startVec(col_n);
+			double missing_val = sum_gt/( (double) (n_samples - n_missing) );
 			for( const auto& x : entries){
-				smat.insertBack(x.first, col_n) = x.second;
+				if( x.second > 0 ){
+					smat.insertBack(x.first, col_n) = x.second;
+				}else{
+					smat.insertBack(x.first, col_n) = missing_val;
+				}
 			}
 		};
 };
@@ -91,12 +109,19 @@ class sparse_ds
 	public:
 		std::vector<float> dosages;
 		int last;
+		double sum_dos;
+		int n_missing;
+		int n_samples;
 		
-		sparse_ds() : last(-1) {};
-		sparse_ds(const int& N) : last(-1) {dosages.resize(N);};
+		sparse_ds(const int& N) : sum_dos(0.00), n_missing(0), n_samples(N), last(-1) {dosages.resize(N);};
 		
 		void set_ds(const int& n, const float& ds){
 			if( n > last ){
+				if( ds < 0 ){
+					n_missing++;
+				}else{
+					sum_dos += ds;
+				}
 				dosages[n] = ds;
 				last = n;
 			}else{
@@ -106,13 +131,21 @@ class sparse_ds
 		};
 		void flip(){
 			for( float& ds: dosages ){
-				ds = 2 - ds;
+				if(ds >= 0){
+					ds = 2.00 - ds;
+				}
 			}
+			sum_dos = 2.00 * ( (double) (n_samples - n_missing) ) - sum_dos;
 		};
 		void add_ds_sparsemat(Eigen::SparseMatrix<double>& smat, const int& col_n){
+			double missing_val = sum_dos/( (double) (n_samples - n_missing) );
 			smat.startVec(col_n);
 			for(int i = 0; i < dosages.size(); i++){
-				if( dosages[i] > 0 ){
+				if( dosages[i] < 0.00 ){
+					if( missing_val > global_opts::dosage_thresh ){
+						smat.insertBack(i, col_n) = missing_val;
+					}
+				}else if( dosages[i] > global_opts::dosage_thresh ){
 					smat.insertBack(i, col_n) = (double) dosages[i];
 				}
 			}
@@ -123,7 +156,7 @@ class sparse_ds
 class genotype_data
 {
 	public:
-		genotype_data(): chunk_size(50000), nz_frac(0.08), n_variants(0), n_samples(0) {};
+		genotype_data(): chunk_size(50000), nz_frac(0.1), n_variants(0), n_samples(0) {};
 	
 		int chunk_size;
 		double nz_frac;

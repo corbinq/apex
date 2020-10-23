@@ -24,7 +24,7 @@ namespace global_opts
 	
 		// GENOTYPE OPTIONS 
 		extern int exclude_missing;
-		extern int set_missing_to_reference;
+		extern double dosage_thresh;
 		extern double minimum_maf;
 		extern int minimum_mac;
 		extern bool use_dosages;
@@ -43,6 +43,9 @@ namespace global_opts
 		
 	// ANALYSIS OPTIONS 
 
+		// "Sloppy" covariate adjustment
+		extern bool sloppy_covar;
+
 		extern double RSQ_PRUNE;
 		extern double RSQ_BUDDY;
 		
@@ -59,6 +62,7 @@ namespace global_opts
 		// LMM OPTIONS
 		extern bool use_grm;
 		extern bool ml_not_reml;
+		extern bool write_v_anchors;
 		
 		// ANALYSIS MODE
 		extern bool IVW_H1_SIGMA;
@@ -91,6 +95,11 @@ namespace global_opts
 	// PROCESS OPTIONS
     
 		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
+		
+		bool set_lmm_options(const bool& wap);
+		
+		void use_sloppy_covar();
+
 }
 
 # endif

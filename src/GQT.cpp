@@ -14,6 +14,7 @@ bool use_low_mem = false;
 double rsq_buddy = 2.0;
 double rsq_prune = 0.80;
 double pval_thresh = 5e-5;
+int n_ePCs = 0;
 int window_size = 1000000;
 std::vector<std::string> target_genes;
 bool use_ivw_1 = false;
@@ -180,7 +181,10 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	p.Prog(progname);
 
 	args::Group analysis_args(p, "Analysis options");
+		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of latent confounders in ePC LMM.", {"epcs"});
+		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) for ePC LMM.", {"loco"});
 		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		args::Flag stepwise(analysis_args, "", "Estimate and store conditionally independent cis signal genotypes.", {"stepwise"});
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
 
 	args::Group cis_args(p, "Output options");
@@ -190,7 +194,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
 		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (can be used with rankNormal).", {"rankNormal-resid"});
-		args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
+		// args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
 		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
 	
 	args::Group input_args(p, "Input files");
@@ -221,6 +225,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::ValueFlag<double> pval_arg(opt_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
+		args::ValueFlag<double> rsq_arg(opt_args, "", "Rsq threshold for variable selection.", {"rsq"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
 	
 	// ----------------------------------
@@ -259,9 +264,13 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	
 	
+	
 	// ----------------------------------
 	// Input subsetting: Regions, genotype fields, target genes
 	// ----------------------------------
+	
+	std::string loco = args::get(loco_arg);
+	n_ePCs = args::get(epc_arg);
 	
 	trim_gene_ids = (bool) trim_ids;
 	
@@ -295,6 +304,19 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	// ----------------------------------
 	// Set global options
 	// ----------------------------------
+	
+	double pval_thresh_new = args::get(pval_arg);
+	
+	if( pval_thresh_new > 0 ){
+		pval_thresh = pval_thresh_new;
+	}
+	
+	double rsq_new = args::get(rsq_arg);
+	
+	if( rsq_new > 0 ){
+		rsq_buddy = rsq_new;
+		rsq_prune = rsq_new;
+	}
 	
 	use_low_mem = (bool) low_mem;
 	
@@ -422,18 +444,27 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	// now let's read the expression and covariate data .. 
 	
 	if( c_path == "" ){
-		 c_data.data_matrix = Eigen::MatrixXd::Constant(intersected_samples.size(), 1, 1.0);
+		c_data.data_matrix = Eigen::MatrixXd::Constant(intersected_samples.size(), 1, 1.0);
 	}else{
 		c_data.readFile(c_path.c_str());
 		std::cerr << "Processed data for " << c_data.data_matrix.cols() << " covariates across " << c_data.data_matrix.rows() << " samples.\n";
 			
-		if( !no_scale_x ){
+		// if( !no_scale_x ){
 			scale_and_center(c_data.data_matrix);
-		}
+		// }
 		appendInterceptColumn(c_data.data_matrix);
 	}
+		
+	std::vector<int> test_idx;
+	std::vector<int> epc_idx;
 	
-	e_data.readBedFile(e_path.c_str(),keep_regions);
+	bool egrm_loco = false;
+	
+	//if( n_ePCs > 0 ){
+	//	e_data.readBedFile(e_path.c_str(),bed_chroms);
+	//}else{
+		e_data.readBedFile(e_path.c_str(),keep_regions);
+	//}
 	
 	std::cerr << "Processed expression for " << e_data.data_matrix.cols() << " genes across " << e_data.data_matrix.rows() << " samples.\n";
 	
@@ -469,6 +500,15 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
+	if( stepwise ){
+		if( grm_path != "" ){
+			std::cerr << "Error: GRM not currently supported for cis_signal.\n";
+			return 1;
+		}
+		scan_signals(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r);
+		return 0;
+	}
+	
 	if( fit_null ){
 		if( grm_path == "" ){
 			std::cerr << "Error: GRM is required to fit null models.\n";
@@ -480,9 +520,41 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	
 	if( grm_path == "" ){
-		run_cis_eQTL_analysis(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+		if( n_ePCs > 0 ){
+			std::cerr << "Estimating " << n_ePCs << " latent confounders.\n";
+			std::cerr << "Reading full trait matrix to construct ePCs...\n";
+			bed_data r_data;
+			r_data.readBedHeader(e_path.c_str());
+			r_data.ids.setKeepIDs(intersected_samples);
+			
+			std::vector<std::string> r_chroms = bed_chroms;
+			
+			std::vector<int> rm_chroms;
+			for( int i = r_chroms.size() - 1; i >= 0; i--){
+				if(r_chroms[i] == loco){
+					rm_chroms.push_back(i);
+				}
+			}
+			for( const int& i : rm_chroms){
+				r_chroms.erase(r_chroms.begin()+i);
+			}
+			
+			r_data.readBedFile(e_path.c_str(),r_chroms);
+			
+			std::cerr << "Processed expression for " << r_data.data_matrix.cols() << " genes across " << r_data.data_matrix.rows() << " samples.\n";
+			
+			run_cis_eQTL_analysis_eLMM(n_ePCs, sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long, r_data.data_matrix);
+		}else{
+			std::cerr << "Using OLS (no latent confounders).\n";
+			run_cis_eQTL_analysis(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+		}
 	}else{
-		run_cis_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+		if( n_ePCs > 0 ){
+			std::cerr << "Error: GRM cannot currently be included with random ePCs.\n";
+			return 1;
+		}else{
+			run_cis_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+		}
 	}
 	
     return 0;
@@ -504,6 +576,8 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	args::Group analysis_args(p, "Analysis options");
 		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
+		args::ValueFlag<std::string> cis_arg(analysis_args, "", "Use stored cis signals as covariates in trans analysis.", {"cis-file"});
+		args::ValueFlag<double> fpr_arg(analysis_args, "", "Nominal false positive rate (p-value threshold).", {"fpr"});
 
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -531,10 +605,13 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	*/
 	
 	args::Group opt_args(p, "General options");
+		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
 		args::ValueFlag<int> threads_arg(opt_args, "", "No. threads (not to exceed no. available cores).", {"threads"});
 		args::Flag low_mem(opt_args, "", "Lower memory usage.", {"low-mem"});
-		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
-		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset to specified genomic region.", {'r', "region"});
+		args::Flag sloppy(opt_args, "", "Use sloppy covariate adjustment (faster, but less powerful).", {"sloppy"});
+		args::Flag write_anchors(opt_args, "", "Save var interpolation points.", {"write-var"});
+		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
+		args::ValueFlag<std::string> bed_region_arg(opt_args, "", "Subset bed to specified genomic region.", {"bed-region"});
 		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-eQTL or gene-based analysis.", {'w', "window"});
 		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		args::ValueFlag<int> blocks_arg(opt_args, "100", "Number of variants per trans-xQTL block.", {"block-size"});
@@ -551,6 +628,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// ----------------------------------
 	
 	std::string theta_path = args::get(theta_arg);
+	std::string cis_path = args::get(cis_arg);
 	
 	prefix = args::get(out_arg);
 	std::string e_path = args::get(bed_arg);
@@ -583,6 +661,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	trim_gene_ids = (bool) trim_ids;
 	
 	std::string region = args::get(region_arg);
+	std::string bed_region = args::get(bed_region_arg);
 	std::string gtds = args::get(gtds_arg);
 	target_genes = split_string(args::get(gene_arg), ',');
 	
@@ -619,7 +698,15 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Set global options
 	// ----------------------------------
 	
+	double fpr = args::get(fpr_arg);
+	
+	if( fpr > 0 ){
+		pval_thresh = fpr;
+	}
+	
 	use_low_mem = (bool) low_mem;
+	
+	global_opts::set_lmm_options( (bool) write_anchors );
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
@@ -629,6 +716,10 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
 	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_step, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	
+	if( sloppy ){
+		global_opts::use_sloppy_covar();
+	}
 	
 	if( prefix == "" )
 	{
@@ -655,7 +746,9 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	
 	std::vector<std::string> bcf_chroms = get_chroms(g_path, variants_per_chrom);
 	std::vector<std::string> bed_chroms = get_chroms(e_path);
-	std::vector<std::string> keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
+	// std::vector<std::string> keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
+	
+	std::vector<std::string> keep_chroms = bcf_chroms;
 	
 	for(int i = 0; i < bcf_chroms.size(); i++ ){
 		if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){
@@ -663,11 +756,6 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		}
 	}
 	
-	// Show chromosomes present across files.
-	for(const auto& c : keep_chroms){
-		std::cerr << c << ",";
-	}
-	std::cerr << "\b present in both bcf and bed file.\n";
 	std::cerr << n_var << " total variants on selected chromosomes.\n\n";
 	
 	bcf_srs_t *sr = bcf_sr_init();
@@ -756,7 +844,15 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		appendInterceptColumn(c_data.data_matrix);
 	}
 	
-	e_data.readBedFile(e_path.c_str(), bed_chroms);
+	if( bed_region == "" ){
+		e_data.readBedFile(e_path.c_str(), bed_chroms);
+	}else{
+		keep_regions.clear();
+		keep_regions.push_back(bed_region);
+		e_data.readBedFile(e_path.c_str(), keep_regions);
+		keep_regions.clear();
+	}
+
 	std::cerr << "Processed expression for " << e_data.data_matrix.cols() << " genes across " << e_data.data_matrix.rows() << " samples.\n";
 	
 	g_data.read_bcf_variants(sr, hdr, n_var, !low_mem, !low_mem);
@@ -801,8 +897,12 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	
 	if( grm_path == "" ){
-		run_trans_eQTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size);
+		run_trans_eQTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, cis_path, bed_region);
 	}else{
+		if( cis_path != "" ){
+			std::cerr << "Error: Options --grm {grm} and --cis-file {file} and currently incompatible.\n";
+			return 1;
+		}
 		run_trans_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
 	}
 	
@@ -1158,10 +1258,10 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	
 	std::vector<std::string> bed_chroms;
 	
-	if( e_path != "" ){
-		get_chroms(e_path);
+	//if( e_path != "" ){
+		bed_chroms = get_chroms(e_path);
 		keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
-	}
+	// }
 	
 	for(int i = 0; i < bcf_chroms.size(); i++ ){
 		if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){

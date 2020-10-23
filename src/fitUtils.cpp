@@ -91,8 +91,15 @@ Eigen::MatrixXd get_half_hat_matrix(const Eigen::MatrixXd& X){
 	return U;
 }
 
-Eigen::MatrixXd resid_from_half_hat( Eigen::MatrixXd Y, const Eigen::MatrixXd& C ){
-	return (Y - (C * (C.transpose() * Y))).eval();
+Eigen::MatrixXd resid_from_half_hat( const Eigen::MatrixXd& Y, const Eigen::MatrixXd& C ){
+	Eigen::MatrixXd CtY = C.transpose() * Y;
+	return (Y - C * CtY).eval();
+}
+
+Eigen::VectorXd resid_vec_from_half_hat( const Eigen::VectorXd& Y, const Eigen::MatrixXd& C ){
+	Eigen::VectorXd CtY = C.transpose() * Y;
+	Eigen::VectorXd Yhat = C * CtY;
+	return (Y - Yhat).eval();
 }
 
 void appendInterceptColumn( Eigen::MatrixXd &X ){

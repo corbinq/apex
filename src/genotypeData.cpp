@@ -1,6 +1,5 @@
 #include "genotypeData.hpp"
 
-
 void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col, std::vector<int>& related)
 {
 	int n = kp_ids.size();
@@ -160,7 +159,8 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 	mean_ = 0;
 	var_ = 0;
 	flip_ = false;
-	sparse_gt gts;
+	sparse_gt gts(ids.idx.size());
+	int n_obs = 0;
 	
 	int n_2 = 0;
 	int n_1 = 0;
@@ -174,28 +174,32 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 			if( global_opts::exclude_missing > 0 ){
 				return false;
 			}else{
-				a1 = a1 < 0 ? 0 : a1;
-				a2 = a2 < 0 ? 0 : a2;
+				// a1 = a1 < 0 ? 0 : a1;
+				// a2 = a2 < 0 ? 0 : a2;
+				if(store_geno) gts.set_gt(n,-1);
 			}
-		}
-		if( a1 + a2 > 0 ){
-			a1 += a2;
-			if( a1 > 1){
-				n_2++;
-			}else{
-				n_1++;
+		}else{
+		
+			if( a1 + a2 > 0 ){
+				a1 += a2;
+				if( a1 > 1){
+					n_2++;
+				}else{
+					n_1++;
+				}
+				if(store_geno) gts.set_gt(n,a1);
+				mean_ += a1;
+				var_ += a1*a1;
 			}
-			if(store_geno) gts.set_gt(n,a1);
-			mean_ += a1;
-			var_ += a1*a1;
+			n_obs++;
 		}
 		n++;
 	}
 	
-	mean_ = mean_/((double) n);
-	var_ =  (var_ - n*mean_*mean_)/ ( (double) n + 1 );
+	mean_ = mean_/((double) n_obs);
+	var_ =  (var_ - n_obs*mean_*mean_)/ ( (double) n_obs + 1 );
 	
-	if(  n_2 > n - n_1 - n_2  ){
+	if(  n_2 > n_obs - n_1 - n_2  ){
 		flip_ = true;
 		mean_ = 2.0 - mean_;
 		if( store_geno ) gts.flip(n);
@@ -210,6 +214,7 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 inline bool genotype_data::add_bcf_dosages(float*& ds_rec, const int& col_n, double& mean_, double& var_, bool& flip_, const bool store_geno)
 {
 	int n = 0;
+	int n_obs = 0;
 	mean_ = 0;
 	var_ = 0;
 	flip_ = false;
@@ -221,21 +226,26 @@ inline bool genotype_data::add_bcf_dosages(float*& ds_rec, const int& col_n, dou
 	for(const int& i: ids.idx)
 	{
 		float ds = ds_rec[i];
-		if( ds <= 0.02 ){
-			ds = 0;
-			n_0++;
-		}else if( ds >= 1.98 ){
-			ds = 2;
-			n_2++;
+		if( ds < 0 ){
+			if(store_geno) sp_ds.set_ds(n,-1.00);
+		}else{
+			if( ds <= global_opts::dosage_thresh ){
+				ds = 0.00;
+				n_0++;
+			}else if( ds >= 2.00 - global_opts::dosage_thresh ){
+				ds = 2.00;
+				n_2++;
+			}
+			if(store_geno) sp_ds.set_ds(n,ds);
+			mean_ += ds;
+			var_ += ds*ds;
+			n_obs++;
 		}
-		if(store_geno) sp_ds.set_ds(n,ds);
-		mean_ += ds;
-		var_ += ds*ds;
 		n++;
 	}
 	
-	mean_ = mean_/((double) n);
-	var_ =  (var_ - n*mean_*mean_)/ ( (double) n + 1 );
+	mean_ = mean_/((double) n_obs);
+	var_ =  (var_ - n_obs*mean_*mean_)/ ( (double) n_obs + 1 );
 	
 	if( n_2 > n_0 ){
 		flip_ = true;
@@ -287,6 +297,8 @@ inline bool genotype_data::process_bcf_variant(bcf1_t*& rec, bcf_hdr_t*& hdr, bo
 	
 	bool flip_ = false;
 	bool keep_ = true;
+	
+	// std::string snp_id(rec->d.id);
 	
 	if( scan_geno ){
 		

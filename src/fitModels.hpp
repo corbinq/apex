@@ -15,6 +15,10 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 
+#include <Spectra/SymEigsSolver.h>
+#include <Spectra/GenEigsSolver.h>
+#include <Spectra/MatOp/SparseGenMatProd.h>
+
 #include <brent_fmin.hpp>
 
 #include "setOptions.hpp"
@@ -22,16 +26,20 @@
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
 
+static const double phi_upper = 10000000;
+
 // double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
 
 typedef Eigen::PermutationMatrix<Eigen::Dynamic,Eigen::Dynamic> PermutXd;
 
 typedef Eigen::DiagonalMatrix<double, Eigen::Dynamic> DiagonalXd;
 
+void calc_eGRM_PCs(Eigen::MatrixXd& PCs, Eigen::VectorXd& lam, const Eigen::MatrixXd& Y, const int& n_eigs);
 
 DiagonalXd calc_Vi(const double& phi, const Eigen::VectorXd& lambdas);
 
 DiagonalXd calc_Psi(const double& phi, const Eigen::VectorXd& lambdas);
+DiagonalXd calc_Psi_low_rank(const double& phi, const Eigen::VectorXd& lambdas);
 
 Eigen::MatrixXd getPredParams( const std::vector<double>& vals );
 
@@ -39,9 +47,11 @@ Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq );
 
 Eigen::MatrixXd getVBeta(const std::vector<double>& hsq_v, const std::vector<double>& phi_v, const int& p);
 
-void calcVBasis( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda );
+void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda );
 
-void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, PermutXd& Tr, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
+void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda );
+
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
 
 
 
@@ -104,6 +114,74 @@ class LMM_fitter{
 		
 };
 
+
+
+class LMM_fitter_low_rank{
+	
+	private:
+		const Eigen::Ref<Eigen::MatrixXd> XtX;
+		const Eigen::Ref<Eigen::MatrixXd> ZtX;
+		const Eigen::Ref<Eigen::VectorXd> Xty;
+		const Eigen::Ref<Eigen::VectorXd> Zty;
+		const Eigen::Ref<Eigen::VectorXd> lambda;
+		const double yty;
+		int n_iter;
+		double df_resid;
+		
+	public:
+	
+		Eigen::DiagonalMatrix<double,Eigen::Dynamic> Vi;
+		double sigma2;
+		double phi;
+	
+		LMM_fitter_low_rank(const Eigen::Ref<Eigen::MatrixXd> XtX_, const Eigen::Ref<Eigen::MatrixXd> ZtX_, const Eigen::Ref<Eigen::VectorXd> Xty_, const Eigen::Ref<Eigen::VectorXd> Zty_, const double& yty_, const Eigen::Ref<Eigen::VectorXd> lam, const double& n_samples) : 
+			XtX(XtX_),
+			ZtX(ZtX_),
+			Xty(Xty_),
+			Zty(Zty_),
+			yty(yty_),
+			lambda(lam),
+			n_iter(0)
+		{df_resid = n_samples - XtX.cols();};
+
+		double neg_logLik_REML(double phi_)
+		{
+			DiagonalXd Di = calc_Psi_low_rank(phi_, lambda);
+			
+			Eigen::MatrixXd XtDX = XtX - ZtX.transpose() * Di * ZtX;
+			Eigen::VectorXd XtDy = Xty - ZtX.transpose() * Di * Zty;
+			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+			
+			double sigma2_ = (yty - Zty.dot(Di * Zty) -  XtDy.dot(b) )/df_resid;
+			
+			double ll = 0.5*(
+				df_resid*std::log(sigma2_) + 
+				Di.diagonal().array().log().sum() + std::log(XtDX.determinant())
+			);
+			
+			n_iter++;
+			
+			return ll;
+		};
+	
+		void fit_REML(){
+			
+			std::function<double(double)> f = [this](double x){return neg_logLik_REML(x);};
+			phi = Brent_fmin(0.00, phi_upper, f, 2e-5);
+			
+			DiagonalXd Di = calc_Psi_low_rank(phi, lambda);
+			
+			Eigen::MatrixXd XtDX = XtX - ZtX.transpose() * Di * ZtX;
+			Eigen::VectorXd XtDy = Xty - ZtX.transpose() * Di * Zty;
+			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+			
+			sigma2 = (yty - Zty.dot(Di * Zty) -  XtDy.dot(b) )/df_resid;
+			
+			return;
+		}
+		
+};
+
 class theta_data
 {
 	private:
@@ -154,6 +232,7 @@ class theta_data
 
 
 class vcov_getter;
+class indiv_vcov_getter;
 
 static const Eigen::VectorXd vec0 = Eigen::VectorXd(0);
 static const Eigen::MatrixXd mat0 = Eigen::MatrixXd(0,0);
@@ -900,6 +979,8 @@ class forward_lm
 		
 		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, vcov_getter& vget, double pval_thresh);
 		
+		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, indiv_vcov_getter& vget, double pval_thresh);
+		
 		void check_joint_pvalues(int&, double&, const Eigen::VectorXd&, const Eigen::VectorXd&,const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const double&);
 		
 		void push_back(double,double,double);
@@ -907,6 +988,49 @@ class forward_lm
 };
 
 lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev = 1.0, const Eigen::VectorXd& U_0 = vec0, const Eigen::MatrixXd& J_0 = mat0, const Eigen::MatrixXd& Cov = vec0, const bool& check_filter = true, const std::vector<bool>& exclude = std::vector<bool>(0));
+
+
+
+class indiv_vcov_getter
+{
+
+		// We assume UtU = I. 
+	public:
+		const Eigen::SparseMatrix<double> G;
+		const Eigen::MatrixXd UtG;
+
+		indiv_vcov_getter(const Eigen::SparseMatrix<double>& G_, const Eigen::MatrixXd& UtG_) : G(G_), UtG(UtG_) {};
+		
+		Eigen::MatrixXd Var (const std::vector<int> idx){
+			// std::cerr << "Start Var\n";
+			// std::cerr << idx.size() << "\n";
+			Eigen::MatrixXd out( idx.size(),idx.size() );
+			for( int i = 0; i < idx.size(); i++ ){
+				// std::cerr << "i=" << i << ", idx[i]=" << idx[i] << "\n";
+				const int& ii = idx[i];
+				for( int j = i; j < idx.size(); j++ ){
+					const int& jj = idx[j];
+					// std::cerr << ii << ", " << jj << "\n";
+					
+					out(i, j) = G.col(ii).dot(G.col(jj)) - UtG.col(ii).dot(UtG.col(jj));
+					if( i != j ) out(j, i) = out(i, j);
+				}
+			}
+			// std::cout << "Complete: \n";
+			// std::cout << out << "\n";
+			return out;
+		};
+		
+		Eigen::VectorXd Covar (const int& i){
+			Eigen::VectorXd v1 = G.transpose() * G.col(i);
+			Eigen::VectorXd v2 = UtG.transpose() * UtG.col(i);
+			// std::cout << "Covar: \n";
+			// std::cout << v1 - v2 << "\n";
+			return v1 - v2;
+		}
+};
+
+
 
 #endif
 

@@ -17,7 +17,9 @@
 
 void appendInterceptColumn(Eigen::MatrixXd&);
 Eigen::MatrixXd get_half_hat_matrix(const Eigen::MatrixXd&);
-Eigen::MatrixXd resid_from_half_hat( Eigen::MatrixXd, const Eigen::MatrixXd&);
+Eigen::MatrixXd resid_from_half_hat(const Eigen::MatrixXd&, const Eigen::MatrixXd&);
+
+Eigen::VectorXd resid_vec_from_half_hat(const Eigen::VectorXd& Y, const Eigen::MatrixXd&);
 
 void scale_and_center(Eigen::MatrixXd&, std::vector<double>&);
 void scale_and_center(Eigen::MatrixXd&);

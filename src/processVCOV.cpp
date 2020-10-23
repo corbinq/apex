@@ -245,7 +245,14 @@ void vcov_data::open(std::string pf, std::string reg){
 	dp.add_field(bin_nvals, 9);
 	dp.add_matrix(GtU, false, 10);
 	
-	dp.parse_file(file_prefix + ".vcov.idx.gz", reg);
+	// dp.parse_file(file_prefix + ".vcov.idx.gz", reg);
+
+	int n_rows = 0;
+
+	indexed_hts_file htsf(file_prefix + ".vcov.idx.gz", reg);
+	dp.parse_file(htsf, n_rows);
+	htsf.close();
+	
 }
 
 Eigen::MatrixXd vcov_data::getGtG(int i_s, int i_e){

@@ -23,7 +23,7 @@ namespace global_opts
 		// GENOTYPE OPTIONS
 		// bool set_from_
 		int exclude_missing = 0;
-		int set_missing_to_reference = 1;
+		double dosage_thresh = 0.01;
 		double minimum_maf = 0;
 		int minimum_mac = 1;
 		bool use_dosages = false;
@@ -41,6 +41,9 @@ namespace global_opts
 		
 	// ANALYSIS OPTIONS 
 
+		// "Sloppy" covariate adjustment
+		bool sloppy_covar = false;
+
 		double RSQ_PRUNE;
 		double RSQ_BUDDY = 1.00;
 
@@ -57,6 +60,7 @@ namespace global_opts
 		// LMM OPTIONS
 		bool use_grm = false;
 		bool ml_not_reml = false;
+		bool write_v_anchors = true;
 		
 		// ANALYSIS MODE
 		bool IVW_H1_SIGMA = false;
@@ -85,20 +89,20 @@ namespace global_opts
 	// GLOBAL VALUES
 	
 		std::unordered_map<std::string,int> i_chrom_map({
-			{"1" , 1},{"2" , 2},{"3" , 3},{"4" , 4},
-			{"5" , 5},{"6" , 6},{"7" , 7},{"8" , 8},
-			{"9" , 9},{"10" , 10},{"11" , 11},{"12" , 12},
-			{"13" , 13},{"14" , 14},{"15" , 15},{"16" , 16},
-			{"17" , 17},{"18" , 18},{"19" , 19},{"20" , 20},
-			{"21" , 21},{"22" , 22},{"X" , 23},{"Y" , 24},
-			{"M" , 25},{"MT" , 25}, 
-			{"chr1" , 1},{"chr2" , 2},{"chr3" , 3},{"chr4" , 4},
-			{"chr5" , 5},{"chr6" , 6},{"chr7" , 7},{"chr8" , 8},
-			{"chr9" , 9},{"chr10" , 10},{"chr11" , 11},{"chr12" , 12},
-			{"chr13" , 13},{"chr14" , 14},{"chr15" , 15},{"chr16" , 16},
-			{"chr17" , 17},{"chr18" , 18},{"chr19" , 19},{"chr20" , 20},
-			{"chr21" , 21},{"chr22" , 22},{"chrX" , 23},{"chrY" , 24},
-			{"chrM" , 25},{"chrMT" , 25}
+			{"1",1},{"2",2},{"3",3},{"4",4},
+			{"5",5},{"6",6},{"7",7},{"8",8},
+			{"9",9},{"10",10},{"11",11},{"12",12},
+			{"13",13},{"14",14},{"15",15},{"16",16},
+			{"17",17},{"18",18},{"19",19},{"20",20},
+			{"21",21},{"22",22},{"X",23},{"Y",24},
+			{"M",25},{"MT",25}, 
+			{"chr1",1},{"chr2",2},{"chr3",3},{"chr4",4},
+			{"chr5",5},{"chr6",6},{"chr7",7},{"chr8",8},
+			{"chr9",9},{"chr10",10},{"chr11",11},{"chr12",12},
+			{"chr13",13},{"chr14",14},{"chr15",15},{"chr16",16},
+			{"chr17",17},{"chr18",18},{"chr19",19},{"chr20",20},
+			{"chr21",21},{"chr22",22},{"chrX",23},{"chrY",24},
+			{"chrM",25},{"chrMT",25}
 		});
 }
 
@@ -124,5 +128,14 @@ bool global_opts::process_global_opts( const std::string& pfx, const bool& low_m
 	return true;
 };
 
+bool global_opts::set_lmm_options(const bool& wap){
+	write_v_anchors = wap;
+	return true;
+}
 
+
+void global_opts::use_sloppy_covar(){
+	sloppy_covar = true;
+	return;
+}
 

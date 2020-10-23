@@ -170,11 +170,23 @@ class data_parser
 			v_double.push_back(&v);
 			i_double.push_back(i);
 		}
+		void add_header(std::vector<std::string>& v, const int& i){
+			v_header.push_back(&v);
+			i_header.push_back(i);
+		}
 		
 		void add_target(std::vector<std::string>& tg, const int& i, const bool& target_mode_include = true){
 			target_keys.push_back(&tg);
 			target_cols.push_back(i);
 			target_mode.push_back(target_mode_include);
+		}
+		
+		void parse_header(kstring_t& str){
+			int n_fields;
+			int *offsets = ksplit(&str, 0, &n_fields);
+			for( int i = i_header[0]; i < n_fields; i++){
+				v_header[0]->push_back(std::string(str.s + offsets[i]));
+			}
 		}
 		
 		void parse_fields(kstring_t& str, int*& offsets, int& n_fields)
@@ -223,7 +235,11 @@ class data_parser
 			while( htsf.next_line(str) >= 0 ){
 				if( !str.l ) break;
 				if ( str.s[0] == '#' && str.s[1] == '#' ) continue;
-				parse_fields(str);
+				if( n_rows == 0 && i_header.size() > 0 ){
+					parse_header(str);
+				}else{
+					parse_fields(str);
+				}
 				n_rows++;
 			}
 			ks_free(&str);
@@ -237,13 +253,21 @@ class data_parser
 		}
 		void parse_file(const std::string& fn, const std::string& region, int& n_rows = int0)
 		{
-			indexed_hts_file htsf(fn, region);
-			parse_file(htsf, n_rows);
-			htsf.close();
+			if( region != "" ){
+				indexed_hts_file htsf(fn, region);
+				parse_file(htsf, n_rows);
+				htsf.close();
+			}else{
+				basic_hts_file htsf(fn);
+				parse_file(htsf, n_rows);
+				htsf.close();
+			}
 		}
 
 		void clear(){
 			for( matrix_filler& mf : v_matrix ){mf.freeze();}
+			v_header.clear();
+			i_header.clear();
 			v_matrix.clear();
 			v_string.clear();
 			i_string.clear();
@@ -258,7 +282,9 @@ class data_parser
 			target_mode.clear();
 		};
 
-	private:	
+	private:
+		std::vector<std::vector<std::string>*> v_header; 
+		std::vector<int> i_header;
 		std::vector<matrix_filler> v_matrix;
 		std::vector<std::vector<std::string>*> v_string;
 		std::vector<int> i_string;
@@ -273,5 +299,52 @@ class data_parser
 		std::vector<std::vector<std::string>*> target_keys;
 		std::vector<bool> target_mode;
 };
+
+
+class file_list
+{
+	public:
+		std::vector<std::string> file_paths;
+		
+		file_list( const std::string& in_string ){
+			
+			// Find files from format "path/chr{1:22}.txt"
+			std::size_t s_brack = in_string.find("{");
+			if( s_brack != std::string::npos ){
+				std::string prefix = in_string.substr(0, s_brack);
+				std::string suffix = in_string.substr(in_string.find("}")+1);
+				
+				std::string rstr = in_string.substr(s_brack+1);
+				
+				int start = std::stoi(rstr.substr(0, rstr.find(":")));
+				rstr = rstr.substr(rstr.find(":")+1);
+				
+				int end = std::stoi(rstr.substr(0, rstr.find("}")));
+				
+				for(int i = start; i <= end; i++){
+					file_paths.push_back(prefix + std::to_string(i) + suffix);
+				}
+			}else{
+
+				std::vector<std::string> types = {".vcf", ".vcf.gz", ".bcf"};
+				
+				for( const std::string& tp : types ){
+					if( in_string.substr(in_string.size() - tp.size()) == tp ){
+						file_paths.push_back(in_string);
+					}
+				}
+					
+				if( file_paths.size() == 0 ){
+					// No match. Assume that in_string is a list of files.
+					data_parser dp;
+					dp.add_field(file_paths, 0);
+					dp.parse_file(in_string);
+				}
+			
+			}
+		};
+		
+};
+
 
 #endif
