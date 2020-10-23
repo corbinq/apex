@@ -232,9 +232,14 @@ class data_parser
 		template <class hts_file>
 		void parse_file(hts_file& htsf, int& n_rows = int0){
 			kstring_t str = {0,0,0};
+			bool skip_header = ( v_header.size() == 0 );
 			while( htsf.next_line(str) >= 0 ){
 				if( !str.l ) break;
-				if ( str.s[0] == '#' && str.s[1] == '#' ) continue;
+				if ( str.s[0] == '#' ){
+					if( str.s[1] == '#' || (skip_header && n_rows == 0 ) ){
+						continue;
+					}
+				}
 				if( n_rows == 0 && i_header.size() > 0 ){
 					parse_header(str);
 				}else{

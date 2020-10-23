@@ -375,8 +375,13 @@ void cis_sumstat_data::open(const std::string& pf, const std::string& reg)
 	dp.add_field(SD,7);
 	dp.add_field(N_CIS,8);
 	
-	dp.parse_file(gene_file, region);
-
+	// dp.parse_file(gene_file, region);
+	
+	indexed_hts_file htsf(gene_file, region);
+	int nrows = 0;
+	dp.parse_file(htsf, nrows);
+	htsf.close();
+	
 	format_gene_ids(gene_id);
 	
 	dp.clear();
@@ -392,7 +397,7 @@ void cis_sumstat_data::open(const std::string& pf, const std::string& reg)
 	while( ss_hfile.next_line(str) >= 0 && n_genes < N_CIS.size() )
 	{
 		if( !str.l ) break;
-		if ( str.s[0] == '#' && str.s[1] == '#' ) continue;
+		if ( str.s[0] == '#' ) continue;
 		
 		int n_fields;
 	
@@ -797,8 +802,11 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 		std::vector<int> c_s(n_studies);
 		std::vector<int> c_e(n_studies);
 		
+		// std::cout << "\nStudies with gene " << gene_id_0 <<  " : " << studies_with_gene.size() << "\n";
+		
 		// move back indices if needed
 		for( const int& s : studies_with_gene ){
+			// std::cout << s << " : jj[s] = " << jj[s] << "\n";
 			c_s[s] = ss[s].S_CIS[jj[s]];
 			c_e[s] = ss[s].S_CIS[jj[s]] + ss[s].N_CIS[jj[s]] - 1;
 			while( si[s][i_s] >= c_s[s] && i_s > 0 ){
@@ -808,6 +816,9 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 				i_e++;
 			}			
 		}
+		
+		// std::cout << i_s << " " << i_e << "\n";
+		
 		// now we want to find the range of overlapping indexes
 		for( const int& s : studies_with_gene ){
 			while( i_s >= si[s].size() && i_s > 0){
@@ -824,9 +835,11 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 			}
 		}
 		
+		// std::cout << i_s << " " << i_e << "\n";
+		
 		
 		bool has_zero_snps = false;
-		if( i_e - i_s < 0 ){
+		if( i_e - i_s < 0 || i_e + i_s == 0 ){
 			has_zero_snps = true;
 			std::cerr << "\nWarning: Gene " << gene_id_0 << " has 0 variants after merging.\n";
 		}
@@ -838,6 +851,10 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 		
 		
 		for( const int& s : studies_with_gene ){
+			
+			
+			// std::cout << i_s << "\t" << i_e << "\n";
+			// std::cout << jj[s] << "\n";
 			
 			const Eigen::VectorXd& sc_s = ss[s].score[jj[s]];
 		

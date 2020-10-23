@@ -184,6 +184,7 @@ class genotype_data
 		int geno_size;
 		
 		Eigen::SparseMatrix<double> genotypes;
+		Eigen::MatrixXd dense_genotypes;
 		
 		void read_bcf_variants(bcf_srs_t*&, bcf_hdr_t*&, int&, bool store_geno = true, bool scan_geno = true);
 		
