@@ -828,6 +828,7 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 		bool has_zero_snps = false;
 		if( i_e - i_s < 0 ){
 			has_zero_snps = true;
+			std::cerr << "\nWarning: Gene " << gene_id_0 << " has 0 variants after merging.\n";
 		}
 		
 		Eigen::VectorXd score_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
@@ -868,6 +869,9 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 		}
 		for( const int& s : c_studies ){
 			jj[s] -= move_back[s];
+			if( jj[s] < 0 ){
+				jj[s] = 0;
+			}
 		}
 		
 		all_gene_id.push_back(gene_id_0);
