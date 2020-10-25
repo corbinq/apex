@@ -15,12 +15,12 @@ This page describes benchmarking experiments with YAX for various QTL analysis t
 
 We used empirical genotype data derived from the UK Biobank and simulated molecular phenotype data to benchmark time and memory for trans-xQTL analysis using a linear mixed model (LMM) using YAX LMM, FastGWA, BOLT-LMM, and GMMAT. 
 
-**Input data:**
+### Input data
 | Sample size |No. traits | No. SNPs | No. covariates |
 |-------------|-----------------:|---------------:|---------------------:|
 | 10,000      |           16,329 |        590,606 |                   10 |
 
-**Time and memory usage:**
+### Time and memory usage
 |                 |     CPU   hours    |     Time   speedup    |     Max   memory    |
 |-----------------|-------------------:|----------------------:|--------------------:|
 |     YAX, p < 5e-5    |             7.5    |               0.36    |        4.88   Gb    |
@@ -30,29 +30,29 @@ We used empirical genotype data derived from the UK Biobank and simulated molecu
 |     GMMAT       |       ~*5,692.5*     |            ~*273.68*    |             N/A     |
 
 
-**Software commands:**
-YAX command:
+### Software commands
+**YAX command:**
  - parallel over chromosomes, all traits at once
  - sparse GRM 
  - compressed BCF format genotype data
 ```
 yax trans --bed $all_traits_bed --bcf $bcf --cov $covar_txt --grm $grm --region ${chr} --out trans_chr${chr}
 ```
-BOLT-LMM command: 
+**BOLT-LMM command:**
  - parallel over traits, all chroms at once 
  - 172,045 LD-pruned SNPs (no sparse GRM)
  - uncompressed BED/BIM/FAM format genotype data
 ```
 bolt --lmm --LDscoresFile=$ldsc_f --bfile=$bfile --phenoFile=trait_${trait}.ped --phenoCol=${trait} --qCovarCol=PC{1:10} --covarFile=$covar_ped --modelSnps=${snp_file} --statsFile=bolt_${trait}
 ```
-fastGWA command: 
+**fastGWA command:**
  - parallel over traits, all chroms at once 
  - Sparse GRM
  - uncompressed BED/BIM/FAM format genotype data
 ```
 gcta64 --fastGWA-mlm --bfile $bfile --grm-sparse $sgrm --pheno trait_${trait}.ped --qcovar $covar_ped --threads 1 --out gcta_${trait}
 ```
-GMMAT command: 
+**GMMAT command:**
  - parallel over traits, parallel over chroms
  - Sparse GRM
  - Compressed GDS format genotype data

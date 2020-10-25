@@ -1,7 +1,8 @@
 /*  fitModels: QTL model fitting. 
 
     Copyright (C) 2020 
-    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+    Authors: Corbin Quick <qcorbin@hsph.harvard.edu>
+	         Li Guan <guanli@umich.edu>
 
     This file is part of YAX.
 

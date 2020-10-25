@@ -2,7 +2,7 @@
 # YAX: yet another xQTL toolkit
 YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation). 
 
-We have conducted extensive benchmarking and simulation experiments to ensure that YAX is efficient, scalable, and accurate for both small and large sample sizes. For more information, [**see benchmarking page.**](https://github.com/corbinq/yax/blob/master/doc/benchmarking.md)
+We have conducted extensive benchmarking and simulation experiments to ensure that YAX is accurate, efficient, scalable for both small and large sample sizes. For more information, [**see benchmarking page.**](https://github.com/corbinq/yax/blob/master/doc/benchmarking.md)
 
 Key features of this software include
 
@@ -46,8 +46,9 @@ make
 Precompiled binaries are also available for 64-bit Linux systems as follows:
 ```
 git clone https://github.com/corbinq/yax.git
-mv yax/bin/yax_Linux_x86_64.gz yax.gz 
-gunzip yax.gz
+cd yax/bin
+gunzip yax_Linux_x86_64.gz
+mv yax_Linux_x86_64 yax && chmod +x yax
 ./yax --help
 ```
 
@@ -67,10 +68,11 @@ If you use YAX, please cite `Quick, C; Guan, L; Lin, X (2020). URL: https://gith
 
 ## Acknowledgements
  - Li Guan
- - Laura Scott
  - Xihao Li
  - Zilin Li
  - Rounak Dey
- - Xihong Lin
+ - Laura Scott
+ - Hyun Min Kang 
+ - Xihong Lin 
 
 
