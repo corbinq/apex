@@ -1,0 +1,12 @@
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: true
+include:
+  - README.md
+  - doc/benchmarking.md
+  - doc/input_files.md
+  - doc/mode_cis.md
+  - doc/mode_trans.md
+  - doc/mode_meta.md
