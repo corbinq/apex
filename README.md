@@ -1,11 +1,11 @@
 
 # <img src="/doc/logo.svg" width="240" height="108"/>
 
-YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation). 
+YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs), such as mRNA expression or methylation levels. It performs cis and trans analysis, single- and multiple-variant analysis, and single-study and meta-analysis. 
 
-We have conducted extensive benchmarking and simulation experiments to ensure that YAX is accurate, efficient, scalable for both small and large sample sizes. For more information, [**see benchmarking page.**](/doc/benchmarking/)
+We have conducted extensive benchmarking and simulation experiments to ensure that YAX is accurate, efficient, scalable for both small and large sample sizes. For more information, [**see benchmarking.**](/doc/benchmarking/)
 
-Key features of this software include
+To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation).  Notable features include
 
 **Fast, scalable linear mixed model for xQTL mapping**
  - Highly optimized linear mixed model (LMM) framework to account for cryptic or familial relatedness in cis and trans xQTL analysis. 
@@ -27,7 +27,7 @@ Key features of this software include
 	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region.   
  - [**xQTL meta-analysis.**](/doc/mode_meta/)  `./yax meta {options}`
 	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
- - [**xQTL summary data storage.**](/doc/mode_store)  `./yax store {options}`
+ - [**xQTL summary data storage.**](/doc/mode_store/)  `./yax store {options}`
 	 -  Store genotypic variance-covariance (LD) data matrices for data-sharing or meta-analysis. These files enable accurate multiple-variant analysis from xQTL summary statistics, including joint and conditional regression analysis, Bayesian finemapping, aggregation tests, and penalized regression / variable selection.    
  
 ## Additional documentation pages
