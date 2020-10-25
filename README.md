@@ -2,7 +2,7 @@
 # YAX: yet another xQTL toolkit
 YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation). 
 
-We have conducted extensive benchmarking and simulation experiments to ensure that YAX is accurate, efficient, scalable for both small and large sample sizes. For more information, [**see benchmarking page.**](/doc/benchmarking)
+We have conducted extensive benchmarking and simulation experiments to ensure that YAX is accurate, efficient, scalable for both small and large sample sizes. For more information, [**see benchmarking page.**](/yax/doc/benchmarking/)
 
 Key features of this software include
 
@@ -20,13 +20,13 @@ Key features of this software include
  - R interface for joint and conditional analysis, Bayesian finemapping, and aggregation tests across 1 or more xQTL studies while protecting genetic privacy.
  
 ## Analysis modes and documentation
- - [**cis-xQTL analysis.**](/doc/mode_cis) `./yax cis {options}`
+ - [**cis-xQTL analysis.**](/yax/doc/mode_cis/) `./yax cis {options}`
 	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
- - [**trans-xQTL analysis.**](/doc/mode_trans)  `./yax trans {options}`
+ - [**trans-xQTL analysis.**](/yax/doc/mode_trans/)  `./yax trans {options}`
 	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region.   
- - [**xQTL meta-analysis.**](/doc/mode_meta)  `./yax meta {options}`
+ - [**xQTL meta-analysis.**](/yax/doc/mode_meta/)  `./yax meta {options}`
 	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
- - [**xQTL summary data storage.**](/doc/mode_store)  `./yax store {options}`
+ - [**xQTL summary data storage.**](/yax/doc/mode_store)  `./yax store {options}`
 	 -  Store genotypic variance-covariance (LD) data matrices for data-sharing or meta-analysis. These files enable accurate multiple-variant analysis from xQTL summary statistics, including joint and conditional regression analysis, Bayesian finemapping, aggregation tests, and penalized regression / variable selection.    
  
 ## Additional documentation pages
