@@ -59,20 +59,20 @@ std::string help_string =
 "     (c) 2019-2020 Corbin Quick and Li Guan.\n" 
 "\n" 
 "  Usage and options:\n" 
-"     ./gqt [mode] --help       Print help menu for [mode].\n" 
+"     ./yax [mode] --help       Print help menu for [mode].\n" 
 "\n" 
 "  Analysis modes:\n" 
-"     ./gqt cis {OPTIONS}       cis-xQTL analysis from\n" 
+"     ./yax cis {OPTIONS}       cis-xQTL analysis from\n" 
 "                                 individual-level data.\n" 
 "\n" 
-"     ./gqt trans {OPTIONS}     trans-xQTL analysis from\n" 
+"     ./yax trans {OPTIONS}     trans-xQTL analysis from\n" 
 "                                 individual-level data.\n" 
 "\n" 
-"     ./gqt meta {OPTIONS}      Single and multi-variant\n" 
+"     ./yax meta {OPTIONS}      Single and multi-variant\n" 
 "                                 xQTL meta-analysis from\n" 
 "                                 sumstat and vcov files.\n" 
 "\n" 
-"     ./gqt store {OPTIONS}     Store vcov (LD) data for\n" 
+"     ./yax store {OPTIONS}     Store vcov (LD) data for\n" 
 "                                 xQTL meta-analysis or\n" 
 "                                 data sharing.\n" 
 "\n" 
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 	};
 	
 	// Argument parsing using https://github.com/Taywee/args
-	args::ArgumentParser p0("gqt: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p0("yax: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help0(p0, "help", "Display this help menu", {'h', "help"});
 	
 	p0.Prog(argv[0]);
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
 
 int cis(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
 	
-	args::ArgumentParser p("gqt cis: cis-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("yax cis: cis-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
@@ -583,7 +583,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("gqt trans: trans-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("yax trans: trans-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 	
@@ -932,7 +932,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("gqt meta: Meta-analysis of xQTL studies.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("yax meta: Meta-analysis of xQTL studies.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
@@ -1122,7 +1122,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("gqt store: Store vcov (LD; variance-covariance) data.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("yax store: Store vcov (LD; variance-covariance) data.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
