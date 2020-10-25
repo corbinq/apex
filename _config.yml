@@ -10,3 +10,5 @@ include:
   - doc/mode_cis.md
   - doc/mode_trans.md
   - doc/mode_meta.md
+
+theme: jekyll-theme-time-machine
