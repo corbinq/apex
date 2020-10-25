@@ -5,7 +5,7 @@ This page describes benchmarking experiments with YAX for various QTL analysis t
 ##### Table of Contents  
 
  1. [LMM Benchmarking](#lmm-benchmarking)   
- 2. [Trait-Level Test Benchmarking](#trait-level-test-benchmarking)
+ 2. [cis-eQTL Benchmarking](#cis-eqtl-benchmarking)
  3. [Meta-analysis](#meta-analysis) <br />
 
  [*Return to YAX main page.*](/../../)
@@ -69,7 +69,25 @@ GMMAT::glmm.score(obj = null_fit, infile = gds_file, outfile = trait_out_file, v
 **Software concordance:**
 LMM association tests from YAX and GMMAT are nearly numerically equivalent, as expected.  BOLT-LMM uses the pre-conditioned conjugate gradient method to avoid storing an explicit GRM, and a retrospective quasi-likelihood score test; these differences may explain differences with YAX and GMMAT.  FastGWA uses the GRAMMAR-Gamma approximation to calculate association tests, which may  explain  differences with YAX and GMMAT.  
 
-## Trait-Level Test Benchmarking
+## cis-eQTL Benchmarking
+
+We compared cis-eQTL analysis using YAX and two standard tools across 3 data sets. 
+
+### Data sets
+|                     |     GTEx v8 LCLs    |      Geuvadis     |       HapMap      |
+|---------------------|:-------------------:|:-----------------:|:-----------------:|
+|     Variants        |      10,932,660     |     10,945,700    |     10,943,352    |
+|     Sample size     |          147        |         454       |         518       |
+|     Covariates      |          23         |         70        |         97        |
+|     Genes           |        22,759       |       17,815      |       16,329      |
+
+### Results
+
+![cis benchmark](benchmark_cis.png)
+
+Summary: YAX calculates cis-region p-values using ACAT, which is more computationally efficient (B) and statistically powerful (A) than beta-approximated permutation cis-region p-values as implemented in FastQTL and QTLtools. Both methods maintain nominal Type I Error rates in null simulations (C), although QTLtools shows deflated Type I Error rate. 
+A: Gene-level cis-eQTL p-values in the Geuvadis LCL dataset.  YAX gene-level cis-eQTL p-values account for LD using ACAT (shown on y axis), which aggregates all single-variant p-values across the cis region. FastQTL and QTLtools calculate gene-level cis-eQTL p-values accounting for LD by modeling the null distribution of the minimum single-variant p-value as a beta density, with beta parameters estimated by permutation.  FastQTL and YAX calculate single-variant p-values using the standard multiple linear regression t-test to adjust for technical covariates, while QTLtools calculates p-values between trait residuals and unadjusted genotypes (Methods).  Associations detected only by ACAT are marked in green in each column; associations detected only by FastQTL, QTLtools, or Bonferroni (but not ACAT) are marked in magenta.  These results suggest that ACAT gene-level p-values have the greatest statistical power, since empirical Type I error rates are well-controlled for each of the 4 methods.
+B: Comparison of time and memory usage for FastQTL and QTLtools vs YAX for autosomal cis-eQTL analysis in Geuvadis. FastQTL was run using the adaptive p-value setting with 100 to 1000 permutations; QTLtools was run using 1000 permutations; YAX uses ACAT to account for LD rather than permutations. For each software program, autosomal cis-eQTL analysis was run in parallel with 1 CPU per chromosome.   
 
 
 ## Meta-analysis
