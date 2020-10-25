@@ -107,17 +107,12 @@ We compared sumstat and vcov file storage sizes across 3 QTL studies:
 
 ## References
 
-1. Jiang, Longda, et al. A resource-efficient tool for mixed model association analysis of large-scale data. Nature Publishing Group, 2019.
-  - [fastGWA software](https://cnsgenomics.com/software/gcta/#fastGWA)
-2. Loh, Po-Ru, et al. "Efficient Bayesian mixed-model analysis increases association power in large cohorts." Nature genetics 47.3 (2015): 284.
-  - [BOLT-LMM software](https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4_manual.pdf)
-3. Chen, Han, et al. "Control for population structure and relatedness for binary traits in genetic association studies via logistic mixed models." The American Journal of Human Genetics 98.4 (2016): 653-666.
-  - [GMMAT software](https://cran.r-project.org/web/packages/GMMAT/index.html)
+1. Jiang, Longda, et al. A resource-efficient tool for mixed model association analysis of large-scale data. Nature Publishing Group, 2019. [fastGWA software.](https://cnsgenomics.com/software/gcta/#fastGWA)
+2. Loh, Po-Ru, et al. "Efficient Bayesian mixed-model analysis increases association power in large cohorts." Nature genetics 47.3 (2015): 284. [BOLT-LMM software.](https://storage.googleapis.com/broad-alkesgroup-public/BOLT-LMM/downloads/BOLT-LMM_v2.3.4_manual.pdf)
+3. Chen, Han, et al. "Control for population structure and relatedness for binary traits in genetic association studies via logistic mixed models." The American Journal of Human Genetics 98.4 (2016): 653-666. [GMMAT software.](https://cran.r-project.org/web/packages/GMMAT/index.html)
 4. Chen, Han, Matthew P. Conomos, and Duy T. Pham. "GMMAT-package: Generalized Linear Mixed Model Association Tests." (2020).
-5. Ongen, Halit, et al. "Fast and efficient QTL mapper for thousands of molecular phenotypes." Bioinformatics 32.10 (2016): 1479-1485.
-  - [FastQTL software](http://fastqtl.sourceforge.net/)
-6. Delaneau, Olivier, et al. "A complete tool set for molecular QTL discovery and analysis." Nature communications 8.1 (2017): 1-7.
-  - [QTLtools software](https://qtltools.github.io/qtltools/)
+5. Ongen, Halit, et al. "Fast and efficient QTL mapper for thousands of molecular phenotypes." Bioinformatics 32.10 (2016): 1479-1485.  [FastQTL software.](http://fastqtl.sourceforge.net/)
+6. Delaneau, Olivier, et al. "A complete tool set for molecular QTL discovery and analysis." Nature communications 8.1 (2017): 1-7.  [QTLtools software.](https://qtltools.github.io/qtltools/)
 7. Lappalainen, Tuuli, et al. "Transcriptome and genome sequencing uncovers functional variation in humans." Nature 501.7468 (2013): 506-511.
 8. 1000 Genomes Project Consortium. "An integrated map of genetic variation from 1,092 human genomes." Nature 491.7422 (2012): 56-65.
 9. GTEx Consortium. "The GTEx Consortium atlas of genetic regulatory effects across human tissues." Science 369.6509 (2020): 1318-1330.
