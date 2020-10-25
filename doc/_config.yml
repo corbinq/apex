@@ -5,8 +5,8 @@ relative_links:
   collections: true
 include:
   - README.md
-  - benchmarking.md
-  - input_files.md
-  - mode_cis.md
-  - mode_trans.md
-  - mode_meta.md
+  - benchmarking/README.md
+  - input_files/README.md
+  - mode_cis/README.md
+  - mode_trans/README.md
+  - mode_meta/README.md
