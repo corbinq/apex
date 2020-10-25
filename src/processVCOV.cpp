@@ -1,3 +1,18 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
 #include "processVCOV.hpp"
 
 
@@ -671,15 +686,18 @@ void vcov_data::close(){
 }
 
 
-void write_vcov_files(genotype_data& g_data, const table& c_data){
+void write_vcov_files(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data){
 	
-	const Eigen::SparseMatrix<double> &G = g_data.genotypes;
+	// const Eigen::SparseMatrix<double> &G = g_data.genotypes;
 	
-	const Eigen::MatrixXd &X = c_data.data_matrix;
+	Eigen::MatrixXd &U = c_data.data_matrix;
 	
-	Eigen::MatrixXd U = get_half_hat_matrix(c_data.data_matrix);
+	make_half_hat_matrix(U);
 	
-	Eigen::MatrixXd UtG = (get_half_hat_matrix(c_data.data_matrix).transpose() * G).eval();
+	Eigen::MatrixXd UtG;
+	if( !global_opts::low_mem ){
+		UtG = U.transpose() * g_data.genotypes;
+	}
 	
 	//Eigen::MatrixXd& UtG = g_data.UtG;
 	
@@ -690,15 +708,15 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 	BGZF* ld_idx_file = bgzf_open(idx_file_path.c_str(), "w");
 
 	unsigned long int bytes_written = 0;
-
-    vbin_t n_variants = g_data.ld_index_range.size();
 	
-	//Eigen::MatrixXd ld_matrix = G.transpose() * G;
+	int n_snps = g_data.n_variants;
+	int n_cov = U.cols();
+	int n_samples = U.rows();
 	
-	std::vector<double> macs(G.cols()); 
-	for(int i = 0; i < G.cols(); ++i){
-		macs[i] = G.col(i).sum(); 
-	}
+	std::vector<double> macs(n_snps); 
+	// for(int i = 0; i < G.cols(); ++i){
+		// macs[i] = G.col(i).sum(); 
+	// }
 	
 	std::string iter_cerr_suffix = " variants ... ";
 	
@@ -707,12 +725,44 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 	int last = 0;
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	
-	std::string header_string = "# NS=" + std::to_string(G.rows()) + ",NC=" + std::to_string(UtG.rows()) + "\n";
+	std::string header_string = "# NS=" + std::to_string(n_snps) + ",NC=" + std::to_string(n_cov) + "\n";
 	
 	write_to_bgzf(header_string, ld_idx_file);
 	
+	int b_s = 0;
+	int b_n = 0;
+	
+	
 	int n_var = 0;
 	for( const auto ld_i : g_data.ld_index_range ){
+	
+		int s_i = ld_i.first;
+		
+		int nn = ld_i.second - ld_i.first + 1;
+		nn = nn + ld_i.first < n_snps ? nn : n_snps - ld_i.first;
+		
+	
+		if( global_opts::low_mem ){
+			if( b_s + b_n < s_i + nn ){
+				b_s = s_i;
+				b_n = s_i + 2*nn;
+				if( b_n + b_s > n_snps ){
+					b_n = n_snps - b_s;
+				}
+				g_data.read_genotypes(sr, hdr, b_s, b_n );
+				
+				for(int i = 0; i < b_n; ++i){
+					macs[b_s + i] = g_data.genotypes.col(i).sum(); 
+				}
+				
+				UtG = U.transpose() * g_data.genotypes;
+			}
+			
+			s_i = ld_i.first - b_s;
+		}
+		
+		const Eigen::SparseMatrix<double>& G_i = g_data.genotypes.middleCols(s_i, nn);
+		const Eigen::MatrixXd &UtG_i = UtG.middleCols(s_i, nn);
 	
 		std::stringstream ld_idx_line;
 	
@@ -722,17 +772,14 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 	
 		double& mac_i = macs[ld_i.first];
 		
-		int nn = ld_i.second - ld_i.first + 1;
-		nn = nn + ld_i.first < G.cols() ? nn : G.cols() - ld_i.first;
-		
 		Eigen::MatrixXd ld_record;
 		
 		double var_i = 0;
 		
 		if( mac_i > 0 ){
-			ld_record = ( G.col(ld_i.first).transpose() * G.middleCols(ld_i.first, nn));
+			ld_record = ( G_i.col(0).transpose() * G_i );
 			//ld_record = ld_matrix.middleCols(ld_i.first, nn).row(ld_i.first);
-			var_i = ld_record(0,0) - UtG.col(ld_i.first).squaredNorm();
+			var_i = ld_record(0,0) - UtG_i.col(0).squaredNorm();
 		}
 		
 		g_data.var.push_back(var_i);
@@ -748,8 +795,8 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 			n_var << "\t" <<
 			bytes_written/sizeof(vbin_t) << "\t" << nn;
 		
-		for( int i = 0; i < UtG.rows(); ++i ){
-			ld_idx_line << "\t" << UtG(i, ld_i.first);
+		for( int i = 0; i < n_cov; i++ ){
+			ld_idx_line << "\t" << UtG_i(i, 0);
 		}
 		ld_idx_line << "\n";
 		
@@ -771,7 +818,7 @@ void write_vcov_files(genotype_data& g_data, const table& c_data){
 		n_var++;
 		
 		// if( n_var % 250 == 0 ) print_iter_cerr(n_var - 250, n_var, iter_cerr_suffix);
-		thinned_iter_cerr(last, n_var, iter_cerr_suffix, 250);
+		thinned_iter_cerr(last, n_var, iter_cerr_suffix, 1);
 	}
 	std::cerr << "\rFinished processing LD for " << n_var << " variants.\n";
 	

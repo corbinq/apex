@@ -1,3 +1,19 @@
+/*  fitModels: QTL model fitting. 
+
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
 #include "fitModels.hpp"
 
 /*
@@ -41,7 +57,12 @@ void calc_eGRM_PCs(Eigen::MatrixXd& ePCs, Eigen::VectorXd& lam, const Eigen::Mat
 	
 	Spectra::DenseSymMatProd<double> op(R);
 	
-	Spectra::SymEigsSolver< double, Spectra::LARGEST_ALGE, Spectra::DenseSymMatProd<double> > eigs(&op, n_eigs, 2*n_eigs);
+	int n2 = 2* n_eigs;
+	if( n2 > R.cols() ){
+		n2 = R.cols();
+	}
+	
+	Spectra::SymEigsSolver< double, Spectra::LARGEST_ALGE, Spectra::DenseSymMatProd<double> > eigs(&op, n_eigs, n2);
 
 	eigs.init();
     int nconv = eigs.compute();
@@ -49,10 +70,10 @@ void calc_eGRM_PCs(Eigen::MatrixXd& ePCs, Eigen::VectorXd& lam, const Eigen::Mat
 	lam = eigs.eigenvalues();
 	ePCs = eigs.eigenvectors();
 	
-	std::cout << "Values:\n";
-	std::cout << lam << "\n";
-	std::cout << "Vectors:\n";
-	std::cout << ePCs << "\n";
+	// std::cout << "Values:\n";
+	// std::cout << lam << "\n";
+	// std::cout << "Vectors:\n";
+	// std::cout << ePCs << "\n";
 	
 	return;
 }

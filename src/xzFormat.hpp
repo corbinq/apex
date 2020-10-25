@@ -1,3 +1,19 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
 #include <iostream>
 #include <thread>
 #include <algorithm>
@@ -21,16 +37,8 @@ class call_tracker
 		void set_size(const int& n_recent){
 			n = n_recent;
 		}
-		// Out with the old, in with the new. 
-		
-		// Input x = index of most recent function call.
-		// Output = index of n-least-recent function call, 
-		//   which we will delete from cache to conserve
-		//   memory. Or, return -1 if we do not need to
-		//   delete anything from the cache. 
+
 		int push_new(const int& x){
-			// Don't bother checking to see if x %in% most_recent.
-			// Useful if we already know !(x %in% most_recent).
 			most_recent.push_back(x);
 			if( most_recent.size() < n ){
 				// Don't remove anything from cache. 
@@ -38,7 +46,6 @@ class call_tracker
 			}
 			int out = most_recent.front();
 			most_recent.erase(most_recent.begin());
-			// Return index that we want to delete from cache.
 			return out;
 		}
 		
@@ -48,9 +55,6 @@ class call_tracker
 				return -1;
 			}
 			int x_i = -1;
-			// Since n is fixed, and we expect serial 
-			// correlation, this may be faster than
-			// a hash table in practice. 
 			for(int i = n; i >= 0; i-- ){
 				if( most_recent[i] == x ){
 					x_i = i;
@@ -64,7 +68,6 @@ class call_tracker
 				most_recent.push_back(x);
 				int out = most_recent.front();
 				most_recent.erase(most_recent.begin());
-				// Return the value that we want to delete from cache.
 				return out;
 			}
 		}	
@@ -254,26 +257,6 @@ class xzReader
 			return 1; 
 		}
 };
-
-
-// Send references on how to implement compression and decompression. 
-// Send materials on eQTL toolkit.
-
-// MESA is 5,000. 
-// Freeze 3 is 12,0000 individuals. 
-// We want to report either (freeze 5) 30,000 or 60,000. 
-
-// We could split the cohorts to get intermediate points. 
-
-// We want to do whole chromosomes, perhaps do chr19. 
-
-// For chr6, should take 18 days, and is 433.5 GB
-
-// Use total cholesterol? It has largest number of cohorts.
-//  --
-
-// Want draft by October 
-
 
 
 // Class for writing xz files from output stream. 

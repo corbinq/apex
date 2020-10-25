@@ -1,11 +1,21 @@
-/*
-	Corbin's notes on setOptions :
-	
-	GLOBAL OPTIONS
-	
-	setOptions is for setting global options, which are set at 
-	runtime and used throughout (potentially) all source files
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
 */
+
+
+/* setOptions is for setting global options, which are set at 
+ runtime and used throughout (potentially) all source files*/
 
 #include "setOptions.hpp"
 
@@ -68,7 +78,7 @@ namespace global_opts
 		bool trans_eqtl_mode = false;
 		bool backward_step = false;
 		
-		// CIS-eQTL OPTIONS
+		// CIS-QTL OPTIONS
 		double LM_ALPHA = 0.05;
 		int cis_window_bp = 1000000;
 		bool cis_window_gene_body = false;

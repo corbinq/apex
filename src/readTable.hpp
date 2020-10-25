@@ -1,8 +1,20 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
 /*
-	Corbin's notes on readTable :
-	
-	COVARIATE DATA
-	
 	readTable source files and the 'table' class are for processing 
 	covariate files, subsetting and filtering covariate columns, and
 	subsetting and merging individual IDs in the covariate file with 

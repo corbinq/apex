@@ -1,3 +1,19 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
 #ifndef MISCUTILS_HPP
 #define MISCUTILS_HPP
 
@@ -5,6 +21,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <unordered_set>
 
 #include "setOptions.hpp"
 
@@ -23,6 +40,11 @@ std::vector<int> seq_int(const int& n);
 template<typename T>
 inline bool has_element(const std::vector<T>& v, const T& x){
 	return find(v.begin(), v.end(), x) != v.end();
+};
+
+template<typename T>
+inline bool has_element(const std::unordered_set<T>& v, const T& x){
+	return v.find(x) != v.end();
 };
 
 void remove_gene_version_number( std::vector<std::string>& );

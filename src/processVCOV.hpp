@@ -1,3 +1,19 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
 #ifndef PROCESSVCOV_HPP
 #define PROCESSVCOV_HPP
 
@@ -130,7 +146,7 @@ class vcov_bin_gz_out
 
 void read_LD_gz_bytes(std::string);
 
-void write_vcov_files(genotype_data&, const table&);
+void write_vcov_files(bcf_srs_t*& sr, bcf_hdr_t*& hdr,  genotype_data&, table&);
 
 #endif
 

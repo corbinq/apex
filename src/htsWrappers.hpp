@@ -1,8 +1,21 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
 /*
-	
-	Generic wrappers for HTSLIB BCF/VCF file
-	parsing, as well as for BGZF reading/writing.
-	
+Generic wrappers for HTSLIB BCF/VCF file parsing, as well as for BGZF reading/writing.
 */
 
 #ifndef HTSWRAPPERS_HPP

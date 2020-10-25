@@ -1,13 +1,23 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
 /*
-	Corbin's notes on mapID :
-	
-	ROW/COLUMN ID MANAGEMENT
-	
-	mapID source files and the 'id_map' class are for subsetting, merging, 
-	and mapping row and column IDs in across multiple files (expression, 
-	covariate, and genotype). These classes help reduce redundancy for 
-	common tasks across file types. 
-	
+mapID source files and the 'id_map' class are for subsetting, merging, 
+and mapping row and column IDs in across multiple files (expression, 
+covariate, and genotype). These classes help reduce redundancy for 
+common tasks across file types. 	
 */
 
 #ifndef MAPID_HPP

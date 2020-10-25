@@ -1,3 +1,19 @@
+/*  fitUtils:
+
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
 #include "fitUtils.hpp"
 
 
@@ -66,16 +82,16 @@ void scale_and_center(Eigen::MatrixXd& Y){
 	double m = Y.cols();
 	double n = Y.rows();
 	
-	for(int j = 0; j < m; ++j){
+	for(int j = 0; j < m; j++){
 		double mu = 0;
 		double sd = 0;
-		for(int i = 0; i < n; ++i){
+		for(int i = 0; i < n; i++){
 			mu += Y(i,j);
 			sd += Y(i,j)*Y(i,j);
 		}
 		sd = std::sqrt( sd/(n - 1) - mu*mu/( n*(n - 1.0) ) );
 		mu = mu/n;
-		for(int i = 0; i < n; ++i){
+		for(int i = 0; i < n; i++){
 			Y(i,j) = (Y(i,j) - mu)/sd;
 		}
 	}
@@ -91,9 +107,26 @@ Eigen::MatrixXd get_half_hat_matrix(const Eigen::MatrixXd& X){
 	return U;
 }
 
+void make_half_hat_matrix(Eigen::MatrixXd& X){
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> XtX_es(X.transpose() * X);
+	Eigen::VectorXd lambda = XtX_es.eigenvalues();
+	for( auto& a : lambda ){
+		a = 1/std::sqrt(a);
+	}
+	X *= XtX_es.eigenvectors();
+	X *= lambda.asDiagonal();
+	return;
+}
+
 Eigen::MatrixXd resid_from_half_hat( const Eigen::MatrixXd& Y, const Eigen::MatrixXd& C ){
 	Eigen::MatrixXd CtY = C.transpose() * Y;
 	return (Y - C * CtY).eval();
+}
+
+void make_resid_from_half_hat( Eigen::MatrixXd& Y, const Eigen::MatrixXd& C ){
+	Eigen::MatrixXd CtY = C.transpose() * Y;
+	Y.noalias() -= (C *CtY);
+	return;
 }
 
 Eigen::VectorXd resid_vec_from_half_hat( const Eigen::VectorXd& Y, const Eigen::MatrixXd& C ){

@@ -1,4 +1,20 @@
-#include "GQT.hpp"
+/*  YAX:
+
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+#include "Main.hpp"
 #include <string>
 
 // ------------------------------------
@@ -39,7 +55,7 @@ using mode_fun = std::function<int(const std::string &, std::vector<std::string>
 
 std::string help_string = 
 "\n" 
-"  GQT: Toolkit for xQTL analysis\n" 
+"  YAX: Toolkit for xQTL analysis\n" 
 "     (c) 2019-2020 Corbin Quick and Li Guan.\n" 
 "\n" 
 "  Usage and options:\n" 
@@ -188,8 +204,8 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
 
 	args::Group cis_args(p, "Output options");
-		args::Flag make_long(cis_args, "", "Write cis-eQTL results in long table format.", {'l', "long"});
-		args::Flag just_long(cis_args, "", "Only write long-table cis-eQTL results.", {'L', "just-long"});
+		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
+		args::Flag just_long(cis_args, "", "Only write long-table cis-QTL results.", {'L', "just-long"});
 	
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -201,7 +217,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
-		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for eQTL analysis.", {'b', "bed", "expression"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
 		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
 		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
@@ -221,7 +237,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::Flag low_mem(opt_args, "", "Lower memory usage.", {"low-mem"});
 		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset to specified genomic region.", {'r', "region"});
-		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-eQTL or gene-based analysis.", {'w', "window"});
+		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
 		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::ValueFlag<double> pval_arg(opt_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
@@ -521,7 +537,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	if( grm_path == "" ){
 		if( n_ePCs > 0 ){
-			std::cerr << "Estimating " << n_ePCs << " latent confounders.\n";
+			std::cerr << "Using " << n_ePCs << " latent factors.\n";
 			std::cerr << "Reading full trait matrix to construct ePCs...\n";
 			bed_data r_data;
 			r_data.readBedHeader(e_path.c_str());
@@ -543,17 +559,17 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 			
 			std::cerr << "Processed expression for " << r_data.data_matrix.cols() << " genes across " << r_data.data_matrix.rows() << " samples.\n";
 			
-			run_cis_eQTL_analysis_eLMM(n_ePCs, sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long, r_data.data_matrix);
+			run_cis_QTL_analysis_eFE(n_ePCs, sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long, r_data.data_matrix);
 		}else{
 			std::cerr << "Using OLS (no latent confounders).\n";
-			run_cis_eQTL_analysis(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+			run_cis_QTL_analysis(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long);
 		}
 	}else{
 		if( n_ePCs > 0 ){
 			std::cerr << "Error: GRM cannot currently be included with random ePCs.\n";
 			return 1;
 		}else{
-			run_cis_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+			run_cis_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, bm, rknorm_y, rknorm_r, true, make_long, just_long);
 		}
 	}
 	
@@ -589,7 +605,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
-		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for eQTL analysis.", {'b', "bed", "expression"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
 		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
 		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
@@ -612,7 +628,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::Flag write_anchors(opt_args, "", "Save var interpolation points.", {"write-var"});
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
 		args::ValueFlag<std::string> bed_region_arg(opt_args, "", "Subset bed to specified genomic region.", {"bed-region"});
-		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-eQTL or gene-based analysis.", {'w', "window"});
+		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
 		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		args::ValueFlag<int> blocks_arg(opt_args, "100", "Number of variants per trans-xQTL block.", {"block-size"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
@@ -897,13 +913,13 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	
 	if( grm_path == "" ){
-		run_trans_eQTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, cis_path, bed_region);
+		run_trans_QTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, cis_path, bed_region);
 	}else{
 		if( cis_path != "" ){
 			std::cerr << "Error: Options --grm {grm} and --cis-file {file} and currently incompatible.\n";
 			return 1;
 		}
-		run_trans_eQTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
+		run_trans_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
 	}
 	
     return 0;
@@ -948,7 +964,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	args::Group opt_args(p, "General options");
 		args::ValueFlag<int> threads_arg(opt_args, "", "No. threads (not to exceed no. available cores).", {"threads"});
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset to specified genomic region.", {'r', "region"});
-		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-eQTL or gene-based analysis.", {'w', "window"});
+		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
 		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
@@ -1126,7 +1142,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
-		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for eQTL analysis.", {'b', "bed", "expression"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
 		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
 		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
@@ -1258,10 +1274,10 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	
 	std::vector<std::string> bed_chroms;
 	
-	//if( e_path != "" ){
+	if( e_path != "" ){
 		bed_chroms = get_chroms(e_path);
 		keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
-	// }
+	}
 	
 	for(int i = 0; i < bcf_chroms.size(); i++ ){
 		if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){
@@ -1330,6 +1346,9 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	// order of intersected samples should match genotype file
 	
 	std::vector<std::string> intersected_samples_gto = g_data.ids.file;
+	
+	std::unordered_set<std::string> iid_set(intersected_samples.begin(), intersected_samples.end());
+	
 	for(int i = 0; i < intersected_samples_gto.size(); ){
 		if( has_element(intersected_samples, intersected_samples_gto[i]) ){
 			i++;
@@ -1410,7 +1429,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	
 	std::cerr << "Making variance-covariance (vcov) files ...\n";
-	write_vcov_files(g_data, c_data);
+	write_vcov_files(sr, hdr, g_data, c_data);
 	std::cerr << "\nDone!\n";
 	
     return 0;

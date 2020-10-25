@@ -1,4 +1,20 @@
-#include "GQT.hpp"
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
+#include "Main.hpp"
 
 
 void parse_cis_signal_data(const std::string& fn, const std::string& region, Eigen::MatrixXd& X, std::vector<std::string>& samples, std::vector<std::string>& genes){
@@ -38,7 +54,7 @@ double usq_stat_pval(const double& usq_stat, const double& m, const double& n){
 	return pf(f_stat, 1, n - m - 1, true);
 }
 
-void run_trans_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& cis_fp, const std::string& cis_fp_region)
+void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& cis_fp, const std::string& cis_fp_region)
 {
 
 	struct Zsn {int s; int n; };
@@ -86,7 +102,7 @@ void run_trans_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_d
 	Eigen::MatrixXd &Y = e_data.data_matrix;
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
-	std::cerr << "Started trans-eQTL analysis ...\n";
+	std::cerr << "Started trans-QTL analysis ...\n";
 	
 	if( rknorm_y ){
 		std::cerr << "Rank-normalizing expression traits ... \n";
@@ -471,7 +487,7 @@ void run_trans_eQTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_d
 }
 
 
-void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& theta_path)
+void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& theta_path)
 {
 	
 	Eigen::SparseMatrix<double> Q;
@@ -499,7 +515,7 @@ void run_trans_eQTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data&
 	double n_snps = g_data.n_variants;
 	double n_covar = C.cols();
 
-	// std::cerr << "Started cis-eQTL analysis ...\n";
+	// std::cerr << "Started cis-QTL analysis ...\n";
 	
 	if( rknorm_y ){
 		std::cerr << "Rank-normalizing expression traits ... \n";
@@ -914,7 +930,7 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 	double n_samples = Y.rows();
 	double n_covar = C.cols();
 
-	// std::cerr << "Started cis-eQTL analysis ...\n";
+	// std::cerr << "Started cis-QTL analysis ...\n";
 	
 	if( rknorm_y ){
 		std::cerr << "Rank-normalizing expression traits ... \n";

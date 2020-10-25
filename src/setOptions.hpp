@@ -1,10 +1,22 @@
+/*  
+    Copyright (C) 2020 
+    Author: Corbin Quick <qcorbin@hsph.harvard.edu>
+
+    This file is part of YAX.
+
+    YAX is distributed "AS IS" in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied 
+    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    FOR A PARTICULAR PURPOSE.
+
+    The above copyright notice and this permission notice shall 
+    be included in all copies or substantial portions of YAX.
+*/
+
+
 /*
-	Corbin's notes on setOptions :
-	
-	GLOBAL OPTIONS
-	
-	setOptions is for setting global options, which are set at 
-	runtime and used throughout multiple source files
+setOptions is for setting global options, which are set at 
+runtime and used throughout multiple source files
 */
 
 #ifndef SETOPTIONS_HPP
@@ -70,7 +82,7 @@ namespace global_opts
 		extern bool trans_eqtl_mode;
 		extern bool backward_step;
 		
-		// CIS-eQTL OPTIONS
+		// CIS-QTL OPTIONS
 		extern double LM_ALPHA;
 		extern int cis_window_bp;
 		extern bool cis_window_gene_body;

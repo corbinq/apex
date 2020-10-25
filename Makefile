@@ -12,7 +12,7 @@ objs = $(cppsrc:.cpp=.o) $(csrc:.c=.o)
 
 cdir = ${CURDIR}
 
-bin/gqt: $(objs)
+bin/yax: $(objs)
 	@mkdir -p $(@D)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
