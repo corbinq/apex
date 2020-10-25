@@ -1,5 +1,5 @@
 
-# <img src="/doc/logo.svg" width="400" height="200"/>
+# <img src="/doc/logo.svg" width="240" height="108"/>
 
 YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs) including eQTLs (mRNA expression) and  mQTL (methylation). To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation). 
 
