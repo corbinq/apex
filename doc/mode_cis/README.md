@@ -4,7 +4,7 @@
 This page describes cis-xQTL analysis using YAX. Once installed, you can quickly get started by running  ` ./yax cis --help`. <br />
 
 ## Overview
-cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML).  For OLS, YAX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, YAX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](https://github.com/corbinq/yax/blob/master/doc/input_files.md). <br />
+cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML).  For OLS, YAX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, YAX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](/doc/input_files.md). <br />
 
 ##### Table of Contents  
 
@@ -46,7 +46,7 @@ cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelat
 **Example command:** <br />
  `./yax cis --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --prefix {out-name}` <br />
 <br />
-YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in cis-eQTL analysis of the form <img src="https://render.githubusercontent.com/render/math?math=y = X\beta %2B g %2B \varepsilon "> where <img src="https://render.githubusercontent.com/render/math?math=g\sim\mathcal{N}(0,\tau^{2}\GRM)"> and <img src="https://render.githubusercontent.com/render/math?math=\varepsilon\sim\mathcal{N}(0,\sigma^{2}I)">. To use this feature, specify a genetic relatedness matrix (GRM) file to YAX using  `--grm {grm-file}`.  Output files and options are otherwise similar to those from OLS cis-xQTL analysis (when `--grm` is not specified). [See here](https://github.com/corbinq/yax/blob/master/doc/input_files.md) for accepted input file formats. <br />
+YAX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in cis-eQTL analysis of the form <img src="https://render.githubusercontent.com/render/math?math=y = X\beta %2B g %2B \varepsilon "> where <img src="https://render.githubusercontent.com/render/math?math=g\sim\mathcal{N}(0,\tau^{2}\GRM)"> and <img src="https://render.githubusercontent.com/render/math?math=\varepsilon\sim\mathcal{N}(0,\sigma^{2}I)">. To use this feature, specify a genetic relatedness matrix (GRM) file to YAX using  `--grm {grm-file}`.  Output files and options are otherwise similar to those from OLS cis-xQTL analysis (when `--grm` is not specified). [See here](/doc/input_files.md) for accepted input file formats. <br />
  
 **Example command:** <br />
  `./yax cis --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name} --long` <br />
