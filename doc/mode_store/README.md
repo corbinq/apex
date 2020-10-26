@@ -15,7 +15,7 @@ Note that YAX vcov files capture covariated-adjusted LD (the covariance of genot
  1. [Running YAX Store](#running-yax-store)
  2. [Command line arguments](#command-line-arguments)
 
- [*Return to YAX main page.*](/../../)
+ [*Return to YAX main page.*](/yax/)
 
 ## Running YAX Store
 **Example command:** <br />
