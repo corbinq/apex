@@ -74,7 +74,7 @@ GMMAT::glmm.score(obj = null_fit, infile = gds_file, outfile = trait_out_file, v
 
 ![lmm concordance](lmm_conc.png)
 
-LMM association tests from YAX and GMMAT are nearly numerically equivalent, as expected.  BOLT-LMM uses the pre-conditioned conjugate gradient method to avoid storing an explicit GRM, and a retrospective quasi-likelihood score test; these differences may explain differences with YAX and GMMAT.  FastGWA uses the GRAMMAR-Gamma approximation to calculate association tests, which may  explain  differences with YAX and GMMAT.  Results are shown for 1 gene on chromosome 1, and are reflective of overall trends. 
+LMM association tests from YAX and GMMAT are nearly numerically equivalent, as expected.  BOLT-LMM uses the conjugate gradient method to avoid storing an explicit GRM, and a retrospective quasi-likelihood score test; these differences may explain differences with YAX and GMMAT.  FastGWA uses the GRAMMAR-Gamma approximation to calculate association tests, which may  explain  differences with YAX and GMMAT.  Results are shown for 1 gene on chromosome 1, and are reflective of overall trends. 
 
 ## cis-eQTL Benchmarking
 
