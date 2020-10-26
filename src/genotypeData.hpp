@@ -172,7 +172,7 @@ class sparse_ds
 class genotype_data
 {
 	public:
-		genotype_data(): chunk_size(50000), nz_frac(0.1), n_variants(0), n_samples(0) {};
+		genotype_data(): chunk_size(1000), nz_frac(0.1), n_variants(0), n_samples(0) {};
 	
 		int chunk_size;
 		double nz_frac;

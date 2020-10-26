@@ -55,6 +55,8 @@ namespace global_opts
 		
 	// ANALYSIS OPTIONS 
 
+		extern double exp_weight_val;
+		
 		// "Sloppy" covariate adjustment
 		extern bool sloppy_covar;
 
@@ -111,6 +113,8 @@ namespace global_opts
 		bool set_lmm_options(const bool& wap);
 		
 		void use_sloppy_covar();
+		
+		void set_exp_weight(const double&);
 
 }
 

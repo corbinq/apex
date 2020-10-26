@@ -135,30 +135,62 @@ std::vector<double> filter_lt( const std::vector<double>& p, double thresh){
 	return out;
 }
 
-double ACAT_non_missing( const std::vector<double>& pvals){
-	long double sum_c = 0.0;
-	double n = 0;
-	double n_p1 = 0;
-	for( const double& p: pvals ){
-		if( !std::isnan(p) ){
-			if( p >= 1 ){
-				n_p1 += 1;
-				n += 1;
-			}else if( p > 0 ){
-				sum_c += qcauchy(p, true);
-				n += 1;
+double ACAT_non_missing( const std::vector<double>& pvals, const std::vector<double>& dist){
+	if( dist.size() == 0 || global_opts::exp_weight_val <= 0 ){
+		long double sum_c = 0.0;
+		double n = 0;
+		double n_p1 = 0;
+		double max_p = 0;
+		for( const double& p: pvals ){
+			if( !std::isnan(p) ){
+				if( p >= 1 ){
+					n_p1 += 1;
+					n += 1;
+				}else if( p > 0 ){
+					sum_c += qcauchy(p, true);
+					n += 1;
+					if( p > max_p ){
+						max_p = p;
+					}
+				}
 			}
 		}
-	}
-	if( n_p1 > 0 ){
-		if( n < 4 ){
-			n = 4;
+		if( n_p1 > 0 ){
+			max_p = 0.5 + 0.5 * max_p;
+			sum_c += n_p1 * qcauchy(max_p, true);
+		}else if(n < 1){
+			n = 1;
 		}
-		sum_c += n_p1 * qcauchy(1 - 1/n, true);
-	}else if(n < 1){
-		n = 1;
+		return pcauchy(sum_c/n, true);
+	}else{
+		long double sum_c = 0.0;
+		double denom = 0;
+		double n_p1 = 0;
+		double w_p1 = 0;
+		double max_p = 0;
+		for( int i = 0; i < pvals.size(); i++ ){
+			const double& p = pvals[i];
+			double ww = std::exp(-std::abs(global_opts::exp_weight_val*dist[i]));
+			if( !std::isnan(p) ){
+				if( p >= 1 ){
+					denom += ww;
+				}else if( p > 0 ){
+					sum_c += ww*qcauchy(p, true);
+					denom += ww;
+					if( max_p < p ){
+						max_p = p;
+					}
+				}
+			}
+		}
+		if( w_p1 > 0 ){
+			max_p = 0.5 + 0.5 * max_p;
+			sum_c += w_p1 * qcauchy(max_p, true);
+		}else if( denom <= 0 ){
+			denom = 1;
+		}
+		return pcauchy(sum_c/denom, true);
 	}
-	return pcauchy(sum_c/n, true);
 }
 
 

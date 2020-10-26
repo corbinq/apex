@@ -50,6 +50,8 @@ namespace global_opts
 		bool trim_gene_ids = false;
 		
 	// ANALYSIS OPTIONS 
+		
+		double exp_weight_val = 5e-6;
 
 		// "Sloppy" covariate adjustment
 		bool sloppy_covar = false;
@@ -143,6 +145,10 @@ bool global_opts::set_lmm_options(const bool& wap){
 	return true;
 }
 
+void global_opts::set_exp_weight(const double& w){
+	exp_weight_val = w;
+	return;
+}
 
 void global_opts::use_sloppy_covar(){
 	sloppy_covar = true;

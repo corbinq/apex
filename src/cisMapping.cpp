@@ -148,13 +148,15 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 				std::stringstream block_line;
 				
 				std::vector<double> pvals;
+				std::vector<double> dist;
+				double gene_tss = 0.5*(e_data.start[jj] + e_data.end[jj]);
 		
 				int pos_s = -1;
 				int pos_e = -1;
 		
 				int v_s = -1;
 				int v_e = -1;
-		
+				
 				for( int ii = bm.bcf_s[i], im = 0; ii < bm.bcf_s[i] + n_g; ++ii, ++im){
 				
 					std::stringstream long_line;
@@ -186,6 +188,7 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 							pval_esnp = -1;
 						}
 
+						dist.push_back( std::abs(g_data.pos[ii] - gene_tss) );
 						pvals.push_back(pval_esnp);
 
 						if( write_long ){
@@ -230,7 +233,7 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 							e_data.start[jj] << "\t" << 
 							e_data.end[jj] << "\t" << 
 							e_data.gene_id[jj] << "\t" << 
-							ACAT_non_missing(pvals) << "\t" << 
+							ACAT_non_missing(pvals, dist) << "\t" << 
 							X.rows() << "\t" << 
 							X.cols() << "\t" << 
 							e_data.stdev[jj] << "\t" <<
@@ -502,6 +505,8 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 				std::stringstream block_line;
 				
 				std::vector<double> pvals;
+				std::vector<double> dist;
+				double gene_tss = 0.5*(e_data.start[jj] + e_data.end[jj]);
 				
 				int idx_s = -1;
 				int idx_n = 0;
@@ -694,6 +699,8 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 						pval_esnp = -1;
 					}
 
+
+					dist.push_back( std::abs(g_data.pos[ii] - gene_tss) );
 					pvals.push_back(pval_esnp);
 
 					if( write_long ){
@@ -738,7 +745,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 							e_data.start[jj] << "\t" << 
 							e_data.end[jj] << "\t" << 
 							e_data.gene_id[jj] << "\t" << 
-							ACAT_non_missing(pvals) << "\t" << 
+							ACAT_non_missing(pvals, dist) << "\t" << 
 							X.rows() << "\t" << 
 							X.cols() << "\t" << 
 							e_data.stdev[jj] << "\t" <<
@@ -1033,6 +1040,8 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 				std::stringstream block_line;
 				
 				std::vector<double> pvals;
+				std::vector<double> dist;
+				double gene_tss = 0.5*(e_data.start[jj] + e_data.end[jj]);
 				
 				int idx_s = -1;
 				int idx_n = 0;
@@ -1225,6 +1234,7 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 						pval_esnp = -1;
 					}
 
+					dist.push_back( std::abs(g_data.pos[ii] - gene_tss) );
 					pvals.push_back(pval_esnp);
 
 					if( write_long ){
@@ -1269,7 +1279,7 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 							e_data.start[jj] << "\t" << 
 							e_data.end[jj] << "\t" << 
 							e_data.gene_id[jj] << "\t" << 
-							ACAT_non_missing(pvals) << "\t" << 
+							ACAT_non_missing(pvals, dist) << "\t" << 
 							C.rows() << "\t" << 
 							C.cols() << "\t" << 
 							e_data.stdev[jj] << "\t" <<
@@ -1483,6 +1493,8 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 				std::stringstream block_line;
 				
 				std::vector<double> pvals;
+				std::vector<double> dist;
+				double gene_tss = 0.5*(e_data.start[jj] + e_data.end[jj]);
 		
 				int pos_s = -1;
 				int pos_e = -1;
@@ -1521,6 +1533,7 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 							pval_esnp = -1;
 						}
 
+						dist.push_back( std::abs(g_data.pos[ii] - gene_tss) );
 						pvals.push_back(pval_esnp);
 
 						if( write_long ){
@@ -1565,7 +1578,7 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 							e_data.start[jj] << "\t" << 
 							e_data.end[jj] << "\t" << 
 							e_data.gene_id[jj] << "\t" << 
-							ACAT_non_missing(pvals) << "\t" << 
+							ACAT_non_missing(pvals, dist) << "\t" << 
 							X.rows() << "\t" << 
 							X.cols() << "\t" << 
 							e_data.stdev[jj] << "\t" <<

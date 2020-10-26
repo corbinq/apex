@@ -202,6 +202,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
 		args::Flag stepwise(analysis_args, "", "Estimate and store conditionally independent cis signal genotypes.", {"stepwise"});
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
+		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
 
 	args::Group cis_args(p, "Output options");
 		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
@@ -284,6 +285,10 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	// ----------------------------------
 	// Input subsetting: Regions, genotype fields, target genes
 	// ----------------------------------
+	
+	double dtss_w = args::get(dtss_arg);
+	
+	global_opts::set_exp_weight(dtss_w);
 	
 	std::string loco = args::get(loco_arg);
 	n_ePCs = args::get(epc_arg);
