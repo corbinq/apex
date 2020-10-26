@@ -8,7 +8,7 @@ We recommend running `yax store` separately on each chromosome, which can be acc
 
 `yax store` should be run with the same set of input files, output prefix, and other options used to store association summary statistics with `yax cis`.  This ensures that both vcov and sumstat files include the same set of individuals, and the same set of covariates, and that `yax meta` and `yaxR` are able to easily link sumstat and vcov files.  <br />
 
-Note that YAX vcov files capture covariated-adjusted LD (the covariance of genotype residuals), which can differ substantially from unadjusted LD in structured samples.  Results from `yax meta` and the `yaxR` R package are designed to be (nearly) numerically equivalent to results from individual-level data -- this requires covariate-adjusted (rather than raw) LD.  For detailed descriptions of input file formats, please see the [input file documentation page](/doc/input_files/). <br />
+Note that YAX vcov files capture covariated-adjusted LD (the covariance of genotype residuals), which can differ substantially from unadjusted LD in structured samples.  Results from `yax meta` and the `yaxR` R package are designed to be (nearly) numerically equivalent to results from individual-level data -- this requires covariate-adjusted (rather than raw) LD.  For detailed descriptions of input file formats, please see the [input file documentation page](/yax/doc/input_files/). <br />
 
 ##### Table of Contents  
 
