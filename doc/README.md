@@ -72,6 +72,7 @@ If you use YAX, please cite `Quick, C; Guan, L; Lin, X (2020). URL: https://gith
 YAX is developed and maintained by Corbin Quick. Special thanks to 
 
  - Li Guan
+ - Yaowu Liu
  - Xihao Li
  - Zilin Li
  - Rounak Dey
