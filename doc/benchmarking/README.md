@@ -32,6 +32,9 @@ We used empirical genotype data for 10,000 samples and simulated molecular pheno
 
 
 ### Software commands
+
+Commands used in LMM benchmarking analysis are given below:
+
 **YAX command:**
  - parallel over chromosomes, all traits at once
  - sparse GRM 
