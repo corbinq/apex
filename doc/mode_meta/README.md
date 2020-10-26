@@ -18,11 +18,11 @@ The command `yax meta` can be used for xQTL meta-analysis, including single-vari
 **Example command:** <br />
  ```
  # Generate sumstats
- ./yax cis --region chr1 --bed {study1_bed} --cov {study1_cov} --vcf {study1_bcf} --out {study1_chr1}
+ ./yax cis --region chr1 --bed {study1_bed} --cov {study1_cov} --vcf {study1_bcf} --out {study1_chr1} --window 1000000
  # Generate vcov (covariate-adjusted LD)
- ./yax store --region chr1 --bed {study1_bed} --cov {study1_cov} --vcf {study1_bcf} --out {study1_chr1}
+ ./yax store --region chr1 --bed {study1_bed} --cov {study1_cov} --vcf {study1_bcf} --out {study1_chr1} --window 1000000
  ```
-<br />
+The above commands generate cis-QTL summary statistics and vcov (covariate-adjusted LD) files for downstream analysis from summary statistics.  Here, we specify a 1 Mbp window around each gene, and therefore LD will be calculated in a 2-Mbp sliding window.  Note: generating LD files can be time-consuming due to compression, and may take several hours.  We recommend running the commands one chromosome at a time.  [See here](/yax/doc/benchmarking/#meta-analysis) for information on expected output file sizes.  
  
 ## Single-variant xQTL meta-analysis
 **Example command:** <br />
