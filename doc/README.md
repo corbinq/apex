@@ -66,14 +66,15 @@ If you use YAX, please cite `Quick, C; Guan, L; Lin, X (2020). URL: https://gith
 
 ## Acknowledgements
 
-YAX is developed and maintained by Corbin Quick. Special thanks to 
+YAX is developed by Corbin Quick and Li Guan. Special thanks to 
 
- - Li Guan
+ - Yaowu Liu
  - Xihao Li
  - Zilin Li
  - Rounak Dey
  - Laura Scott
  - Hyun Min Kang 
  - Xihong Lin 
+
 
 
