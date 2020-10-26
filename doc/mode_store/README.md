@@ -4,7 +4,7 @@
 This page describes how to store variance-covariance matrices, which capture covariate-adjusted linkage disequilibrium (LD), in YAX. These files are required for multiple-variant analysis from summary statistics (without individual-level data), including meta-analysis.  Once installed, you can quickly get started by running ` ./yax store --help`. <br />
 
 ## Overview
-We recommend running `yax store` separately on each chromosome, which can be accomplished by specifying `--region chr1`.  Each chromosomal vcov file is indexed by chromosomal position and byte offset, allowing fast access to variance-covariance data within a specific region or a specific variant.<br />
+We recommend running `yax store` separately on each chromosome, which can be accomplished by specifying `--region chr1`.  Each chromosomal vcov file is indexed by chromosomal position and byte offset, allowing fast access to variance-covariance data within a specific region or a specific variant.  [See here](/yax/doc/benchmarking/#meta-analysis) for information on expected vcov file sizes. <br />
 
 `yax store` should be run with the same set of input files, output prefix, and other options used to store association summary statistics with `yax cis`.  This ensures that both vcov and sumstat files include the same set of individuals, and the same set of covariates, and that `yax meta` and `yaxR` are able to easily link sumstat and vcov files.  <br />
 
