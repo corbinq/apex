@@ -4,7 +4,7 @@
 This page describes cis-xQTL analysis using YAX. Once installed, you can quickly get started by running  ` ./yax cis --help`. <br />
 
 ## Overview
-cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML).  For OLS, YAX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, YAX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](/doc/input_files/). <br />
+cis-xQTL analysis in YAX uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML).  For OLS, YAX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, YAX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](/yax/doc/input_files/). <br />
 
 ##### Table of Contents  
 
