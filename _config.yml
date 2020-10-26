@@ -12,3 +12,5 @@ include:
   - doc/mode_cis/README.md
   - doc/mode_trans/README.md
   - doc/mode_meta/README.md
+
+theme: jekyll-theme-slate
