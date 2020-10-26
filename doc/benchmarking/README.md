@@ -86,7 +86,8 @@ YAX calculates gene-level cis-eQTL p-values accounting for LD using ACAT<sup>11<
 
 ![cis benchmark](benchmark_cis.png)
 
-A: Gene-level cis-eQTL p-values in the Geuvadis LCL dataset. FastQTL and YAX calculate single-variant p-values using the standard multiple linear regression t-test to adjust for technical covariates, while QTLtools calculates p-values between trait residuals and unadjusted genotypes (Methods).  Associations detected only by ACAT are marked in green in each column; associations detected only by FastQTL, QTLtools, or Bonferroni (but not ACAT) are marked in magenta. 
+A: Gene-level cis-eQTL p-values in the Geuvadis LCL dataset. Associations detected only by ACAT are marked in green in each column; associations detected only by FastQTL, QTLtools, or Bonferroni (but not ACAT) are marked in magenta.  
+ 
 B: Comparison of time and memory usage for FastQTL and QTLtools. FastQTL was run using the adaptive p-value setting with 100 to 1000 permutations; QTLtools was run using 1000 permutations; YAX uses ACAT to account for LD rather than permutations. For each software, autosomal cis-eQTL analysis was run in parallel with 1 CPU per chromosome.
 
 ## Meta-analysis
