@@ -16,15 +16,14 @@ The command `yax meta` can be used for xQTL meta-analysis, including single-vari
 
 ## Generating QTL summary statistics
 **Example command:** <br />
- ``
+ ```
  # Generate sumstats
  ./yax cis --region chr1 --bed {study1_bed} --cov {study1_cov} --vcf {study1_bcf} --out {study1_chr1}
  # Generate vcov (covariate-adjusted LD)
  ./yax store --region chr1 --bed {study1_bed} --cov {study1_cov} --vcf {study1_bcf} --out {study1_chr1}
- `` <br />
- <br />
+ ```
+<br />
  
-
 ## Single-variant xQTL meta-analysis
 **Example command:** <br />
  `./yax meta --meta --ivw1 --sumstats {study1_chr1,study2_chr1,...} --out {output-prefix}` <br />
