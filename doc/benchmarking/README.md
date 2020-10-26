@@ -9,7 +9,7 @@ This page describes benchmarking experiments with YAX for various QTL analysis t
  3. [Meta-analysis](#meta-analysis) 
  4. [References](#references) <br />
 
- [*Return to YAX main page.*](/../../)
+ [*Return to YAX main page.*](/yax/)
 
 
 ## LMM Benchmarking
