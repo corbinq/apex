@@ -8,7 +8,7 @@ We have conducted extensive benchmarking and simulation experiments to ensure th
 To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation).  Notable features include
 
 **Fast, scalable linear mixed model for xQTL mapping**
- - Highly optimized linear mixed model (LMM) framework to account for cryptic or familial relatedness in cis and trans xQTL analysis. 
+ - Highly optimized linear mixed model (LMM) framework for tens of thousands of traits. This can be used to account for cryptic or known familial relatedness in cis and trans xQTL analysis. 
  - Optimized ordinary least squares (OLS) framework for cis and trans xQTL analysis with no related individuals.
 
 **Multiple-variant and omnibus xQTL analysis**
