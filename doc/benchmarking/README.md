@@ -14,7 +14,7 @@ This page describes benchmarking experiments with YAX for various QTL analysis t
 
 ## LMM Benchmarking
 
-We used empirical genotype data for 10,000 samples and simulated molecular phenotype data to benchmark time and memory for trans-xQTL analysis using a linear mixed model (LMM) using YAX LMM, FastGWA<sup>1</sup>, BOLT-LMM<sup>2</sup>, and GMMAT<sup>3-4</sup>. 
+We used empirical genotype data for 10,000 samples and simulated molecular phenotype data to benchmark time and memory for trans-xQTL analysis using a linear mixed model (LMM) using YAX LMM, FastGWA<sup> [1]</sup>, BOLT-LMM<sup> [2]</sup>, and GMMAT<sup> [3-4]</sup>. 
 
 ### Input data
 
@@ -85,9 +85,9 @@ LMM association tests from YAX and GMMAT are nearly numerically equivalent, as e
 
 ## cis-eQTL Benchmarking
 
-We compared cis-eQTL analysis using YAX, FastQTL<sup>5</sup>, and QTLtools<sup>6</sup> in the Geuvadis LCL eQTL data set<sup>7-8</sup> (454 samples, 17815 genes, and 70 covariates including PEER factors<sup>12</sup>). Single-variant association slopes and p-values are equivalent between FastQTL and YAX (not shown). QTLtools fits simple linear regressions between trait residuals and genotypes (`lm(y_resid ~ geno)`) rather than using multiple regression t-tests (`lm(y ~ geno + covariates)`), and therefore its p-values are slightly conservative.  
+We compared cis-eQTL analysis using YAX, FastQTL<sup> [5]</sup>, and QTLtools<sup> [6]</sup> in the Geuvadis LCL eQTL data set<sup> [7-8]</sup> (454 samples, 17815 genes, and 70 covariates including PEER factors<sup> [12]</sup>). Single-variant association slopes and p-values are equivalent between FastQTL and YAX (not shown). QTLtools fits simple linear regressions between trait residuals and genotypes (`lm(y_resid ~ geno)`) rather than using multiple regression t-tests (`lm(y ~ geno + covariates)`), and therefore its p-values are slightly conservative.  
  
-YAX calculates gene-level cis-eQTL p-values accounting for LD using ACAT<sup>11</sup>, which aggregates all single-variant p-values across the cis region. FastQTL and QTLtools calculate gene-level cis-eQTL p-values accounting for LD by modeling the null distribution of the minimum single-variant p-value as a beta density, with beta parameters estimated by permutation.  In the examples below, results using the two methods are highly similar, but ACAT is ~30x faster. In simulation studies, both type I error rates from both methods (ACAT and permutation-based beta approximation) are well-calibrated. 
+YAX calculates gene-level cis-eQTL p-values accounting for LD using ACAT<sup> [11]</sup>, which aggregates all single-variant p-values across the cis region. FastQTL and QTLtools calculate gene-level cis-eQTL p-values accounting for LD by modeling the null distribution of the minimum single-variant p-value as a beta density, with beta parameters estimated by permutation.  In the examples below, results using the two methods are highly similar, but ACAT is ~30x faster. In simulation studies, both type I error rates from both methods (ACAT and permutation-based beta approximation) are well-calibrated. 
 
 ### Results
 
@@ -106,7 +106,7 @@ We compared sumstat and vcov file storage sizes across 3 QTL studies:
 ### Data sets
 
 
-|                     |     GTEx LCLs<sup>9</sup>    |      Geuvadis<sup>7-8</sup>      |       HapMap<sup>10</sup>      |
+|                     |     GTEx LCLs<sup> [9]</sup>    |      Geuvadis<sup> [7-8]</sup>      |       HapMap<sup> [10]</sup>      |
 |---------------------|:-------------------:|:-----------------:|:-----------------:|
 |     Variants        |      10,932,660     |     10,945,700    |     10,943,352    |
 |     Sample size     |          147        |         454       |         518       |
