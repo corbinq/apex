@@ -1,6 +1,6 @@
-YAX is a comprehensive software toolkit for analysis of molecular quantitative trait loci (xQTLs), such as mRNA expression or methylation levels. It performs cis and trans analysis, single- and multiple-variant analysis, and single-study and meta-analysis. 
+YAX is a toolkit for analysis of molecular quantitative trait loci (xQTLs), such as mRNA expression or methylation levels. It performs cis and trans analysis, single- or multiple-variant analysis, and single-study or meta-analysis. 
 
-We have conducted extensive benchmarking and simulation experiments to ensure that YAX is accurate, efficient, and scalable for small and large sample sizes; [**see benchmarking**](/yax/doc/benchmarking/) for further details. 
+We have conducted benchmarking and simulation experiments to ensure that YAX is accurate, efficient, and scalable for small and large sample sizes; [**see benchmarking**](/yax/doc/benchmarking/) for further details. 
 
 To install YAX from source or download precompiled binaries, [**see installation guide below**](#installation).  Notable features include
 
