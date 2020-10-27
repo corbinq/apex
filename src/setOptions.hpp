@@ -55,6 +55,8 @@ namespace global_opts
 		
 	// ANALYSIS OPTIONS 
 
+		extern int max_signals;
+
 		extern double exp_weight_val;
 		
 		// "Sloppy" covariate adjustment
@@ -111,6 +113,8 @@ namespace global_opts
 		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
 		
 		bool set_lmm_options(const bool& wap);
+		
+		void set_max_signals(const int& ms);
 		
 		void use_sloppy_covar();
 		

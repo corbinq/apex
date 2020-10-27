@@ -1293,7 +1293,11 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 			}
 		}
 		
-		if( n_steps == 0 ) break;
+		if( n_steps == 0 ){
+			break;
+		}else if( top_snps.size() >= global_opts::max_signals ){
+			break;
+		}
 	}
 	
 	

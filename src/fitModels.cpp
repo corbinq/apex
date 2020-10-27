@@ -854,6 +854,8 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		
 		if( steps_taken == 0 ){
 			break;
+		}else if( keep.size() >= global_opts::max_signals ){
+			break;
 		}
 	}
 
@@ -1084,6 +1086,8 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		// std::cout << steps_taken << "\n";
 		
 		if( steps_taken == 0 ){
+			break;
+		}else if( keep.size() >= global_opts::max_signals ){
 			break;
 		}
 	}

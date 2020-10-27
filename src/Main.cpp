@@ -31,6 +31,7 @@ double rsq_buddy = 2.0;
 double rsq_prune = 0.80;
 double pval_thresh = 5e-5;
 int n_ePCs = 0;
+int max_signals = 10;
 int window_size = 1000000;
 std::vector<std::string> target_genes;
 bool use_ivw_1 = false;
@@ -197,13 +198,14 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	p.Prog(progname);
 
 	args::Group analysis_args(p, "Analysis options");
-		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of latent confounders in ePC LMM.", {"epcs"});
-		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) for ePC LMM.", {"loco"});
 		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
 		args::Flag stepwise(analysis_args, "", "Estimate and store conditionally independent cis signal genotypes.", {"stepwise"});
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
+		args::ValueFlag<int> max_mod_arg(analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
 		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
-
+		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of latent confounders in ePC LMM.", {"epcs"});
+		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) for ePC LMM.", {"loco"});
+		
 	args::Group cis_args(p, "Output options");
 		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
 		args::Flag just_long(cis_args, "", "Only write long-table cis-QTL results.", {'L', "just-long"});
@@ -325,6 +327,12 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	// ----------------------------------
 	// Set global options
 	// ----------------------------------
+	
+	int max_signals_new = args::get(max_mod_arg);
+	if( max_signals_new > 0 ){
+		max_signals = max_signals_new;
+	}
+	global_opts::set_max_signals(max_signals);
 	
 	double pval_thresh_new = args::get(pval_arg);
 	
@@ -955,6 +963,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		args::ValueFlag<std::string> test_arg(analysis_args, "het,alt", "Meta-analysis test forms (comma-separated combination of 'het,hom,alt').", {'t', "tests"});
 		args::Flag ivw_1(analysis_args, "", "Calculate IVW weights under the alternative hypothesis.", {"ivw1"});
 		args::Flag het_meta(analysis_args, "", "Allow heterogeneous genotype effects across studies in stepwise meta-analysis.", {"het"});
+		args::ValueFlag<int> max_mod_arg(analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
 		args::ValueFlag<double> rsq_arg(analysis_args, "", "Maximum rsq threshold.", {"rsq"});
 		args::ValueFlag<double> buddy_arg(analysis_args, "", "Print LD buddies (specify rsq threshold).", {"buddies"});
 		args::Flag use_marginal_pval(analysis_args, "", "Apply threshold to marginal rather than ACAT p-value in stepwise algorithm (no adjustment for no. variants).", {"marginal"});
@@ -1064,6 +1073,12 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// ----------------------------------
 	// Set global options
 	// ----------------------------------
+	
+	int max_signals_new = args::get(max_mod_arg);
+	if( max_signals_new > 0 ){
+		max_signals = max_signals_new;
+	}
+	global_opts::set_max_signals(max_signals);
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){

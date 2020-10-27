@@ -52,6 +52,7 @@ namespace global_opts
 	// ANALYSIS OPTIONS 
 		
 		double exp_weight_val = 5e-6;
+		int max_signals = 10;
 
 		// "Sloppy" covariate adjustment
 		bool sloppy_covar = false;
@@ -152,6 +153,11 @@ void global_opts::set_exp_weight(const double& w){
 
 void global_opts::use_sloppy_covar(){
 	sloppy_covar = true;
+	return;
+}
+
+void global_opts::set_max_signals(const int& ms){
+	max_signals = ms;
 	return;
 }
 
