@@ -53,6 +53,7 @@ namespace global_opts
 		
 		double exp_weight_val = 5e-6;
 		int max_signals = 10;
+		int max_steps = 100;
 
 		// "Sloppy" covariate adjustment
 		bool sloppy_covar = false;
@@ -79,7 +80,7 @@ namespace global_opts
 		bool IVW_H1_SIGMA = false;
 		bool conditional_analysis = false;
 		bool trans_eqtl_mode = false;
-		bool backward_step = false;
+		double backward_thresh = 1.00;
 		
 		// CIS-QTL OPTIONS
 		double LM_ALPHA = 0.05;
@@ -119,7 +120,7 @@ namespace global_opts
 		});
 }
 
-bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const bool& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
+bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
 	out_prefix = pfx;
 	low_mem = low_memory;
 	cis_window_bp = window;
@@ -132,7 +133,7 @@ bool global_opts::process_global_opts( const std::string& pfx, const bool& low_m
 	IVW_H1_SIGMA = ivw_mode;
 	use_dosages = use_ds;
 	trim_gene_ids = trim;
-	backward_step = backward;
+	backward_thresh = backward;
 	het_use_hom = h_hom;
 	het_use_het = h_het;
 	het_use_acat = h_acat;

@@ -607,6 +607,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				SCORE = U(i);
 				VARSC = V(i);
 			}
+			double VIF = calc_vif(V(i), VARSC);
 			if( (VARSC > 0 && (VARSC/V(i)) > 1 - global_opts::RSQ_PRUNE && V(i) > 0) || !check_filter ){
 				double beta = stdev * SCORE/VARSC;
 				
@@ -619,10 +620,13 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				if( SSE_i - PVAR > 0 && STAT > 0 && PVAR > 0 ){
 					pval = pf( STAT, 1.0, df, true );
 				}
-				out.push_back(beta, se, pval);
+				
+				
+				
+				out.push_back(beta, se, pval, VIF);
 			}else{
 				// std::cerr << "\nWARNING: RSQ_VIF = " << (VARSC/V(i)) << ", VARSC = "<< VARSC << "\n\n";
-				out.push_back(-99, -99, -99);
+				out.push_back(-99, -99, -99, VIF);
 			}
 		}
 	}
@@ -708,6 +712,8 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 	
 	double alpha_thresh = global_opts::LM_ALPHA;
 	
+	int total_steps = 0;
+	
 	while( 1 )
 	{
 		
@@ -811,7 +817,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		// -----------------------------------
 		// Backward step. 
 		// -----------------------------------
-		if( global_opts::backward_step && nk > 1 ){
+		if( global_opts::backward_thresh < 1.00 && nk > 1 ){
 
 			double max_joint_pvalue = 0; 
 			int k_rm = -1;
@@ -819,7 +825,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			check_joint_pvalues(k_rm, max_joint_pvalue, U, V, U_0, J_0, n, m);
 			//cout << max_joint_pvalue << "\n";
 			
-			if( (max_joint_pvalue > alpha_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
+			if( (max_joint_pvalue > global_opts::backward_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
 				
 				std::vector<int> kept_snps_not_k_rm = seq_int(nk);
 				kept_snps_not_k_rm.erase( kept_snps_not_k_rm.begin() + k_rm );
@@ -855,6 +861,11 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		if( steps_taken == 0 ){
 			break;
 		}else if( keep.size() >= global_opts::max_signals ){
+			break;
+		}
+		total_steps++;
+		if( total_steps > global_opts::max_steps ){
+			std::cerr << "\n\nWARNING: Exceeded max steps. Convergence failed.\n\n";
 			break;
 		}
 	}
@@ -896,23 +907,6 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 	
 }
 
-void lm_output::push_back(double b, double s, double p)
-{
-	beta.push_back(b);
-	se.push_back(s);
-	pval.push_back(p);
-}
-
-void lm_output::print_coefs()
-{
-	for(int i = 0; i < pval.size(); ++i){
-		std::cout << 
-			beta[i] << "\t" << 
-			se[i] << "\t" << 
-			pval[i] << "\n";
-	}
-}
-
 // to do: make parent generic class vcov_getter, where indiv_vcov_getter and sumstat_vcov_getter inherit from vcov_getter. This is an exact duplicate function. 
 
 forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, indiv_vcov_getter& vget, double pval_thresh )
@@ -940,6 +934,8 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 	lm_output reg0;
 	
 	double alpha_thresh = global_opts::LM_ALPHA;
+	
+	int total_steps = 0;
 	
 	while( 1 )
 	{
@@ -1044,7 +1040,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		// -----------------------------------
 		// Backward step. 
 		// -----------------------------------
-		if( global_opts::backward_step && nk > 1 ){
+		if( global_opts::backward_thresh < 1.00 && nk > 1 ){
 
 			double max_joint_pvalue = 0; 
 			int k_rm = -1;
@@ -1052,7 +1048,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			check_joint_pvalues(k_rm, max_joint_pvalue, U, V, U_0, J_0, n, m);
 			//cout << max_joint_pvalue << "\n";
 			
-			if( (max_joint_pvalue > alpha_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
+			if( (max_joint_pvalue > global_opts::backward_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
 				
 				std::vector<int> kept_snps_not_k_rm = seq_int(nk);
 				kept_snps_not_k_rm.erase( kept_snps_not_k_rm.begin() + k_rm );
@@ -1088,6 +1084,12 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		if( steps_taken == 0 ){
 			break;
 		}else if( keep.size() >= global_opts::max_signals ){
+			break;
+		}
+		
+		total_steps++;
+		if( total_steps > global_opts::max_steps ){
+			std::cerr << "\n\nWARNING: Exceeded max steps. Convergence failed.\n\n";
 			break;
 		}
 	}

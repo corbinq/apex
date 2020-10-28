@@ -1233,6 +1233,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 	
 	meta_ss.update_meta_ss();
 	
+	int total_steps = 0;
 	while( 1 ){
 		
 		int n_steps = 0;
@@ -1266,7 +1267,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		// -----------------------------------
 		// Backward step. 
 		// -----------------------------------		
-		if( global_opts::backward_step & top_snps.size() > 1 ){
+		if( global_opts::backward_thresh < 1.00 & top_snps.size() > 1 ){
 			
 			double max_joint_pvalue = 0;
 			int w_rm = -1;
@@ -1281,7 +1282,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 			}
 			// update max joint pvalue
 			
-			if( max_joint_pvalue > global_opts::LM_ALPHA || max_joint_pvalue < 0 ){
+			if( max_joint_pvalue > global_opts::backward_thresh || max_joint_pvalue < 0 ){
 				
 				meta_ss.drop_snp(w_rm);
 				
@@ -1296,6 +1297,11 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		if( n_steps == 0 ){
 			break;
 		}else if( top_snps.size() >= global_opts::max_signals ){
+			break;
+		}
+		total_steps++;
+		if( total_steps > global_opts::max_steps ){
+			std::cerr << "\n\nWARNING: Exceeded max steps. Convergence failed.\n\n";
 			break;
 		}
 	}

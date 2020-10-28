@@ -37,7 +37,7 @@ std::vector<std::string> target_genes;
 bool use_ivw_1 = false;
 bool use_ds = false;
 bool trim_gene_ids = false;
-bool stepwise_backward_step = false;
+double stepwise_backward_thresh = 1.00;
 bool t_hom = false;
 bool t_het = false;
 bool t_acat = false;
@@ -356,7 +356,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_step, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( prefix == "" )
 	{
@@ -744,7 +744,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_step, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( sloppy ){
 		global_opts::use_sloppy_covar();
@@ -968,7 +968,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		args::ValueFlag<double> buddy_arg(analysis_args, "", "Print LD buddies (specify rsq threshold).", {"buddies"});
 		args::Flag use_marginal_pval(analysis_args, "", "Apply threshold to marginal rather than ACAT p-value in stepwise algorithm (no adjustment for no. variants).", {"marginal"});
 		args::ValueFlag<double> pval_arg(analysis_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
-		args::Flag backward_step(analysis_args, "", "Perform backward step in stepwise selection.", {"backward"});
+		args::ValueFlag<double> backward_arg(analysis_args, "", "Backward step p-value threshold in stepwise selection.", {"backward"});
 	/*
 	args::Group filter_args(p, "Filtering variants");
 		args::ValueFlag<std::string> iid_e_arg(subset_args, "", "List of variants to exclude (file path).", {"exclude-snps"});
@@ -1001,7 +1001,14 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// ----------------------------------
 	
 	use_ivw_1 = (bool) ivw_1;
-	stepwise_backward_step = (bool) backward_step;
+	// stepwise_backward_step = (bool) backward_step;
+	
+	stepwise_backward_thresh = args::get(backward_arg);
+	
+	if(stepwise_backward_thresh <= 0){
+		stepwise_backward_thresh = 1.00;
+	}
+	
 	stepwise_marginal_thresh = (bool) use_marginal_pval;
 	
 	std::string tests = args::get(test_arg);
@@ -1087,7 +1094,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_step, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( prefix == "" ){
 		if( meta_svar || meta_stepwise ){
@@ -1269,7 +1276,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_step, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( prefix == "" ){
 		restore_cursor();

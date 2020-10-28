@@ -945,6 +945,14 @@ class meta_svar_sumstat
 		};
 };
 
+inline double calc_vif(const double& v0, const double& v1){
+	if(  v0 - v1 <= 0 ){
+		return std::numeric_limits<double>::infinity();
+	}else{
+		return v0/(v0 - v1);
+	}
+}
+
 class lm_output
 {
 	public:
@@ -953,13 +961,37 @@ class lm_output
 		std::vector<double> beta;
 		std::vector<double> se;
 		std::vector<double> pval;
+		std::vector<double> vif;
 		
 		double df;
 		std::string name;
 		std::string info;
 		
-		void push_back(double,double,double);
-		void print_coefs();
+		void push_back(const double& b, const double& s, const double& p)
+		{
+			beta.push_back(b);
+			se.push_back(s);
+			pval.push_back(p);
+		};
+
+		void push_back(const double& b, const double& s, const double& p, const double& v)
+		{
+			beta.push_back(b);
+			se.push_back(s);
+			pval.push_back(p);
+			vif.push_back(v);
+		};
+
+		void print_coefs()
+		{
+			for(int i = 0; i < pval.size(); ++i){
+				std::cout << 
+					beta[i] << "\t" << 
+					se[i] << "\t" << 
+					pval[i] << "\n";
+			}
+		};
+
 };
 
 
