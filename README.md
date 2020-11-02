@@ -65,15 +65,15 @@ YAX is a work in progress, and under active development. We appreciate feedback 
 If you use YAX, please cite `Quick, C; Guan, L; Lin, X (2020). URL: https://github.com/corbinq/yax` (preprint pending). Thanks!
 
 ## Acknowledgements
-YAX is developed by Corbin Quick and Li Guan. Special thanks to 
-
+YAX is written by Corbin Quick and Li Guan. Special thanks to 
+ 
+ - Xihong Lin 
  - Yaowu Liu
+ - Laura Scott
+ - Hyun Min Kang 
  - Xihao Li
  - Zilin Li
  - Rounak Dey
- - Laura Scott
- - Hyun Min Kang 
- - Xihong Lin 
 
 
 
