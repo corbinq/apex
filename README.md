@@ -21,7 +21,9 @@ To install YAX from source or download precompiled binaries, [**see installation
  - [**cis-xQTL analysis.**](/yax/doc/mode_cis/) `./yax cis {options}`
 	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
  - [**trans-xQTL analysis.**](/yax/doc/mode_trans/)  `./yax trans {options}`
-	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region.   
+	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region. 
+ - [**xQTL factor analysis.**](/yax/doc/mode_factor/)  `./yax factor {options}`
+	 - Rapid high-dimensional factor analysis to account for technical and biological variation in molecular trait data. 
  - [**xQTL meta-analysis.**](/yax/doc/mode_meta/)  `./yax meta {options}`
 	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
  - [**xQTL summary data storage.**](/yax/doc/mode_store/)  `./yax store {options}`
@@ -65,15 +67,15 @@ YAX is a work in progress, and under active development. We appreciate feedback 
 If you use YAX, please cite `Quick, C; Guan, L; Lin, X (2020). URL: https://github.com/corbinq/yax` (preprint pending). Thanks!
 
 ## Acknowledgements
-YAX is written by Corbin Quick and Li Guan. Special thanks to 
- 
- - Xihong Lin 
+YAX is developed by Corbin Quick and Li Guan. Special thanks to 
+
  - Yaowu Liu
- - Laura Scott
- - Hyun Min Kang 
  - Xihao Li
  - Zilin Li
  - Rounak Dey
+ - Laura Scott
+ - Hyun Min Kang 
+ - Xihong Lin 
 
 
 
