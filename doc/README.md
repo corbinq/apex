@@ -21,7 +21,9 @@ To install YAX from source or download precompiled binaries, [**see installation
  - [**cis-xQTL analysis.**](/yax/doc/mode_cis/) `./yax cis {options}`
 	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
  - [**trans-xQTL analysis.**](/yax/doc/mode_trans/)  `./yax trans {options}`
-	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region.   
+	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region. 
+ - [**xQTL factor analysis.**](/yax/doc/mode_factor/)  `./yax factor {options}`
+	 - Rapid high-dimensional factor analysis to account for technical and biological variation in molecular trait data. 
  - [**xQTL meta-analysis.**](/yax/doc/mode_meta/)  `./yax meta {options}`
 	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
  - [**xQTL summary data storage.**](/yax/doc/mode_store/)  `./yax store {options}`
