@@ -2,36 +2,50 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
 #include "processVCOV.hpp"
 
+static const int mac_dec = 6;
+static const double mac_tol = 2.00 * std::pow(0.1, (double) mac_dec);
+
+bool treat_as_int(const double& m){
+	return ( std::abs(m - round(m)) < mac_tol );	
+}
+
+std::string double_to_string(const double& x, const int& n){
+	std::stringstream tmp;
+	tmp << std::setprecision(n) << x;
+	return tmp.str();
+}
 
 double unflip(const int& f1, const int& f2){
-	if( f1 != f2 ){
-		return -1.0;
-	}else{
-		return 1.0;
-	}
+        if( f1 != f2 ){
+                return -1.0;
+        }else{
+                return 1.0;
+        }
 }
 
 unsigned int pack_dp(const double& x, const double& m0, const double& m1){
 	if( m0 > m1 ){
 		return pack_dp(x, m1, m0);
 	}else{
-		if( 2.0 * m0 < VBIN_T_MAX ){
+		if( m0 <= 0.0 ){
+			return (unsigned int) 0;
+		}else if( 2.0 * m0 < VBIN_T_MAX && treat_as_int(m0) && treat_as_int(m1) ){
 			return (unsigned int) round(x);
 		}else{
-			return (unsigned int) round(x/ceil((2.0*m0)/VBIN_T_MAX));
+			return (unsigned int) round(VBIN_T_MAX * x/ceil((2.0*m0)));
 		}
 	}
 }
@@ -40,10 +54,12 @@ double unpack_dp(const double& x, const double& m0, const double& m1){
 	if( m0 > m1 ){
 		return unpack_dp(x, m1, m0);
 	}else{
-		if( 2.0 * m0 < VBIN_T_MAX ){
+		if( m0 <= 0.0 ){
+			return 0.0;
+		}else if( 2.0 * m0 < VBIN_T_MAX && treat_as_int(m0) && treat_as_int(m1)){
 			return x;
 		}else{
-			return x*ceil((2.0*m0)/VBIN_T_MAX);
+			return x*ceil(2.0*m0)/((double) VBIN_T_MAX);
 		}
 	}
 }
@@ -332,7 +348,7 @@ Eigen::MatrixXd vcov_data::getGtG(const std::vector<int>& v_i, const std::vector
 			if(  mac_ii > 0 ){
 				std::vector<vbin_t> vals = bin.get_data(bin_start_idx[ii] * sizeof(vbin_t), nv);
 				
-				for(int j = i; j < n_row; ++j){
+				for(int j = i; j < n_row; j++){
 					int jj = v_i[j] - ii;
 					if( jj < vals.size() ){
 						// out(i,j) = (((double) v) * 2.0 * mac_k)/VBIN_T_MAX;
@@ -694,9 +710,19 @@ void write_vcov_files(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, ta
 	
 	make_half_hat_matrix(U);
 	
+	int n_snps = g_data.n_variants;
+	int n_cov = U.cols();
+	int n_samples = U.rows();
+	
+	std::vector<double> macs(n_snps); 
+	
 	Eigen::MatrixXd UtG;
 	if( !global_opts::low_mem ){
-		UtG = U.transpose() * g_data.genotypes;
+		const Eigen::SparseMatrix<double> &G = g_data.genotypes;
+		UtG = U.transpose() * G;
+		for(int i = 0; i < G.cols(); ++i){
+			macs[i] = G.col(i).sum(); 
+		}
 	}
 	
 	//Eigen::MatrixXd& UtG = g_data.UtG;
@@ -708,15 +734,6 @@ void write_vcov_files(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, ta
 	BGZF* ld_idx_file = bgzf_open(idx_file_path.c_str(), "w");
 
 	unsigned long int bytes_written = 0;
-	
-	int n_snps = g_data.n_variants;
-	int n_cov = U.cols();
-	int n_samples = U.rows();
-	
-	std::vector<double> macs(n_snps); 
-	// for(int i = 0; i < G.cols(); ++i){
-		// macs[i] = G.col(i).sum(); 
-	// }
 	
 	std::string iter_cerr_suffix = " variants ... ";
 	
@@ -734,6 +751,7 @@ void write_vcov_files(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, ta
 	
 	
 	int n_var = 0;
+	
 	for( const auto ld_i : g_data.ld_index_range ){
 	
 		int s_i = ld_i.first;
@@ -790,7 +808,7 @@ void write_vcov_files(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, ta
 			g_data.ref[ld_i.first] << "\t" << 
 			g_data.alt[ld_i.first] << "\t" << 
 			g_data.flipped[ld_i.first] << "\t" << 
-			mac_i << "\t" << 
+			double_to_string(mac_i, mac_dec) << "\t" << 
 			var_i << "\t" << 
 			n_var << "\t" <<
 			bytes_written/sizeof(vbin_t) << "\t" << nn;

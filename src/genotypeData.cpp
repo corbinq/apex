@@ -2,18 +2,20 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
 #include "genotypeData.hpp"
+
+bool sp_geno_fmt = true;
 
 void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col, std::vector<int>& related)
 {
@@ -27,7 +29,7 @@ void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& G
 	}
 	
 	std::unordered_map<std::string, int> id_map;
-	for(int i = 0; i < n; ++i){
+	for( int i = 0; i < n; i++ ){
 		id_map[ kp_ids[i] ] = i;
 	}
 	
@@ -174,7 +176,18 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 	mean_ = 0;
 	var_ = 0;
 	flip_ = false;
-	sparse_gt gts(ids.idx.size());
+	sparse_gt gts;
+	std::vector<int> missing;
+	if( sp_geno_fmt ){
+		gts.resize(ids.idx.size());
+	}else{
+		if( dense_genotypes.rows() < ids.keep.size() ){
+			dense_genotypes.conservativeResize(ids.keep.size(), Eigen::NoChange);
+		}
+		if( dense_genotypes.cols() < col_n ){
+			dense_genotypes.conservativeResize(Eigen::NoChange, col_n + chunk_size);
+		}
+	}
 	int n_obs = 0;
 	
 	int n_2 = 0;
@@ -191,7 +204,13 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 			}else{
 				// a1 = a1 < 0 ? 0 : a1;
 				// a2 = a2 < 0 ? 0 : a2;
-				if(store_geno) gts.set_gt(n,-1);
+				if(store_geno){
+					if( sp_geno_fmt ){
+						gts.set_gt(n,-1);
+					}else{
+						missing.push_back(i);
+					}
+				}
 			}
 		}else{
 		
@@ -202,7 +221,15 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 				}else{
 					n_1++;
 				}
-				if(store_geno) gts.set_gt(n,a1);
+				if(store_geno){
+					if( sp_geno_fmt ){
+						gts.set_gt(n,a1);
+					}else{
+						// DO DENSE
+						// std::cerr << "DO DENSE";
+						dense_genotypes(n, col_n) = a1;
+					}
+				}
 				mean_ += a1;
 				var_ += a1*a1;
 			}
@@ -217,12 +244,18 @@ inline bool genotype_data::add_bcf_genotypes(int*& gt_rec, const int& col_n, dou
 	if(  n_2 > n_obs - n_1 - n_2  ){
 		flip_ = true;
 		mean_ = 2.0 - mean_;
-		if( store_geno ) gts.flip(n);
+		if( store_geno && sp_geno_fmt ) gts.flip(n);
 	}
-	if( store_geno ){
+	if( store_geno && sp_geno_fmt ){
 		// checkResize(col_n);
 		gts.add_gt_sparsemat(genotypes, col_n);
 	}
+	if( store_geno && !sp_geno_fmt && missing.size() > 0 ){
+		for(const int& i : missing ){
+			dense_genotypes(i, col_n) = mean_;
+		}
+	}
+	
 	return true;
 }
 
@@ -233,7 +266,18 @@ inline bool genotype_data::add_bcf_dosages(float*& ds_rec, const int& col_n, dou
 	mean_ = 0;
 	var_ = 0;
 	flip_ = false;
-	sparse_ds sp_ds(ids.idx.size());
+	sparse_ds sp_ds;
+	std::vector<int> missing;
+	if( sp_geno_fmt ){
+		sp_ds.resize(ids.idx.size());
+	}else{
+		if( dense_genotypes.rows() < ids.keep.size() ){
+			dense_genotypes.conservativeResize(ids.keep.size(), Eigen::NoChange);
+		}
+		if( dense_genotypes.cols() < col_n ){
+			dense_genotypes.conservativeResize(Eigen::NoChange, col_n + chunk_size);
+		}
+	}
 	
 	int n_2 = 0;
 	int n_0 = 0;
@@ -242,7 +286,13 @@ inline bool genotype_data::add_bcf_dosages(float*& ds_rec, const int& col_n, dou
 	{
 		float ds = ds_rec[i];
 		if( ds < 0 ){
-			if(store_geno) sp_ds.set_ds(n,-1.00);
+			if(store_geno){
+				if( sp_geno_fmt ){
+					sp_ds.set_ds(n,-1.00);
+				}else{
+					missing.push_back(i);
+				}
+			}
 		}else{
 			if( ds <= global_opts::dosage_thresh ){
 				ds = 0.00;
@@ -251,7 +301,14 @@ inline bool genotype_data::add_bcf_dosages(float*& ds_rec, const int& col_n, dou
 				ds = 2.00;
 				n_2++;
 			}
-			if(store_geno) sp_ds.set_ds(n,ds);
+			if(store_geno){
+				if( sp_geno_fmt ){
+					sp_ds.set_ds(n,ds);
+				}else{
+					// std::cerr << "DO DENSE";
+					dense_genotypes(n, col_n) = ds;
+				}
+			} 
 			mean_ += ds;
 			var_ += ds*ds;
 			n_obs++;
@@ -265,12 +322,18 @@ inline bool genotype_data::add_bcf_dosages(float*& ds_rec, const int& col_n, dou
 	if( n_2 > n_0 ){
 		flip_ = true;
 		mean_ = 2.0 - mean_;
-		if( store_geno ) sp_ds.flip();
+		if( store_geno && sp_geno_fmt ) sp_ds.flip();
 	}
-	if( store_geno ){
+	if( store_geno && sp_geno_fmt ){
 		// checkResize(col_n);
 		sp_ds.add_ds_sparsemat(genotypes, col_n);
 	}
+	if( store_geno && !sp_geno_fmt && missing.size() > 0 ){
+		for(const int& i : missing ){
+			dense_genotypes(i, col_n) = mean_;
+		}
+	}
+	
 	return true;
 }
 
@@ -278,7 +341,7 @@ void genotype_data::read_bcf_header(bcf_hdr_t* hdr){
 
 	n_samples = bcf_hdr_nsamples(hdr);
 	
-	for(int i = 0; i < n_samples; ++i){
+	for(int i = 0; i < n_samples; i++){
 		ids.file.push_back(hdr->samples[i]);
 	}
 	if( ids.keep.size() == 0 ){

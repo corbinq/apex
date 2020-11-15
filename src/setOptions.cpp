@@ -2,14 +2,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -50,7 +50,12 @@ namespace global_opts
 		bool trim_gene_ids = false;
 		
 	// ANALYSIS OPTIONS 
-		
+	
+		int n_fa_iter = 3;
+	
+		bool write_resid_mat = false;
+	
+		// stepwise options
 		double exp_weight_val = 5e-6;
 		int max_signals = 10;
 		int max_steps = 100;
@@ -74,7 +79,7 @@ namespace global_opts
 		// LMM OPTIONS
 		bool use_grm = false;
 		bool ml_not_reml = false;
-		bool write_v_anchors = true;
+		bool write_v_anchors = false;
 		
 		// ANALYSIS MODE
 		bool IVW_H1_SIGMA = false;
@@ -157,8 +162,21 @@ void global_opts::use_sloppy_covar(){
 	return;
 }
 
+void global_opts::set_factor_iter(const int& nf){
+	n_fa_iter = nf;
+	return;
+}
+
 void global_opts::set_max_signals(const int& ms){
 	max_signals = ms;
 	return;
 }
+
+void global_opts::save_residuals(const bool& wb){
+	write_resid_mat = wb;
+	return;
+}
+
+
+
 

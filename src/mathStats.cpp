@@ -2,14 +2,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -135,7 +135,7 @@ std::vector<double> filter_lt( const std::vector<double>& p, double thresh){
 	return out;
 }
 
-double ACAT_non_missing( const std::vector<double>& pvals, const std::vector<double>& dist){
+double ACAT_non_missing( const std::vector<double>& pvals, const std::vector<double>& dist ){
 	if( dist.size() == 0 || global_opts::exp_weight_val <= 0 ){
 		long double sum_c = 0.0;
 		double n = 0;

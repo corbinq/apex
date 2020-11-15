@@ -3,14 +3,14 @@
     Authors: Corbin Quick <qcorbin@hsph.harvard.edu>
 	         Li Guan <guanli@umich.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -36,7 +36,7 @@
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
 
-static const double phi_upper = 10000000;
+static const double phi_upper = 10000;
 
 // double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
 
@@ -108,7 +108,7 @@ class LMM_fitter{
 		void fit_REML(){
 			
 			std::function<double(double)> f = [this](double x){return neg_logLik_REML(x);};
-			phi = Brent_fmin(0.00, 50000, f, 2e-5);
+			phi = Brent_fmin(0.00, phi_upper, f, 2e-5);
 			Eigen::VectorXd vals = 1.00 + phi*lambda.array();
 			
 			Vi = vals.asDiagonal().inverse();
@@ -143,6 +143,7 @@ class LMM_fitter_low_rank{
 		Eigen::DiagonalMatrix<double,Eigen::Dynamic> Vi;
 		double sigma2;
 		double phi;
+		double sample_size;
 	
 		LMM_fitter_low_rank(const Eigen::Ref<Eigen::MatrixXd> XtX_, const Eigen::Ref<Eigen::MatrixXd> ZtX_, const Eigen::Ref<Eigen::VectorXd> Xty_, const Eigen::Ref<Eigen::VectorXd> Zty_, const double& yty_, const Eigen::Ref<Eigen::VectorXd> lam, const double& n_samples) : 
 			XtX(XtX_),
@@ -151,6 +152,7 @@ class LMM_fitter_low_rank{
 			Zty(Zty_),
 			yty(yty_),
 			lambda(lam),
+			sample_size(n_samples),
 			n_iter(0)
 		{df_resid = n_samples - XtX.cols();};
 
@@ -164,9 +166,23 @@ class LMM_fitter_low_rank{
 			
 			double sigma2_ = (yty - Zty.dot(Di * Zty) -  XtDy.dot(b) )/df_resid;
 			
+			double log_det_omega = 0.0;
+			
+			for( int i = 0; i < lambda.size(); i++ ){
+				log_det_omega += std::log(1.00 + phi_*lambda(i));
+			}
+			
+			// A small penalty that improves numerical stability. 
+			// When the likelihood surface is flat, this helps keep
+			// phi estimates finite.
+			double adj_ll = std::log(1.00 + phi_/sample_size)/sample_size;
+			
+			// std::cout << phi_ << ", " << adj_ll << ", " << n_iter << "\n";
+			
 			double ll = 0.5*(
 				df_resid*std::log(sigma2_) + 
-				Di.diagonal().array().log().sum() + std::log(XtDX.determinant())
+				log_det_omega + std::log(XtDX.determinant()) + 
+				adj_ll
 			);
 			
 			n_iter++;
@@ -178,6 +194,8 @@ class LMM_fitter_low_rank{
 			
 			std::function<double(double)> f = [this](double x){return neg_logLik_REML(x);};
 			phi = Brent_fmin(0.00, phi_upper, f, 2e-5);
+			
+			// std::cout << "FINAL: " << phi << ", " << n_iter << "\n";
 			
 			DiagonalXd Di = calc_Psi_low_rank(phi, lambda);
 			
@@ -994,6 +1012,7 @@ class lm_output
 
 };
 
+static const std::vector<double> vd0(0);
 
 class forward_lm
 {
@@ -1019,9 +1038,9 @@ class forward_lm
 		std::string name;
 		std::string info;
 		
-		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, vcov_getter& vget, double pval_thresh);
+		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, vcov_getter& vget, double pval_thresh, const std::vector<double>& weights = vd0);
 		
-		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, indiv_vcov_getter& vget, double pval_thresh);
+		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, indiv_vcov_getter& vget, double pval_thresh,  const std::vector<double>& weights = vd0);
 		
 		void check_joint_pvalues(int&, double&, const Eigen::VectorXd&, const Eigen::VectorXd&,const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const double&);
 		

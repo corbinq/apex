@@ -3,14 +3,14 @@
     Authors: Corbin Quick <qcorbin@hsph.harvard.edu>
 	         Li Guan <guanli@umich.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -1128,6 +1128,13 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	int n_var = N_CIS[gene_index];
 	int s_var = S_CIS[gene_index];
 	
+	// distance to TSS
+	double tss_pos = 0.5*(start[gene_index] + end[gene_index]);
+	std::vector<double> dtss(n_var);
+	for(int i = 0; i < n_var; i++){
+		dtss[i] = ( tss_pos - (double) vc.pos[s_var + i]);
+	}
+	
 	Eigen::VectorXd dV( n_var );
 	
 	if( U.size() != n_var ){
@@ -1146,7 +1153,7 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	
 	stdev = 1;
 
-	forward_lm out(U, dV, n, df0, stdev, vget, global_opts::LM_ALPHA);
+	forward_lm out(U, dV, n, df0, stdev, vget, global_opts::LM_ALPHA, dtss);
 	
 	//cout << "4\n";
 	std::string in_studies = std::to_string(study_list[gene_index][0] + 1);

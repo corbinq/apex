@@ -2,14 +2,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -41,7 +41,6 @@
 
 #include <Eigen/Dense>
 
-
 class table
 {
 	public:
@@ -62,6 +61,47 @@ class table
 		void setCols(std::vector<std::string>&);
 		void readFile(const char*);
 		void readHeader(const char*);
+		
+		void write_table(const std::string& out_file_path, const std::string& file_header = nullstr){
+			
+			BGZF* out_file = bgzf_open(out_file_path.c_str(), "w");
+			std::stringstream out_line;
+			
+			
+			int dj = 0;
+			if( data_matrix.cols() > rows.keep.size() ){
+				// has intercept column.
+				dj = 1;
+			}
+			
+			
+			for(int j = 0; j < rows.keep.size(); j++){
+				std::stringstream out_line;
+				
+				if( j == 0 ){
+					if( file_header != nullstr ){
+						out_line << file_header << "\n";
+					}
+					
+					out_line << "#id";
+					for( const std::string& id : cols.keep ){
+						out_line << "\t" << id;
+					}
+					out_line << "\n";
+				}
+				
+				out_line << rows.keep[j];
+				
+				for(int i = 0; i < cols.keep.size(); i++){
+					out_line << "\t" << data_matrix(i, j + dj);
+				}
+				out_line << "\n";
+				
+				write_to_bgzf(out_line.str().c_str(), out_file);
+			}
+			
+			bgzf_close(out_file);
+		};
 };
 
 

@@ -3,14 +3,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -364,7 +364,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 	std::vector<double> sigma_v(Y.cols());
 	std::vector<double> SSR_v(Y.cols());
 	
-	Eigen::MatrixXd PY( Y.rows(), Y.cols() );
+	// Eigen::MatrixXd PY( Y.rows(), Y.cols() );
 	
 	e_data.stdev.resize(Y.cols());
 	
@@ -419,7 +419,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 		
 		SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
 		
-		PY.col(j) = Vi * y_res/std::sqrt(sigma2);
+		Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
 		
 		
 		phi_v[j] = phi;
@@ -434,7 +434,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 	//print_iter_cerr(last_j, Y.cols(), iter_cerr_suffix);
 	std::cerr << "\n";
 	
-	PY = (L * PY).eval();
+	Y = (L * Y).eval();
 	
 	
 	// -------------------------------------
@@ -636,7 +636,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 				
 				
 				// -------- Modified, similar to trans mode. -----------------
-				Eigen::VectorXd U_vec = G_slice.transpose() * PY.col(jj);
+				Eigen::VectorXd U_vec = G_slice.transpose() * Y.col(jj);
 				const double& SSR_0 = SSR_v[jj];
 				// ------------------------------------------------------------
 				
@@ -785,9 +785,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 }
 
 
-
-
-void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long, Eigen::MatrixXd& Y_epc )
+void run_cis_QTL_analysis_eLMM(const int& n_fac, const int& n_fac_fe, bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long, Eigen::MatrixXd& Y_epc )
 {
 	
 	Eigen::MatrixXd Q;
@@ -822,15 +820,36 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 	
 	// if( resid_ePC ){
 			
-		// Eigen::MatrixXd U = get_half_hat_matrix(X);
+		// Eigen::MatrixXd U = get_half_hat_matrix(C);
 
 		// std::cerr << "Calculating expression residuals...\n";
-		// Y_epc = resid_from_half_hat(Y_epc, U);
+		// make_resid_from_half_hat(Y_epc, U);
 	// }
 	
-	std::cerr << "Calculating ePCs ... \n";
-	calc_eGRM_PCs(Q, Q_lambda, Y_epc, n_eigs);
+	std::cerr << "Estimating latent factors ... \n";
+	calc_eGRM_PCs(Q, Q_lambda, Y_epc, n_fac);
 	std::cerr << "Done.\n";
+	
+	Y_epc.resize(0,0);
+	
+	if( n_fac_fe > 0 ){
+		int n_cv = C.cols();
+		C.conservativeResize(Eigen::NoChange, n_cv + n_fac_fe);
+		for(int ii = 0; ii < n_fac_fe; ii++){
+			C.col(n_cv + ii) = Q.col(ii);
+		}
+		n_covar = C.cols();
+		
+		// int n_re = n_fac - n_cv;
+		
+		// Q = (Q.rightCols(n_re)).eval();
+		
+		// Q_lambda = (Q_lambda.tail(n_re)).eval();
+		// double max_lambda = Q_lambda.maxCoeff();
+		// if( max_lambda <= 1.00 && max_lambda > 0.00 ){
+			// Q_lambda /= max_lambda;
+		// }
+	}
 	
 	//Y = Y(Eigen::all, test_idx)
 	
@@ -890,7 +909,7 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 	std::vector<double> sigma_v(Y.cols());
 	std::vector<double> SSR_v(Y.cols());
 	
-	Eigen::MatrixXd PY( Y.rows(), Y.cols() );
+	// Eigen::MatrixXd PY( Y.rows(), Y.cols() );
 	
 	e_data.stdev.resize(Y.cols());
 	
@@ -922,8 +941,9 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 			// LMM_fitter fit(X, Y.col(j), GRM_lambda);
 			
 			double yty = Y.col(j).squaredNorm();
+			double sample_size = Y.rows();
 			
-			LMM_fitter_low_rank fit(CtC, QtC, CtY.col(j), QtY.col(j), yty, Q_lambda, Y.rows());
+			LMM_fitter_low_rank fit(CtC, QtC, CtY.col(j), QtY.col(j), yty, Q_lambda, sample_size);
 			
 			fit.fit_REML();
 			
@@ -955,7 +975,7 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 		
 		SSR_v[j] = (yty - QtY.col(j).dot(Psi * QtY.col(j)) -  XtDy.dot(b))/sigma2;
 		
-		PY.col(j) = y_resid/std::sqrt(sigma2);
+		Y.col(j) = (y_resid/std::sqrt(sigma2)).eval();
 		
 		phi_v[j] = phi;
 		hsq_v[j] = hsq;
@@ -1171,7 +1191,7 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 				
 				
 				// -------- Modified, similar to trans mode. -----------------
-				Eigen::VectorXd U_vec = G_slice.transpose() * PY.col(jj);
+				Eigen::VectorXd U_vec = G_slice.transpose() * Y.col(jj);
 				const double& SSR_0 = SSR_v[jj];
 				// ------------------------------------------------------------
 				
@@ -1319,7 +1339,7 @@ void run_cis_QTL_analysis_eLMM(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hd
 }
 
 
-void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long, Eigen::MatrixXd& Y_epc )
+void run_cis_QTL_analysis_eFE(const int& n_fac, bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& c_data, bed_data& e_data, block_intervals& bm, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const bool& just_long, Eigen::MatrixXd& Y_epc )
 {
 	
 	Eigen::MatrixXd Q;
@@ -1350,10 +1370,9 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 	scale_and_center(Y, y_scale);
 	scale_and_center(Y_epc);
 	
-	make_half_hat_matrix(C);
-	make_resid_from_half_hat(Y_epc, C);
-	
-	scale_and_center(Y_epc);
+	// make_half_hat_matrix(C);
+	// make_resid_from_half_hat(Y_epc, C);
+	// scale_and_center(Y_epc);
 	
 	// bool resid_ePC = true;
 	
@@ -1365,26 +1384,35 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 		// Y_epc = resid_from_half_hat(Y_epc, U);
 	// }
 	
-	std::cerr << "Calculating ePCs ... \n";
-	calc_eGRM_PCs(Q, Q_lambda, Y_epc, n_eigs);
+	std::cerr << "Estimating latent factors ... \n";
+	calc_eGRM_PCs(Q, Q_lambda, Y_epc, n_fac);
 	std::cerr << "Done.\n";
 	
 	Y_epc.resize(0,0);
 	
-	Eigen::MatrixXd X( C.rows(), C.cols() + Q.cols() );
+	if( n_fac > 0 ){
+		int n_cv = C.cols();
+		C.conservativeResize(Eigen::NoChange, n_cv + n_fac);
+		for(int ii = 0; ii < n_fac; ii++){
+			C.col(n_cv + ii) = Q.col(ii);
+			
+			std::string col_ii = "factor_";
+			col_ii += std::to_string(ii);
+			c_data.rows.keep.push_back(col_ii);
+		}
+		n_covar = C.cols();
+	}
 	
-	X << C,Q;
-	C.resize(0,0);
 	Q.resize(0,0);
 	
 
-	make_half_hat_matrix(X);
+	make_half_hat_matrix(C);
 
 	if( !global_opts::low_mem ){
 		
 		std::cerr << "Calculating genotype-covariate covariance...\n";
 		
-		Eigen::MatrixXd UtG = X.transpose() * g_data.genotypes;
+		Eigen::MatrixXd UtG = C.transpose() * g_data.genotypes;
 		std::cerr << "Calculating genotype residual variances ...";
 		//Eigen::VectorXd SD_vec(UtG.cols());
 		for( int i = 0; i < UtG.cols(); ++i)
@@ -1397,7 +1425,7 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 	}
 	
 	std::cerr << "Calculating expression residuals...\n";
-	make_resid_from_half_hat(Y, X);
+	make_resid_from_half_hat(Y, C);
 	
 	std::cerr << "Scaling expression residuals ...\n";
 	scale_and_center(Y, e_data.stdev);
@@ -1406,17 +1434,17 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 		std::cerr << "Rank-normalizing expression residuals ...\n";
 		rank_normalize(Y);
 		std::cerr << "Re-residualizing transformed residuals ...\n";
-		make_resid_from_half_hat(Y, X);
+		make_resid_from_half_hat(Y, C);
 		scale_and_center(Y);
 	}
 	
 	// std::cout << Y_res.format(EigenTSV) << "\n";
-	// return 0;
+	// return 0; X
 	
 	Y.transposeInPlace();
 	
-	n_samples = X.rows();
-	n_covar = X.cols();
+	n_samples = C.rows();
+	n_covar = C.cols();
 	
 	std::string block_file_path = global_opts::out_prefix + "." + "cis_sumstats" + ".txt.gz";
 	std::string bed_block_file_path = global_opts::out_prefix + "." + "cis_gene_table" + ".txt.gz";
@@ -1467,7 +1495,7 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 				
 				Eigen::SparseMatrix<double>& G = g_data.genotypes;
 				
-				Eigen::VectorXd UtG_block_sqnm = (X.transpose() * G).colwise().squaredNorm().eval(); // G.middleCols(bm.bcf_s[i], n_g);
+				Eigen::VectorXd UtG_block_sqnm = (C.transpose() * G).colwise().squaredNorm().eval(); // G.middleCols(bm.bcf_s[i], n_g);
 				
 				for( int si = bm.bcf_s[i], ii = 0; si < bm.bcf_s[i] + n_g; ++si, ++ii)
 				{
@@ -1579,8 +1607,8 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 							e_data.end[jj] << "\t" << 
 							e_data.gene_id[jj] << "\t" << 
 							ACAT_non_missing(pvals, dist) << "\t" << 
-							X.rows() << "\t" << 
-							X.cols() << "\t" << 
+							C.rows() << "\t" << 
+							C.cols() << "\t" << 
 							e_data.stdev[jj] << "\t" <<
 							v_e - v_s + 1 << "\n";
 						
@@ -1616,3 +1644,61 @@ void run_cis_QTL_analysis_eFE(const int& n_eigs, bcf_srs_t*& sr, bcf_hdr_t*& hdr
 }
 
 
+
+void save_fa_covariates(const int& n_fac, genotype_data& g_data, table& c_data, bed_data& e_data, const bool& rknorm_y, const bool& rknorm_r)
+{
+	
+	Eigen::MatrixXd Q;
+	Eigen::VectorXd Q_lambda;
+	
+	Eigen::MatrixXd& Y = e_data.data_matrix;
+	Eigen::MatrixXd& C = c_data.data_matrix;
+		
+	// std::cerr << "Reordering trait and covariate matrices ...\n";
+	// std::cerr << "Reordering genotypes ...\n";
+	// g_data.genotypes = (Tr * g_data.genotypes).eval();
+		
+	
+	double n_traits = Y.cols();
+	double n_samples = Y.rows();
+	double n_snps = g_data.n_variants;
+	double n_covar = C.cols();
+
+	// std::cerr << "Started cis-QTL analysis ...\n";
+	
+	if( rknorm_y ){
+		std::cerr << "Rank-normalizing expression traits ... \n";
+		rank_normalize(Y);
+	}
+	std::cerr << "Scaling expression traits ... \n";
+	std::vector<double> y_scale;
+	scale_and_center(Y, y_scale);
+	
+	std::cerr << "Estimating latent factors ... \n";
+	calc_eGRM_PCs(Q, Q_lambda, Y, n_fac);
+	std::cerr << "Done.\n";
+	
+	// Y_epc.resize(0,0);
+	
+	if( n_fac > 0 ){
+		int n_cv = C.cols();
+		C.conservativeResize(Eigen::NoChange, n_cv + n_fac);
+		for(int ii = 0; ii < n_fac; ii++){
+			C.col(n_cv + ii) = Q.col(ii);
+			
+			std::string col_ii = "factor_";
+			col_ii += std::to_string(ii);
+			c_data.rows.keep.push_back(col_ii);
+		}
+		n_covar = C.cols();
+	}
+	
+	if( c_data.cols.keep.size() == 0 ){
+		c_data.cols.keep = e_data.ids.keep;
+	}
+	
+	std::string out_cov_path = global_opts::out_prefix + ".cov.gz";
+	
+	c_data.write_table(out_cov_path);
+	
+}

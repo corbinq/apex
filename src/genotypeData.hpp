@@ -2,14 +2,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -55,6 +55,11 @@ class sparse_gt
 		int last;
 	public:
 		sparse_gt(const int& ns) : sum_gt(0.00), n_samples(ns), n_missing(0), last(-1) {};
+		
+		sparse_gt() : sum_gt(0.00), n_samples(0), n_missing(0), last(-1) {};
+		
+		void resize(const int& ns){n_samples = ns;};
+		
 		int size(){
 			return entries.size();
 		};
@@ -130,6 +135,11 @@ class sparse_ds
 		int n_samples;
 		
 		sparse_ds(const int& N) : sum_dos(0.00), n_missing(0), n_samples(N), last(-1) {dosages.resize(N);};
+		
+		sparse_ds() : sum_dos(0.00), n_missing(0), n_samples(0), last(-1) {};
+		
+		void resize(const int& N){n_samples = N; dosages.resize(N); };
+		
 		
 		void set_ds(const int& n, const float& ds){
 			if( n > last ){

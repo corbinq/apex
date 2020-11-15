@@ -2,14 +2,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -100,7 +100,9 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 	}
 
 	Eigen::MatrixXd &Y = e_data.data_matrix;
-	Eigen::MatrixXd &X = c_data.data_matrix;
+	Eigen::MatrixXd &U = c_data.data_matrix;
+	
+	make_half_hat_matrix(U);
 	
 	std::cerr << "Started trans-QTL analysis ...\n";
 	
@@ -111,8 +113,6 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 	std::cerr << "Scaling expression traits ... \n";
 	std::vector<double> y_scale;
 	scale_and_center(Y, y_scale);
-
-	Eigen::MatrixXd U = get_half_hat_matrix(X);
 
 	if( !global_opts::low_mem ){
 		
@@ -131,16 +131,19 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 	}
 	
 	std::cerr << "Calculating expression residuals...\n";
-	Eigen::MatrixXd Y_res = resid_from_half_hat(Y, U);
+	make_resid_from_half_hat(Y, U);
 	
-	if( adj_cis && rknorm_r ){
-		std::cerr << "Rank-normalized cis-adjusted residuals not currently supported.\n";
-		exit(1);
+	if( rknorm_r ){
+		std::cerr << "Rank-normalizing expression residuals ...\n";
+		rank_normalize(Y);
+		std::cerr << "Re-residualizing transformed residuals ...\n";
+		make_resid_from_half_hat(Y, U);
+		scale_and_center(Y);
 	}
 	
 	if( adj_cis ){
 		std::cerr << "Residualizing cis signals...\n";
-		Z = (resid_from_half_hat(Z, U)).eval();
+		make_resid_from_half_hat(Z, U);
 		std::cerr << "Re-residualizing expression ...\n";
 		for( int i = 0; i < e_data.gene_id.size(); i++){
 			const int& s_i = Z_map[i].s;
@@ -149,33 +152,24 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 				Eigen::MatrixXd Z_i = get_half_hat_matrix(Z.middleCols(s_i, n_i));
 				Z.middleCols(s_i, n_i) = Z_i;
 				
-				Eigen::VectorXd y_res_z = resid_vec_from_half_hat(Y_res.col(i), Z_i);
-				Y_res.col(i) = y_res_z;
+				Eigen::VectorXd y_res_z = resid_vec_from_half_hat(Y.col(i), Z_i);
+				Y.col(i) = y_res_z;
 			}
 		}
 	}
 	
 	std::cerr << "Scaling expression residuals ...\n";
-	scale_and_center(Y_res, e_data.stdev);
+	scale_and_center(Y, e_data.stdev);
 	
-	if( rknorm_r ){
-		std::cerr << "Rank-normalizing expression residuals ...\n";
-		rank_normalize(Y_res);
-		std::cerr << "Re-residualizing transformed residuals ...\n";
-		Eigen::MatrixXd tmp = resid_from_half_hat(Y_res, U);
-		Y_res = tmp;
-		scale_and_center(Y_res);
-	}
-	
-	// std::cout << Y_res.format(EigenTSV) << "\n";
+	// std::cout << Y.format(EigenTSV) << "\n";
 	// return 0;
 	
-	Y_res.transposeInPlace();
+	Y.transposeInPlace();
 	
-	double n_samples = X.rows();
-	double n_covar = X.cols();
+	double n_samples = U.rows();
+	double n_covar = U.cols();
 	
-	int n_genes = Y_res.rows();
+	int n_genes = Y.rows();
 	
 	std::vector<double> gene_max_val(n_genes, 0.0);
 	std::vector<int> gene_max_idx(n_genes, 0);
@@ -265,9 +259,9 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 			dV = getVectorXd(g_data.var, s_g, n_g);
 			
 			if( (!adj_cis) || adj_cis_sloppy ){
-				StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y_res * G).transpose().eval();
+				StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y * G).transpose().eval();
 			}else{
-				StdScore = (Y_res * G).transpose();
+				StdScore = (Y * G).transpose();
 				Eigen::MatrixXd GtZ = G.transpose() * Z;
 				
 				Denom.resize( StdScore.rows(), StdScore.cols() );
@@ -340,7 +334,7 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 			write_to_bgzf(long_line.str().c_str(), long_file);
 			
 			/*
-			for( int j = 0; j < Y_res.rows(); j++){
+			for( int j = 0; j < Y.rows(); j++){
 				
 				std::stringstream block_line;
 				
@@ -947,11 +941,10 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 	Eigen::MatrixXd CtC_i = (CtC.inverse()).eval();
 	
 	std::cerr << "Rotating expression and covariates ... ";
-
-	Y = (L.transpose() * Y).eval();
+	//Y = (L.transpose() * Y).eval();
 	Eigen::MatrixXd X = (L.transpose() * C).eval();
 	std::cerr << "Done.\n";
-
+	
 	std::string theta_file_path = global_opts::out_prefix + "." + "theta" + ".gz";
 	
 	BGZF* theta_file;
@@ -966,11 +959,11 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 	std::vector<double> sigma_v(Y.cols());
 	std::vector<double> SSR_v(Y.cols());
 	
-	Eigen::MatrixXd PY( Y.rows(), Y.cols() );
-	
 	e_data.stdev.resize(Y.cols());
 	
 	for(int j = 0; j < Y.cols(); j++ ){
+
+		Y.col(j) = (L.transpose() * Y.col(j)).eval();
 
 		LMM_fitter fit(X, Y.col(j), GRM_lambda);
 		fit.fit_REML();
@@ -1000,10 +993,39 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 		
 		write_to_bgzf(theta_line.str().c_str(), theta_file);
 		
+		if(  global_opts::write_resid_mat ){
+			
+			DiagonalXd Psi = calc_Psi(phi, Q_lambda);
+			Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
+			Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
+			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+			Eigen::VectorXd y_hat = X * b;
+			
+			Eigen::VectorXd y_res = Y.col(j) - y_hat;
+			
+			SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
+			
+			Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
+			
+			Y.col(j) = (L * Y.col(j)).eval();
+		}
+		
+		
 		print_iter_cerr(j, j+1, iter_cerr_suffix);
 	}
 	
 	
 	bgzf_close(theta_file);
 	build_tabix_index(theta_file_path, 1);
+	
+	
+	if(  global_opts::write_resid_mat ){
+		// Y = (L * Y).eval();
+		std::string bed_out = global_opts::out_prefix + ".lmm_resid.bed.gz";
+		std::string bed_header = "## YAX_LMM_RESID";
+		e_data.write_bed(bed_out);
+	}
+	
 }
+
+

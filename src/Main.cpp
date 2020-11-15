@@ -3,14 +3,14 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -49,6 +49,7 @@ bool stepwise_marginal_thresh = false;
 
 int cis(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int trans(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
+int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int meta(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int store(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 
@@ -63,11 +64,12 @@ std::string help_string =
 "     ./yax [mode] --help       Print help menu for [mode].\n" 
 "\n" 
 "  Analysis modes:\n" 
-"     ./yax cis {OPTIONS}       cis-xQTL analysis from\n" 
-"                                 individual-level data.\n" 
+"     ./yax cis {OPTIONS}       Run cis-xQTL analysis.\n" 
 "\n" 
-"     ./yax trans {OPTIONS}     trans-xQTL analysis from\n" 
-"                                 individual-level data.\n" 
+"     ./yax trans {OPTIONS}     Run trans-xQTL analysis.\n" 
+"\n"
+"     ./yax factor {OPTIONS}    Estimate latent factors from\n" 
+"                                 molecular trait data.\n" 
 "\n" 
 "     ./yax meta {OPTIONS}      Single and multi-variant\n" 
 "                                 xQTL meta-analysis from\n" 
@@ -78,6 +80,7 @@ std::string help_string =
 "                                 data sharing.\n" 
 "\n" 
 "  Contact: corbinq@gmail.com\n";
+
 
 // ------------------------------------
 //  Wrapper for parsing within-mode command line options 
@@ -116,6 +119,7 @@ int parseModeArgs(args::ArgumentParser& p, std::vector<std::string>::const_itera
     }
 }
 
+
 // ------------------------------------
 //  Main function (determine running mode)
 // ------------------------------------
@@ -147,6 +151,7 @@ int main(int argc, char* argv[])
         {"cis", cis},
         {"trans", trans},
         {"meta", meta},
+		{"factor", factor},
         {"store", store}
 	};
 	
@@ -203,8 +208,10 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
 		args::ValueFlag<int> max_mod_arg(analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
 		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
-		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of latent confounders in ePC LMM.", {"epcs"});
-		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) for ePC LMM.", {"loco"});
+		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of ePCs extracted from trait matrix.", {"epcs"});
+		args::ValueFlag<int> epc_fe_arg(analysis_args, "", "Number of ePCs used as fixed effect covariates.", {"fe-epcs"});
+		args::Flag use_egrm(analysis_args, "", "Use eGRM rather than fixed-effect ePCs.", {"use-egrm"});
+		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) to calculate ePCs or eGRMs.", {"loco"});
 		
 	args::Group cis_args(p, "Output options");
 		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
@@ -294,6 +301,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	std::string loco = args::get(loco_arg);
 	n_ePCs = args::get(epc_arg);
+	int n_ePCs_FE = args::get(epc_fe_arg);
 	
 	trim_gene_ids = (bool) trim_ids;
 	
@@ -550,7 +558,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	if( grm_path == "" ){
 		if( n_ePCs > 0 ){
-			std::cerr << "Using " << n_ePCs << " latent factors.\n";
+			std::cerr << "Using " << n_ePCs << " ePCs.\n";
 			std::cerr << "Reading full trait matrix to construct ePCs...\n";
 			bed_data r_data;
 			r_data.readBedHeader(e_path.c_str());
@@ -572,9 +580,13 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 			
 			std::cerr << "Processed expression for " << r_data.data_matrix.cols() << " genes across " << r_data.data_matrix.rows() << " samples.\n";
 			
-			run_cis_QTL_analysis_eFE(n_ePCs, sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long, r_data.data_matrix);
+			if ( use_egrm ){
+				run_cis_QTL_analysis_eLMM(n_ePCs, n_ePCs_FE, sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long, r_data.data_matrix);
+			}else{
+				run_cis_QTL_analysis_eFE(n_ePCs, sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long, r_data.data_matrix);
+			}
 		}else{
-			std::cerr << "Using OLS (no latent confounders).\n";
+			std::cerr << "Using OLS (no GRM specified).\n";
 			run_cis_QTL_analysis(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r, true, make_long, just_long);
 		}
 	}else{
@@ -604,6 +616,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 
 	args::Group analysis_args(p, "Analysis options");
 		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		args::Flag save_resid(analysis_args, "", "Estimate and store LMM null model residuals.", {"save-resid"});
 		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
 		args::ValueFlag<std::string> cis_arg(analysis_args, "", "Use stored cis signals as covariates in trans analysis.", {"cis-file"});
 		args::ValueFlag<double> fpr_arg(analysis_args, "", "Nominal false positive rate (p-value threshold).", {"fpr"});
@@ -663,6 +676,8 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	std::string e_path = args::get(bed_arg);
 	std::string g_path = args::get(bcf_arg);
 	std::string c_path = args::get(cov_arg);
+	
+	global_opts::save_residuals( (bool) save_resid);
 	
 	
 	// ----------------------------------
@@ -939,6 +954,233 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 };
 
 
+int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
+	
+	args::ArgumentParser p("yax factor: high-dimensional factor analysis.", "Contact: corbinq@gmail.com.\n");
+    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::CompletionFlag completion(p, {"complete"});
+
+	p.Prog(progname);
+
+	args::Group analysis_args(p, "Analysis options");
+		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of latent common factors.", {"factors"});
+		args::ValueFlag<std::string> iter_arg(analysis_args, "", "Number of factor analysis iterations (0 for PCA).", {"iter"});
+
+	args::Group scale_args(p, "Scale and transform options");
+		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
+		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (can be used with rankNormal).", {"rankNormal-resid"});
+
+	args::Group input_args(p, "Input files");
+		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
+		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
+		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
+	
+	/*
+	args::Group subset_args(p, "Subsetting samples");
+		args::ValueFlag<std::string> iid_e_arg(subset_args, "", "List of samples to exclude (file path or comma-separated).", {"exclude-iids"});
+		args::ValueFlag<std::string> iid_i_arg(subset_args, "", "Only include specified samples (file path or comma-separated).", {"include-iids"});
+	
+	args::Group filter_args(p, "Filtering variants");
+		args::ValueFlag<std::string> iid_e_arg(subset_args, "", "List of variants to exclude (file path).", {"exclude-snps"});
+		args::ValueFlag<std::string> iid_i_arg(subset_args, "", "Only include specified variants (file path ).", {"include-snps"});
+	*/
+	
+	args::Group opt_args(p, "General options");
+		args::ValueFlag<int> threads_arg(opt_args, "", "No. threads (not to exceed no. available cores).", {"threads"});
+		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
+		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
+		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
+	
+	// ----------------------------------
+	// Parse command line arguments 
+	// ----------------------------------
+	
+	parseModeArgs(p, beginargs, endargs);
+	
+	// ----------------------------------
+	// I/O File Paths
+	// ----------------------------------
+	
+	prefix = args::get(out_arg);
+	std::string e_path = args::get(bed_arg);
+	std::string g_path = args::get(bcf_arg);
+	std::string c_path = args::get(cov_arg);
+	
+	// ----------------------------------
+	// Input subsetting: Regions, genotype fields, target genes
+	// ----------------------------------
+	
+	n_ePCs = args::get(epc_arg);
+	int n_FA_iter = 3;
+	std::string n_FA_iter_s = args::get(iter_arg);
+	
+	if( n_FA_iter_s != "" ){
+		n_FA_iter = std::stoi(n_FA_iter_s);
+	}
+	
+	global_opts::set_factor_iter(n_FA_iter);
+	
+	std::string region = args::get(region_arg);
+	trim_gene_ids = (bool) trim_ids;
+	
+	// ----------------------------------
+	// Set global options
+	// ----------------------------------
+	
+	int nthreads = args::get(threads_arg);
+	if( nthreads >= 1 ){
+		omp_set_num_threads(nthreads);
+		Eigen::setNbThreads(nthreads);
+	}
+	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
+	
+	global_opts::process_global_opts(prefix, true, 0.8, 0.8, 0.8, 1000000, std::vector<std::string>(0), true, false, trim_gene_ids, 0.8, true, true, true, 0.8);
+	
+	if( prefix == "" )
+	{
+		restore_cursor();
+	}else
+	{
+		hide_cursor();
+	}
+	
+	if( prefix == "" ){
+		std::cerr << "Error: Output prefix not specified. Try --help to see options.\n";
+		return 0;
+	}
+	
+	int n_var = 0;
+	
+	std::vector<int> variants_per_chrom;
+	
+	genotype_data g_data;
+	table c_data;
+	bed_data e_data;
+	
+	std::vector<std::string> bcf_chroms = get_chroms(g_path, variants_per_chrom);
+	std::vector<std::string> bed_chroms = get_chroms(e_path);
+	std::vector<std::string> keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
+	
+	for(int i = 0; i < bcf_chroms.size(); i++ ){
+		if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){
+			n_var += variants_per_chrom[i];
+		}
+	}
+	
+	// Show chromosomes present across files.
+	for(const auto& c : keep_chroms){
+		std::cerr << c << ",";
+	}
+	std::cerr << "\b present in both bcf and bed file.\n";
+	std::cerr << n_var << " total variants on selected chromosomes.\n\n";
+	
+	bcf_srs_t *sr = bcf_sr_init();
+	
+	if( region != "" ){
+		
+		std::cerr << "Setting region to " << region << " in bcf file ... \n";
+		bcf_sr_set_regions(sr, region.c_str(), 0);
+		
+	}else{
+		std::string region_string = "";
+		for(std::string& chr : keep_chroms){   
+			region_string += ( region_string=="" ? "" : "," ) + chr;
+		}
+		bcf_sr_set_regions(sr, region_string.c_str(), 0);
+	}
+	
+	bcf_sr_add_reader(sr, g_path.c_str());
+	bcf_hdr_t *hdr = bcf_sr_get_header(sr, 0);
+	
+	// read header from bcf file
+	g_data.read_bcf_header(hdr);
+	std::cerr << "Found " << g_data.ids.file.size() << " samples in bcf file ... \n";
+	
+	// read header from covariate file
+	if( c_path == "" ){
+		std::cerr << "\nWARNING: No covariate file specified. That's usually a bad idea.\n";
+		std::cerr << "    Covariates can be specified using --cov FILE. Use --rankNormal\n";
+		std::cerr << "    to rank-normal (aka, inverse-normal) transform traits, and use\n";
+		std::cerr << "    --rankNormal-resid for trait residuals.\n";
+	}else{
+		c_data.readHeader(c_path.c_str());
+		std::cerr << "Found " << c_data.cols.file.size() << " samples in covariate file ... \n";
+	}
+	
+	// read header from expression bed file
+	e_data.readBedHeader(e_path.c_str());
+	std::cerr << "Found " << e_data.ids.file.size() << " samples in expression bed file ... \n";
+	
+	std::vector<std::string> intersected_samples;
+	if( c_path == "" ){
+		intersected_samples = intersect_ids(g_data.ids.file, e_data.ids.file);
+	}else{
+		intersected_samples = intersect_ids(intersect_ids(g_data.ids.file, c_data.cols.file), e_data.ids.file);
+	}
+	
+	// order of intersected samples should match genotype file
+	
+	std::vector<std::string> intersected_samples_gto = g_data.ids.file;
+	for(int i = 0; i < intersected_samples_gto.size(); ){
+		if( has_element(intersected_samples, intersected_samples_gto[i]) ){
+			i++;
+		}else{
+			intersected_samples_gto.erase(intersected_samples_gto.begin() + i);
+		}
+	}
+	
+	intersected_samples = intersected_samples_gto;
+	
+	std::cerr << "Found " << intersected_samples.size() << " samples in common across all three files.\n\n";
+	
+	// set to the intersection across all three files
+	g_data.ids.setKeepIDs(intersected_samples);
+	g_data.n_samples = intersected_samples.size();
+	
+	e_data.ids.setKeepIDs(intersected_samples);
+	if( c_path != "" ) c_data.cols.setKeepIDs(intersected_samples);
+	
+	std::vector<std::string> keep_regions = keep_chroms;
+	if( region != "" ){
+		keep_regions.clear();
+		keep_regions.push_back(region);
+	} 
+	
+	// now let's read the expression and covariate data .. 
+	
+	if( c_path == "" ){
+		c_data.data_matrix = Eigen::MatrixXd::Constant(intersected_samples.size(), 1, 1.0);
+	}else{
+		c_data.readFile(c_path.c_str());
+		std::cerr << "Processed data for " << c_data.data_matrix.cols() << " covariates across " << c_data.data_matrix.rows() << " samples.\n";
+			
+		// if( !no_scale_x ){
+			scale_and_center(c_data.data_matrix);
+		// }
+		appendInterceptColumn(c_data.data_matrix);
+	}
+		
+	std::vector<int> test_idx;
+	std::vector<int> epc_idx;
+	
+	//if( n_ePCs > 0 ){
+	//	e_data.readBedFile(e_path.c_str(),bed_chroms);
+	//}else{
+		e_data.readBedFile(e_path.c_str(),keep_regions);
+	//}
+	
+	std::cerr << "Processed expression for " << e_data.data_matrix.cols() << " genes across " << e_data.data_matrix.rows() << " samples.\n";
+	
+	// let's get the genotypes. 
+	
+	
+	save_fa_covariates(n_ePCs, g_data, c_data, e_data, rknorm_y, rknorm_r);
+	
+    return 0;
+};
+
+
 int meta(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
 
 	// ----------------------------------
@@ -960,6 +1202,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		args::Flag meta_stepwise(meta_args, "", "Perform stepwise (conditional) meta-analysis.", {"stepwise"});
 	
 	args::Group analysis_args(p, "Analysis options");
+		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
 		args::ValueFlag<std::string> test_arg(analysis_args, "het,alt", "Meta-analysis test forms (comma-separated combination of 'het,hom,alt').", {'t', "tests"});
 		args::Flag ivw_1(analysis_args, "", "Calculate IVW weights under the alternative hypothesis.", {"ivw1"});
 		args::Flag het_meta(analysis_args, "", "Allow heterogeneous genotype effects across studies in stepwise meta-analysis.", {"het"});
@@ -1076,6 +1319,9 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	rsq_buddy = rsq_buddy <= 0 ? 2 : rsq_buddy;
 	rsq_prune = rsq_prune <= 0 ? 0.8 : rsq_prune;
 	pval_thresh = pval_thresh <= 0 ? 5e-5 : pval_thresh;
+	
+	double dtss_w = args::get(dtss_arg);
+	global_opts::set_exp_weight(dtss_w);
 	
 	// ----------------------------------
 	// Set global options

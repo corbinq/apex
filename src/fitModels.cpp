@@ -4,14 +4,14 @@
     Authors: Corbin Quick <qcorbin@hsph.harvard.edu>
 	         Li Guan <guanli@umich.edu>
 
-    This file is part of YAX.
+    This file is a part of YAX.
 
     YAX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
-    warranty of MERCHANTABILITY, NONINFRINGEMENT, or FITNESS 
+    warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
-    The above copyright notice and this permission notice shall 
+    The above copyright notice and disclaimer of warranty must 
     be included in all copies or substantial portions of YAX.
 */
 
@@ -43,38 +43,145 @@ double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen:
 */
 
 static const double min_hsq_thresh = 1e-5;
+// static const int n_fa_iter = 3;
+static const double adj_uniq = 1e-3;
 
-void calc_eGRM_PCs(Eigen::MatrixXd& ePCs, Eigen::VectorXd& lam, const Eigen::MatrixXd& Y, const int& n_eigs){
-	// Eigen::MatrixXd YT = scale_and_center(Y.transpose());
-	double m = Y.cols();
-	double n = Y.rows();
-	// Makes trace(R) = n if Y is scaled.
-	double adj = n/((n-1)*(m - 1));
-	Eigen::MatrixXd R = Y * Y.transpose() * adj;
-	
-	// Ensure that trace(R) = n*n_eigs.
-	adj = n_eigs * R.cols() / ( R.trace() );
-	R *= adj;
-	
+
+void calc_tSVD(const Eigen::MatrixXd& Y, Eigen::MatrixXd& U, Eigen::VectorXd& d, Eigen::MatrixXd& V, const int& nv){
+
+	Eigen::MatrixXd R = Y * Y.transpose();
+
 	Spectra::DenseSymMatProd<double> op(R);
 	
-	int n2 = 2* n_eigs;
+	int n2 = 2* nv;
 	if( n2 > R.cols() ){
 		n2 = R.cols();
 	}
 	
-	Spectra::SymEigsSolver< double, Spectra::LARGEST_ALGE, Spectra::DenseSymMatProd<double> > eigs(&op, n_eigs, n2);
+	Spectra::SymEigsSolver< double, Spectra::LARGEST_ALGE, Spectra::DenseSymMatProd<double> > eigs(&op, nv, n2);
 
 	eigs.init();
-    int nconv = eigs.compute();
+	int nconv = eigs.compute();
 	
-	lam = eigs.eigenvalues();
-	ePCs = eigs.eigenvectors();
+	d = eigs.eigenvalues().cwiseAbs().cwiseSqrt();
+	U = eigs.eigenvectors();
+	V = Y.transpose() * U * d.asDiagonal().inverse();
 	
-	// std::cout << "Values:\n";
-	// std::cout << lam << "\n";
-	// std::cout << "Vectors:\n";
-	// std::cout << ePCs << "\n";
+	return;
+}
+
+
+void calc_left_tSVD(const Eigen::MatrixXd& Y, Eigen::MatrixXd& U, Eigen::VectorXd& d, const int& nv){
+
+	Eigen::MatrixXd R = Y * Y.transpose();
+
+	Spectra::DenseSymMatProd<double> op(R);
+	
+	int n2 = 2* nv;
+	if( n2 > R.cols() ){
+		n2 = R.cols();
+	}
+	
+	Spectra::SymEigsSolver< double, Spectra::LARGEST_ALGE, Spectra::DenseSymMatProd<double> > eigs(&op, nv, n2);
+
+	eigs.init();
+	int nconv = eigs.compute();
+	
+	d = eigs.eigenvalues().cwiseAbs().cwiseSqrt();
+	U = eigs.eigenvectors();
+	
+	return;
+}
+
+
+void calc_eGRM_PCs(Eigen::MatrixXd& ePCs, Eigen::VectorXd& lam, const Eigen::MatrixXd& Y, const int& n_eigs){
+	
+	// Eigen::MatrixXd YT = scale_and_center(Y.transpose());
+	double m = Y.cols();
+	double n = Y.rows();
+	
+	double adj = n/((n-1)*(m - 1));
+	
+	if(  global_opts::n_fa_iter == 0  ){
+	
+		// Makes trace(R) = n if Y is scaled.
+		Eigen::MatrixXd R = Y * Y.transpose() * adj;
+		
+		// Ensure that trace(R) = n.
+		adj = R.cols() / ( R.trace() );
+		R *= adj;
+		
+		Spectra::DenseSymMatProd<double> op(R);
+		
+		int n2 = 2* n_eigs;
+		if( n2 > R.cols() ){
+			n2 = R.cols();
+		}
+		
+		Spectra::SymEigsSolver< double, Spectra::LARGEST_ALGE, Spectra::DenseSymMatProd<double> > eigs(&op, n_eigs, n2);
+
+		eigs.init();
+		int nconv = eigs.compute();
+		
+		lam = eigs.eigenvalues();
+		ePCs = eigs.eigenvectors();
+		
+		// std::cout << "Values:\n";
+		// std::cout << lam << "\n";
+		// std::cout << "Vectors:\n";
+		// std::cout << ePCs << "\n";
+		
+	}else{
+		Eigen::MatrixXd Y_ = Y;
+		scale_and_center(Y_);
+		// Y_ *= std::sqrt(adj);
+		
+		Eigen::MatrixXd Y_adj = Y_;
+		
+		Eigen::VectorXd s2_;
+		
+		s2_ = Y_adj.cwiseAbs2().colwise().mean();
+		// s2_.array() += adj_uniq;
+		
+		// std::cout << "RESIDUAL VARIANCES 0:\n";
+		// std::cout << s2_.mean() << "\n";
+		// std::cout << s2_.minCoeff() << "\n";
+		// std::cout << s2_.maxCoeff() << "\n";
+	
+		Eigen::MatrixXd U;
+		Eigen::VectorXd d;
+		// Eigen::MatrixXd V;
+		
+		for (int ii = 0; ii < global_opts::n_fa_iter; ii++){
+			
+			Eigen::MatrixXd Y_scaled = Y_ * s2_.cwiseAbs().cwiseSqrt().asDiagonal().inverse();
+			
+			//calc_tSVD(Y_scaled, U, d, V, n_eigs);
+			calc_left_tSVD(Y_scaled, U, d, n_eigs);
+
+			//Y_adj = U.transpose()Y_;
+			//Y_adj = (Y_ - (U * d.asDiagonal() * V.transpose() * s2_.cwiseSqrt().asDiagonal())).eval();
+			
+			// s2_ = Y_adj.cwiseAbs2().colwise().mean();
+			// s2_.array() += adj_uniq;
+			
+			for( int jj = 0; jj < Y_.cols(); jj++){
+				Eigen::VectorXd Y_hat = U.transpose() * Y_.col(jj);
+				Y_hat = (U * Y_hat).eval();
+				s2_(jj) = ((Y_.col(jj) - Y_hat).squaredNorm()/n);
+			}
+				
+			// std::cout << "RESIDUAL VARIANCES " << ii << ":\n";
+			// std::cout << s2_.mean() << "\n";
+			// std::cout << s2_.minCoeff() << "\n";
+			// std::cout << s2_.maxCoeff() << "\n";
+			
+		}
+		
+		lam = d.cwiseAbs2();
+		lam.array() *= adj;
+		ePCs = U;
+	}
 	
 	return;
 }
@@ -100,15 +207,15 @@ DiagonalXd calc_Psi(const double& phi, const Eigen::VectorXd& lambdas){
 
 DiagonalXd calc_Psi_low_rank(const double& phi, const Eigen::VectorXd& lambdas){
 	
-	double hsq = phi/(1.00 + phi);
+	// double hsq = phi/(1.00 + phi);
 	
-	if( hsq <= min_hsq_thresh ){
-		return Eigen::VectorXd::Zero(lambdas.size()).asDiagonal();
-	}
-	Eigen::VectorXd numer = hsq * lambdas;
+	// if( hsq <= min_hsq_thresh ){
+		// return Eigen::VectorXd::Zero(lambdas.size()).asDiagonal();
+	// }
+	Eigen::VectorXd numer = phi * lambdas;
 	Eigen::VectorXd denom = lambdas;
-	denom.array() -= 1.00;
-	denom.array() *= hsq;
+	// denom.array() -= 1.00;
+	denom.array() *= phi;
 	denom.array() += 1.00;
 	return (numer.cwiseQuotient(denom)).asDiagonal();	
 }
@@ -397,7 +504,7 @@ void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relat
 	
 	L_lambda.conservativeResize(nrel + nind);
 	for(int i = nrel; i < nrel + nind; i++){
-		L_lambda(i) = 1;
+		L_lambda(i) = GRM.coeffRef(i,i);
 	}
 	
 	
@@ -510,7 +617,7 @@ void dense_GRM_decomp( Eigen::MatrixXd& GRM, const std::vector<int>& relateds, E
 	
 	L_lambda.conservativeResize(nrel + nind);
 	for(int i = nrel; i < nrel + nind; i++){
-		L_lambda(i) = 1;
+		L_lambda(i) = GRM.coeffRef(i,i);
 	}
 	
 	
@@ -686,7 +793,7 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 }
 
 
-forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, vcov_getter& vget, double pval_thresh )
+forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, vcov_getter& vget, double pval_thresh, const std::vector<double>& weights )
 {
 
 	Eigen::VectorXd U_0 = Eigen::VectorXd(0);
@@ -727,7 +834,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		}
 
 		int wk = which_min(reg.pval, true);
-		double adj_pval = ACAT_non_missing(reg.pval);
+		double adj_pval = ACAT_non_missing(reg.pval, weights);
 		
 		//cout << nk << ":" << wk << "\t" << reg0.beta[wk]  << "\t" << reg0.se[wk]  << "\t" << reg.pval[wk]  << "\t" << adj_pval << "\n";
 		
@@ -909,7 +1016,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 
 // to do: make parent generic class vcov_getter, where indiv_vcov_getter and sumstat_vcov_getter inherit from vcov_getter. This is an exact duplicate function. 
 
-forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, indiv_vcov_getter& vget, double pval_thresh )
+forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, indiv_vcov_getter& vget, double pval_thresh, const std::vector<double>& weights )
 {
 
 	Eigen::VectorXd U_0 = Eigen::VectorXd(0);
@@ -950,7 +1057,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		}
 
 		int wk = which_min(reg.pval, true);
-		double adj_pval = ACAT_non_missing(reg.pval);
+		double adj_pval = ACAT_non_missing(reg.pval, weights);
 		
 		//cout << nk << ":" << wk << "\t" << reg0.beta[wk]  << "\t" << reg0.se[wk]  << "\t" << reg.pval[wk]  << "\t" << adj_pval << "\n";
 		
