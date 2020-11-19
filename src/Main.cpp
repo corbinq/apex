@@ -1070,22 +1070,28 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	table c_data;
 	bed_data e_data;
 	
-	std::vector<std::string> bcf_chroms = get_chroms(g_path, variants_per_chrom);
+	std::vector<std::string> bcf_chroms;
+	std::vector<std::string> keep_chroms;
 	std::vector<std::string> bed_chroms = get_chroms(e_path);
-	std::vector<std::string> keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
 	
-	for(int i = 0; i < bcf_chroms.size(); i++ ){
-		if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){
-			n_var += variants_per_chrom[i];
+	if ( g_path != "" ){
+		bcf_chroms = get_chroms(g_path, variants_per_chrom);
+	
+		for(int i = 0; i < bcf_chroms.size(); i++ ){
+			if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){
+				n_var += variants_per_chrom[i];
+			}
 		}
+		
 	}
+	keep_chroms = bed_chroms;
 	
 	// Show chromosomes present across files.
 	for(const auto& c : keep_chroms){
 		std::cerr << c << ",";
 	}
-	std::cerr << "\b present in both bcf and bed file.\n";
-	std::cerr << n_var << " total variants on selected chromosomes.\n\n";
+	std::cerr << "\b present in file.\n";
+	// std::cerr << n_var << " total variants on selected chromosomes.\n\n";
 	
 	bcf_srs_t *sr = bcf_sr_init();
 	
