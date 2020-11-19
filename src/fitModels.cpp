@@ -136,11 +136,11 @@ void calc_eGRM_PCs(Eigen::MatrixXd& ePCs, Eigen::VectorXd& lam, const Eigen::Mat
 		scale_and_center(Y_);
 		// Y_ *= std::sqrt(adj);
 		
-		Eigen::MatrixXd Y_adj = Y_;
+		//Eigen::MatrixXd Y_adj = Y_;
 		
 		Eigen::VectorXd s2_;
 		
-		s2_ = Y_adj.cwiseAbs2().colwise().mean();
+		s2_ = Y_.cwiseAbs2().colwise().mean();
 		// s2_.array() += adj_uniq;
 		
 		// std::cout << "RESIDUAL VARIANCES 0:\n";
@@ -168,7 +168,10 @@ void calc_eGRM_PCs(Eigen::MatrixXd& ePCs, Eigen::VectorXd& lam, const Eigen::Mat
 			for( int jj = 0; jj < Y_.cols(); jj++){
 				Eigen::VectorXd Y_hat = U.transpose() * Y_.col(jj);
 				Y_hat = (U * Y_hat).eval();
-				s2_(jj) = ((Y_.col(jj) - Y_hat).squaredNorm()/n);
+				double sigma2 = ((Y_.col(jj) - Y_hat).squaredNorm()/n);
+				
+				s2_(jj) = global_opts::fa_p * global_opts::fa_tau + ( 1 - global_opts::fa_p ) * sigma2;
+				
 			}
 				
 			// std::cout << "RESIDUAL VARIANCES " << ii << ":\n";

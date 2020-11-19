@@ -52,6 +52,8 @@ namespace global_opts
 	// ANALYSIS OPTIONS 
 	
 		int n_fa_iter = 3;
+		double fa_p = 0.001;
+		double fa_tau = 1.00;
 	
 		bool write_resid_mat = false;
 	
@@ -162,8 +164,10 @@ void global_opts::use_sloppy_covar(){
 	return;
 }
 
-void global_opts::set_factor_iter(const int& nf){
-	n_fa_iter = nf;
+void global_opts::set_factor_par(const int& nf_, const double& fp_, const double& ft_){
+	n_fa_iter = nf_;
+	fa_p = fp_;
+	fa_tau = ft_;
 	return;
 }
 

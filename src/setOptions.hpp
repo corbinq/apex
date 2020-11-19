@@ -58,7 +58,9 @@ namespace global_opts
 		extern bool write_resid_mat;
 
 		extern int n_fa_iter;
-
+		extern double fa_p;
+		extern double fa_tau;
+		
 		// stepwise options 
 		extern int max_signals;
 		extern int max_steps;
@@ -128,7 +130,7 @@ namespace global_opts
 		
 		void save_residuals(const bool&);
 		
-		void set_factor_iter(const int&);
+		void set_factor_par(const int&, const double&, const double&);
 
 }
 

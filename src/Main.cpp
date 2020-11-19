@@ -965,6 +965,8 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	args::Group analysis_args(p, "Analysis options");
 		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of latent common factors.", {"factors"});
 		args::ValueFlag<std::string> iter_arg(analysis_args, "", "Number of factor analysis iterations (0 for PCA).", {"iter"});
+		args::ValueFlag<std::string> pp_arg(analysis_args, "", "Factor analysis prior p.", {"prior-p"});
+		args::ValueFlag<std::string> pt_arg(analysis_args, "", "Factor analysis prior tau.", {"prior-tau"});
 
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -1013,13 +1015,23 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	
 	n_ePCs = args::get(epc_arg);
 	int n_FA_iter = 3;
+	double fa_p = 0.001;
+	double fa_t = 1.00;
 	std::string n_FA_iter_s = args::get(iter_arg);
+	std::string fa_p_s = args::get(pp_arg);
+	std::string fa_t_s = args::get(pt_arg);
 	
 	if( n_FA_iter_s != "" ){
 		n_FA_iter = std::stoi(n_FA_iter_s);
 	}
+	if( fa_p_s != "" ){
+		fa_p = std::stod(fa_p_s);
+	}
+	if( fa_t_s != "" ){
+		fa_t = std::stod(fa_t_s);
+	}
 	
-	global_opts::set_factor_iter(n_FA_iter);
+	global_opts::set_factor_par(n_FA_iter, fa_p, fa_t);
 	
 	std::string region = args::get(region_arg);
 	trim_gene_ids = (bool) trim_ids;
@@ -1090,12 +1102,18 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 		bcf_sr_set_regions(sr, region_string.c_str(), 0);
 	}
 	
-	bcf_sr_add_reader(sr, g_path.c_str());
-	bcf_hdr_t *hdr = bcf_sr_get_header(sr, 0);
+	bcf_hdr_t *hdr;
 	
-	// read header from bcf file
-	g_data.read_bcf_header(hdr);
-	std::cerr << "Found " << g_data.ids.file.size() << " samples in bcf file ... \n";
+	if( g_path != "" ){
+		
+		bcf_sr_add_reader(sr, g_path.c_str());
+		hdr = bcf_sr_get_header(sr, 0);
+		
+		// read header from bcf file
+		g_data.read_bcf_header(hdr);
+		std::cerr << "Found " << g_data.ids.file.size() << " samples in bcf file ... \n";	
+			
+	}
 	
 	// read header from covariate file
 	if( c_path == "" ){
@@ -1113,30 +1131,36 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	std::cerr << "Found " << e_data.ids.file.size() << " samples in expression bed file ... \n";
 	
 	std::vector<std::string> intersected_samples;
-	if( c_path == "" ){
+	if( c_path == "" && g_path == "" ){
+		intersected_samples = e_data.ids.file;
+	}else if( c_path == "" ){
 		intersected_samples = intersect_ids(g_data.ids.file, e_data.ids.file);
 	}else{
 		intersected_samples = intersect_ids(intersect_ids(g_data.ids.file, c_data.cols.file), e_data.ids.file);
 	}
 	
-	// order of intersected samples should match genotype file
-	
-	std::vector<std::string> intersected_samples_gto = g_data.ids.file;
-	for(int i = 0; i < intersected_samples_gto.size(); ){
-		if( has_element(intersected_samples, intersected_samples_gto[i]) ){
-			i++;
-		}else{
-			intersected_samples_gto.erase(intersected_samples_gto.begin() + i);
+	if( g_path != "" ){
+		
+		// order of intersected samples should match genotype file
+		
+		std::vector<std::string> intersected_samples_gto = g_data.ids.file;
+		for(int i = 0; i < intersected_samples_gto.size(); ){
+			if( has_element(intersected_samples, intersected_samples_gto[i]) ){
+				i++;
+			}else{
+				intersected_samples_gto.erase(intersected_samples_gto.begin() + i);
+			}
 		}
+		
+		intersected_samples = intersected_samples_gto;
+		
+		std::cerr << "Found " << intersected_samples.size() << " samples in common across all three files.\n\n";
+
+		// set to the intersection across all three files
+		g_data.ids.setKeepIDs(intersected_samples);
+		g_data.n_samples = intersected_samples.size();
+		
 	}
-	
-	intersected_samples = intersected_samples_gto;
-	
-	std::cerr << "Found " << intersected_samples.size() << " samples in common across all three files.\n\n";
-	
-	// set to the intersection across all three files
-	g_data.ids.setKeepIDs(intersected_samples);
-	g_data.n_samples = intersected_samples.size();
 	
 	e_data.ids.setKeepIDs(intersected_samples);
 	if( c_path != "" ) c_data.cols.setKeepIDs(intersected_samples);
