@@ -271,7 +271,6 @@ Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq ){
 
 void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda ){
 	
-	
 	BGZF* anchor_file;
 	
 	if( global_opts::write_v_anchors ){
@@ -314,6 +313,7 @@ void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, c
 	std::cerr << "Done.\n";
 	
 	for(int j = 1; j < n_hsq; j++){
+		
 		std::cerr << "Calculating genotype variance anchor points (" << j+1 << "/" << n_hsq << ") ... \n";
 
 		Eigen::MatrixXd Psi_a = calc_Psi(hsq_vals[j], Q_lambda) * QtG;
@@ -325,6 +325,7 @@ void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, c
 				GtG_diag[i] - QtG.col(i).dot(Psi_a.col(i)) - Res.col(i).dot(M_list[j] * Res.col(i))
 			);
 		}
+		
 	}
 	
 	if( global_opts::write_v_anchors ){

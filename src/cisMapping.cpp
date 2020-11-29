@@ -1702,3 +1702,4 @@ void save_fa_covariates(const int& n_fac, genotype_data& g_data, table& c_data, 
 	c_data.write_table(out_cov_path);
 	
 }
+

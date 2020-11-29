@@ -213,6 +213,11 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::Flag use_egrm(analysis_args, "", "Use eGRM rather than fixed-effect ePCs.", {"use-egrm"});
 		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) to calculate ePCs or eGRMs.", {"loco"});
 		
+		// Remove these later
+		args::ValueFlag<std::string> iter_arg(analysis_args, "", "Number of factor analysis iterations (0 for PCA).", {"iter"});
+		args::ValueFlag<std::string> pp_arg(analysis_args, "", "Factor analysis prior p.", {"prior-p"});
+		args::ValueFlag<std::string> pt_arg(analysis_args, "", "Factor analysis prior tau.", {"prior-tau"});
+		
 	args::Group cis_args(p, "Output options");
 		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
 		args::Flag just_long(cis_args, "", "Only write long-table cis-QTL results.", {'L', "just-long"});
@@ -302,6 +307,33 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	std::string loco = args::get(loco_arg);
 	n_ePCs = args::get(epc_arg);
 	int n_ePCs_FE = args::get(epc_fe_arg);
+	
+	
+	// ----------------------------------------------------------------------------
+	// REMOVE; MODE FACTOR ONLY
+	
+	int n_FA_iter = 3;
+	double fa_p = 0.001;
+	double fa_t = 1.00;
+	std::string n_FA_iter_s = args::get(iter_arg);
+	std::string fa_p_s = args::get(pp_arg);
+	std::string fa_t_s = args::get(pt_arg);
+	
+	if( n_FA_iter_s != "" ){
+		n_FA_iter = std::stoi(n_FA_iter_s);
+	}
+	if( fa_p_s != "" ){
+		fa_p = std::stod(fa_p_s);
+	}
+	if( fa_t_s != "" ){
+		fa_t = std::stod(fa_t_s);
+	}
+	
+	global_opts::set_factor_par(n_FA_iter, fa_p, fa_t);
+	
+	// END REMOVE
+	// ----------------------------------------------------------------------------
+	
 	
 	trim_gene_ids = (bool) trim_ids;
 	
