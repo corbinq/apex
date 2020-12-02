@@ -18,12 +18,14 @@ To install YAX from source or download precompiled binaries, [**see installation
  - R interface for joint and conditional analysis, Bayesian finemapping, aggregation tests, and penalized regression from xQTL summary data files across one or multiple studies.
  
 ## Analysis modes and documentation
- - [**cis-xQTL analysis.**](/yax/doc/mode_cis/) `./yax cis {options}`
+- [**xQTL factor analysis.**](/yax/doc/mode_factor/)  `./yax factor {options}`
+	 - Rapid high-dimensional factor analysis to account for technical and biological variation in molecular trait data. 
+- [**xQTL linear mixed models.**](/yax/doc/mode_factor/)  `./yax lmm {options}`
+	 - Precompute null model terms for rapid LMM association analysis. 
+- [**cis-xQTL analysis.**](/yax/doc/mode_cis/) `./yax cis {options}`
 	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
  - [**trans-xQTL analysis.**](/yax/doc/mode_trans/)  `./yax trans {options}`
 	 - Analyze xQTL genome-wide associations for each molecular trait, optionally excluding variants within the cis region. 
- - [**xQTL factor analysis.**](/yax/doc/mode_factor/)  `./yax factor {options}`
-	 - Rapid high-dimensional factor analysis to account for technical and biological variation in molecular trait data. 
  - [**xQTL meta-analysis.**](/yax/doc/mode_meta/)  `./yax meta {options}`
 	 -  Meta-analyze xQTL association summary statistics across one or multiple studies.   
  - [**xQTL summary data storage.**](/yax/doc/mode_store/)  `./yax store {options}`
