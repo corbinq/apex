@@ -542,15 +542,7 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 				int pos_e = g_data.pos[v_e];
 				
 				const Eigen::SparseMatrix<double>& G_slice = G.middleCols(idx_s, idx_n);
-				// const Eigen::MatrixXd& QtG_slice = QtG.middleCols(s_slice, n_slice).middleCols(idx_s, idx_n);
-				// const Eigen::MatrixXd& CtG_slice = CtG.middleCols(s_slice, n_slice).middleCols(idx_s, idx_n);
-								
-				// LMM_fitter fit(X, Y.col(jj), GRM_lambda);
-				// fit.fit_REML();
-				
-				// const double& sigma2 = fit.sigma2;
-				// const double& phi = fit.phi;
-				
+
 				const double& sigma2 = sigma_v[jj];
 				const double& phi = phi_v[jj];
 				
@@ -560,8 +552,6 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 				
 				// ------------------------------------------------
 				
-				// std::cout << e_data.gene_id[jj] << "\t" << fit.sigma2 << "\t" << tau2 << "\t" << hsq << "\n";
-						
 				std::stringstream theta_line;
 				
 				theta_line <<
@@ -577,85 +567,12 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 				
 
 				// ------------------------------------------------
-
-				// Eigen::MatrixXd XtDXi_true = (X.transpose() * fit.Vi * X).inverse();
-				// Eigen::MatrixXd XtDG_true = X.transpose() * fit.Vi * G_slice;
-				// Eigen::MatrixXd XtDXi_XtDG = XtDXi * XtDG;
 				
 				double ADJ = 1.00/(1.00 + phi);
 				
-				// DiagonalXd Psi = calc_Psi(phi, Q_lambda);
-				// Eigen::MatrixXd XtDXi = ((CtC - QtC.transpose() * Psi * QtC ).inverse())/ADJ;
-				// Eigen::MatrixXd XtDG = ( CtG_slice -  QtC.transpose() * Psi * QtG_slice )*ADJ;
-				
-				/*
-				for( int i = 0; i < XtDG.rows(); i++ ){
-					for( int j = 0; j < XtDG.cols(); j++ ){
-						std::cout << XtDG(i,j) << "\t" << XtDG_true(i,j) << "\n";
-					}
-				}
-				abort();
-				*/
-				
-				
-				// ------ This works, but slower than expected --------
-				// Eigen::VectorXd Py_0 = (XtDXi * ( CtY.col(jj) - (QtC.transpose() * (Psi * QtY.col(jj)) ))).eval();
-				
-				// Eigen::VectorXd Py = ADJ*( Y_raw.col(jj) - (Q * (Psi * QtY.col(jj))))  - (ADJ*ADJ)*(
-					// ((C* Py_0) - Q * (Psi * (QtC * Py_0)) ) 
-				// );
-				// double SSR_0 = Py.dot(Y_raw.col(jj))/fit.sigma2;
-				// Eigen::VectorXd U_vec = (G_slice.transpose() * Py)/std::sqrt(fit.sigma2);
-				// ----------------------------------------------------
-				
-				// ---- Does not work* ---------------------------------
-				//     *Because C needs to be orthogonal (and possibly additional issues). 
-				// Eigen::VectorXd Py = calc_Py(QtC, C, Q, calc_Psi(hsq, Q_lambda), Y_raw.col(jj), QtY.col(jj), CtY.col(jj))/(1.00 + fit.phi);
-				// -----------------------------------------------------
-				
-				
-				//(Y_raw.col(jj) - QtG_slice.col(si).dot(Psi * QtG_slice.col(si)))/(1.00 + fit.phi) - (XtDG.col(si).dot( XtDXi * XtDG.col(si) ));
-				
-
-				
-				
-				// Eigen::VectorXd y_res_true = Y.col(jj) - X * XtDXi_true * X.transpose() * fit.Vi * Y.col(jj);
-				// Eigen::VectorXd U_vec_true = G_slice.transpose() * fit.Vi * y_res_true/std::sqrt(fit.sigma2);
-				
-				// -------- This works. Faster than expected. -----------------
-				// DiagonalXd Psi = calc_Psi(phi, Q_lambda);
-				// Eigen::MatrixXd XtDXi = ((CtC - QtC.transpose() * Psi * QtC ).inverse())/ADJ;
-				// Eigen::VectorXd y_res = Y.col(jj) - X * XtDXi * X.transpose() * fit.Vi * Y.col(jj);
-				// double SSR_0 = y_res.dot(fit.Vi * Y.col(jj))/sigma2;
-				
-				// Eigen::VectorXd Py = (L * (fit.Vi * y_res/std::sqrt(sigma2)));
-				
-				// Eigen::VectorXd U_vec = G_slice.transpose() * Py;
-				// ------------------------------------------------------------
-				
-				
-				
-				// -------- Modified, similar to trans mode. -----------------
 				Eigen::VectorXd U_vec = G_slice.transpose() * Y.col(jj);
 				const double& SSR_0 = SSR_v[jj];
 				// ------------------------------------------------------------
-				
-				
-				
-				//Eigen::VectorXd diagV(U_vec.size());
-				
-				// for (int si = 0; si < U_vec.size(); si++){
-
-					//diagV(si) = (GtG_diag[v_s + si] - QtG_slice.col(si).dot(Psi * QtG_slice.col(si)))/(1.00 + fit.phi) - (XtDG.col(si).dot( XtDXi * XtDG.col(si) ));
-					
-					// double true_val = (GtG_diag[v_s + si] - QtG_slice.col(si).dot(Psi * QtG_slice.col(si)))/(1.00 + fit.phi) - (XtDG.col(si).dot( XtDXi * XtDG.col(si) ));
-					
-					// diagV(si) = predV(V_mat.row(v_s + si), hsq)/(1.00 + fit.phi);
-					
-					//std::cout << e_data.gene_id[jj] << "\t" << fit.sigma2 << "\t" << tau2 << "\t" << hsq << "\tVG:\t" << true_val << "\t" << diagV(si) << "\tVG01:\t" << predV(V_mat.row(v_s + si), 0.00) << "\t" << predV(V_mat.row(v_s + si), 1.00) << "\n";
-					
-				// }
-				
 				
 				if(  v_s + U_vec.size() - 1 >=  V_mat.rows() ){
 					std::cerr << "\n";
@@ -677,8 +594,6 @@ void run_cis_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_d
 					if( g_data.flipped[ii] ) g_yres_crossprod *= -1.0;
 					
 					if( !just_long ) block_line << "\t" << g_yres_crossprod;
-					
-					//std::cout << diagV(si) << "\t" << g_data.var[ii] << "\t" << g_yres_crossprod << "\n";
 					
 					double beta, beta_se, zscore, pval_esnp;
 					
@@ -794,18 +709,11 @@ void run_cis_QTL_analysis_eLMM(const int& n_fac, const int& n_fac_fe, bcf_srs_t*
 	Eigen::MatrixXd& Y = e_data.data_matrix;
 	Eigen::MatrixXd& C = c_data.data_matrix;
 		
-	// std::cerr << "Reordering trait and covariate matrices ...\n";
-	// std::cerr << "Reordering genotypes ...\n";
-	// g_data.genotypes = (Tr * g_data.genotypes).eval();
-		
-	
 	double n_traits = Y.cols();
 	double n_samples = Y.rows();
 	double n_snps = g_data.n_variants;
 	double n_covar = C.cols();
 
-	// std::cerr << "Started cis-QTL analysis ...\n";
-	
 	if( rknorm_y ){
 		std::cerr << "Rank-normalizing expression traits ... \n";
 		rank_normalize(Y);

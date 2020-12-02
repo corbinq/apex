@@ -29,6 +29,8 @@ namespace global_opts
 		bool low_mem = false;
 	
 	// INPUT OPTIONS 
+	
+		std::string global_region = "";
 		
 		// GENOTYPE OPTIONS
 		// bool set_from_
@@ -178,6 +180,11 @@ void global_opts::set_max_signals(const int& ms){
 
 void global_opts::save_residuals(const bool& wb){
 	write_resid_mat = wb;
+	return;
+}
+
+void global_opts::set_global_region(const std::string& reg){
+	global_region = reg;
 	return;
 }
 

@@ -50,6 +50,7 @@ bool stepwise_marginal_thresh = false;
 int cis(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int trans(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
+int lmm(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int meta(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 int store(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs);
 
@@ -70,6 +71,9 @@ std::string help_string =
 "\n"
 "     ./yax factor {OPTIONS}    Estimate latent factors from\n" 
 "                                 molecular trait data.\n" 
+"\n" 
+"     ./yax lmm {OPTIONS}       Precompute terms for linear\n" 
+"                                 mixed model analysis.\n" 
 "\n" 
 "     ./yax meta {OPTIONS}      Single and multi-variant\n" 
 "                                 xQTL meta-analysis from\n" 
@@ -150,8 +154,9 @@ int main(int argc, char* argv[])
     std::unordered_map<std::string, mode_fun> map{
         {"cis", cis},
         {"trans", trans},
-        {"meta", meta},
 		{"factor", factor},
+		{"lmm", lmm},
+        {"meta", meta},
         {"store", store}
 	};
 	
@@ -984,6 +989,354 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	
     return 0;
 };
+
+
+int lmm(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
+	
+	// ----------------------------------
+	// Define command line flags
+	// ----------------------------------
+	
+	args::ArgumentParser p("yax lmm: LMM pre-processing.", "Contact: corbinq@gmail.com.\n");
+    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::CompletionFlag completion(p, {"complete"});
+	
+	p.Prog(progname);
+
+	args::Group analysis_args(p, "Analysis options");
+		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		args::Flag save_resid(analysis_args, "", "Estimate and store LMM null model residuals.", {"save-resid"});
+		// args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
+		args::Flag write_anchors(analysis_args, "", "Save genotype variance interpolation points.", {"write-gvar"});
+
+	args::Group scale_args(p, "Scale and transform options");
+		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
+		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (can be used with rankNormal).", {"rankNormal-resid"});
+		args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
+		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
+	
+	args::Group input_args(p, "Input files");
+		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
+		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
+		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
+		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
+		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
+		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
+	
+	/*
+	args::Group subset_args(p, "Subsetting samples");
+		args::ValueFlag<std::string> iid_e_arg(subset_args, "", "List of samples to exclude (file path or comma-separated).", {"exclude-iids"});
+		args::ValueFlag<std::string> iid_i_arg(subset_args, "", "Only include specified samples (file path or comma-separated).", {"include-iids"});
+	
+	args::Group filter_args(p, "Filtering variants");
+		args::ValueFlag<std::string> iid_e_arg(subset_args, "", "List of variants to exclude (file path).", {"exclude-snps"});
+		args::ValueFlag<std::string> iid_i_arg(subset_args, "", "Only include specified variants (file path ).", {"include-snps"});
+	*/
+	
+	args::Group opt_args(p, "General options");
+		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
+		args::ValueFlag<int> threads_arg(opt_args, "", "No. threads (not to exceed no. available cores).", {"threads"});
+		args::Flag low_mem(opt_args, "", "Lower memory usage.", {"low-mem"});
+		// args::Flag sloppy(opt_args, "", "Use sloppy covariate adjustment (faster, but less powerful).", {"sloppy"});
+		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
+		args::ValueFlag<std::string> bed_region_arg(opt_args, "", "Subset bed to specified genomic region.", {"bed-region"});
+		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
+		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
+		args::ValueFlag<int> blocks_arg(opt_args, "100", "Number of variants per trans-xQTL block.", {"block-size"});
+		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
+	
+	// ----------------------------------
+	// Parse command line arguments 
+	// ----------------------------------
+	
+	parseModeArgs(p, beginargs, endargs);
+	
+	// ----------------------------------
+	// I/O File Paths
+	// ----------------------------------
+	
+	// std::string theta_path = args::get(theta_arg);
+	// std::string cis_path = args::get(cis_arg);
+	
+	prefix = args::get(out_arg);
+	std::string e_path = args::get(bed_arg);
+	std::string g_path = args::get(bcf_arg);
+	std::string c_path = args::get(cov_arg);
+	
+	global_opts::save_residuals( (bool) save_resid);
+	
+	
+	// ----------------------------------
+	// GRM paths and options
+	// ----------------------------------
+	
+	std::string grm_path = args::get(grm_arg);
+	std::string kin_path = args::get(kin_arg);
+	double grm_scale = 1.00;
+	
+	if( kin_path != "" ){
+		if( grm_path != "" ){
+			std::cerr << "ERROR: Specify --kin or --grm, but not both.\n";
+			abort();
+		}
+		grm_path = kin_path;
+		grm_scale = 2.00; 
+	}
+	
+	
+	// ----------------------------------
+	// Input subsetting: Regions, genotype fields, target genes
+	// ----------------------------------
+	
+	trim_gene_ids = (bool) trim_ids;
+	
+	std::string region = args::get(region_arg);
+	std::string bed_region = args::get(bed_region_arg);
+	std::string gtds = args::get(gtds_arg);
+	target_genes = split_string(args::get(gene_arg), ',');
+	
+	int block_size = args::get(blocks_arg);
+	
+	if( block_size <= 0 ){
+		block_size = 100;
+	}
+	
+	// Use imputed dosages rather than genotype hard calls
+	use_ds;
+	if( gtds == "" || gtds == "GT" ){
+		use_ds = false;
+	}else if( gtds == "DS" ){
+		use_ds = true;
+	}else{
+		std::cerr << "Invalid specification --field " << gtds << "\n";
+		std::cerr << "Valid options are \"GT\" or \"DS\". Exiting. \n";
+		return 1;
+	}
+	
+	//cerr << "\n" << region << "\n\n";
+	
+	std::string window_size_s = args::get(window_arg);
+	
+	if( window_size_s == "" ){
+		window_size = 1000000;
+	}else{
+		window_size = stoi(window_size_s);
+		std::cerr << "Set window size to " << window_size/1000000 << " Mbp.\n";
+	}
+	
+	// ----------------------------------
+	// Set global options
+	// ----------------------------------
+	
+	use_low_mem = (bool) low_mem;
+	
+	global_opts::set_lmm_options( (bool) write_anchors );
+	
+	int nthreads = args::get(threads_arg);
+	if( nthreads >= 1 ){
+		omp_set_num_threads(nthreads);
+		Eigen::setNbThreads(nthreads);
+	}
+	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
+	
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	
+	// if( sloppy ){
+		// global_opts::use_sloppy_covar();
+	// }
+	
+	if( prefix == "" )
+	{
+		restore_cursor();
+	}else
+	{
+		hide_cursor();
+	}
+	
+	if( prefix == "" ){
+		std::cerr << "Error: Output prefix not specified. Try --help to see options.\n";
+		return 0;
+	}
+	
+	int max_var = 100000000;
+	
+	int n_var = 0;
+	
+	std::vector<int> variants_per_chrom;
+	
+	genotype_data g_data;
+	table c_data;
+	bed_data e_data;
+	
+	std::vector<std::string> bcf_chroms = get_chroms(g_path, variants_per_chrom);
+	std::vector<std::string> bed_chroms = get_chroms(e_path);
+	// std::vector<std::string> keep_chroms = intersect_ids(bcf_chroms,bed_chroms);
+	
+	std::vector<std::string> keep_chroms = bcf_chroms;
+	
+	for(int i = 0; i < bcf_chroms.size(); i++ ){
+		if( find(keep_chroms.begin(), keep_chroms.end(), bcf_chroms[i]) != keep_chroms.end() ){
+			n_var += variants_per_chrom[i];
+		}
+	}
+	
+	std::cerr << n_var << " total variants on selected chromosomes.\n\n";
+	
+	bcf_srs_t *sr = bcf_sr_init();
+	
+	if( region != "" ){
+		
+		std::cerr << "Setting region to " << region << " in bcf file ... \n";
+		bcf_sr_set_regions(sr, region.c_str(), 0);
+		
+	}else{
+		std::string region_string = "";
+		for(std::string& chr : keep_chroms){   
+			region_string += ( region_string=="" ? "" : "," ) + chr;
+		}
+		bcf_sr_set_regions(sr, region_string.c_str(), 0);
+	}
+	
+	bcf_sr_add_reader(sr, g_path.c_str());
+	bcf_hdr_t *hdr = bcf_sr_get_header(sr, 0);
+	
+	// read header from bcf file
+	g_data.read_bcf_header(hdr);
+	std::cerr << "Found " << g_data.ids.file.size() << " samples in bcf file ... \n";
+	
+	// read header from covariate file
+	if( c_path == "" ){
+		std::cerr << "\nWARNING: No covariate file specified. That's usually a bad idea.\n";
+		std::cerr << "    Covariates can be specified using --cov FILE. Use --rankNormal\n";
+		std::cerr << "    to rank-normal (aka, inverse-normal) transform traits, and use\n";
+		std::cerr << "    --rankNormal-resid for trait residuals.\n";
+	}else{
+		c_data.readHeader(c_path.c_str());
+		std::cerr << "Found " << c_data.cols.file.size() << " samples in covariate file ... \n";
+	}
+	
+	// read header from expression bed file
+	e_data.readBedHeader(e_path.c_str());
+	std::cerr << "Found " << e_data.ids.file.size() << " samples in expression bed file ... \n";
+	
+	std::vector<std::string> intersected_samples;
+	if( c_path == "" ){
+		intersected_samples = intersect_ids(g_data.ids.file, e_data.ids.file);
+	}else{
+		intersected_samples = intersect_ids(intersect_ids(g_data.ids.file, c_data.cols.file), e_data.ids.file);
+	}
+	
+	// order of intersected samples should match genotype file
+	
+	std::vector<std::string> intersected_samples_gto = g_data.ids.file;
+	for(int i = 0; i < intersected_samples_gto.size(); ){
+		if( has_element(intersected_samples, intersected_samples_gto[i]) ){
+			i++;
+		}else{
+			intersected_samples_gto.erase(intersected_samples_gto.begin() + i);
+		}
+	}
+	
+	intersected_samples = intersected_samples_gto;
+	
+	std::cerr << "Found " << intersected_samples.size() << " samples in common across all three files.\n\n";
+	
+	// set to the intersection across all three files
+	g_data.ids.setKeepIDs(intersected_samples);
+	g_data.n_samples = intersected_samples.size();
+	
+	e_data.ids.setKeepIDs(intersected_samples);
+	if( c_path != "" ) c_data.cols.setKeepIDs(intersected_samples);
+	
+	std::vector<std::string> keep_regions = keep_chroms;
+	if( region != "" ){
+		keep_regions.clear();
+		keep_regions.push_back(region);
+	} 
+	
+	// now let's read the expression and covariate data .. 
+	
+	if( c_path == "" ){
+		 c_data.data_matrix = Eigen::MatrixXd::Constant(intersected_samples.size(), 1, 1.0);
+	}else{
+		c_data.readFile(c_path.c_str());
+		std::cerr << "Processed data for " << c_data.data_matrix.cols() << " covariates across " << c_data.data_matrix.rows() << " samples.\n";
+			
+		if( !no_scale_x ){
+			scale_and_center(c_data.data_matrix);
+		}
+		appendInterceptColumn(c_data.data_matrix);
+	}
+	
+	if( bed_region == "" ){
+		e_data.readBedFile(e_path.c_str(), bed_chroms);
+	}else{
+		keep_regions.clear();
+		keep_regions.push_back(bed_region);
+		e_data.readBedFile(e_path.c_str(), keep_regions);
+		keep_regions.clear();
+	}
+
+	std::cerr << "Processed expression for " << e_data.data_matrix.cols() << " genes across " << e_data.data_matrix.rows() << " samples.\n";
+	
+	g_data.read_bcf_variants(sr, hdr, n_var, !low_mem, !low_mem);
+	
+	if( g_data.chr.size() == 0 ){
+		std::cerr << "\nNo variants present in specified region(s). Exiting.\n\n";
+		return 0;
+	}
+	
+	if( low_mem || fit_null ){
+		clear_line_cerr();
+		std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
+		g_data.genotypes.resize(0,0);
+	}else{
+		std::cerr << "\rFreezing genotype data for " << n_var << " variants ... \r";
+		g_data.freeze_genotypes();
+		clear_line_cerr();
+		std::cerr << "Processed genotype data for " << n_var << " variants.\n\n";
+	}
+	
+	block_intervals bm;
+	Eigen::MatrixXd &Y = e_data.data_matrix;
+	Eigen::MatrixXd &X = c_data.data_matrix;
+	
+	Eigen::SparseMatrix<double> GRM;
+	std::vector<int> relateds;
+	if( grm_path != "" ){
+		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
+	}
+	
+	bool make_sumstat = true;
+	bool make_long = true;
+	
+	if( fit_null ){
+		if( grm_path == "" ){
+			std::cerr << "Error: GRM is required to fit null models.\n";
+			return 1;
+		}
+		fit_LMM_null_models(c_data, e_data, GRM, relateds, rknorm_y, rknorm_r);
+		std::cerr << "Analysis complete. Specify --null-params {theta-file} to re-use null model estimates.\n";
+		return 0;
+	}
+	
+	// if( grm_path == "" ){
+		// run_trans_QTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, cis_path, bed_region);
+	// }else{
+		// if( cis_path != "" ){
+			// std::cerr << "Error: Options --grm {grm} and --cis-file {file} and currently incompatible.\n";
+			// return 1;
+		// }
+		// run_trans_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
+	// }
+	
+    return 0;
+};
+
+
+
+
 
 
 int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){

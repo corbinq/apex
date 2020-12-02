@@ -14,7 +14,7 @@
 */
 
 
-#include "Main.hpp"
+#include "transMapping.hpp"
 
 
 void parse_cis_signal_data(const std::string& fn, const std::string& region, Eigen::MatrixXd& X, std::vector<std::string>& samples, std::vector<std::string>& genes){
@@ -903,129 +903,5 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	return;
 }
 
-
-
-void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r)
-{
-	
-	Eigen::SparseMatrix<double> Q;
-	Eigen::VectorXd Q_lambda;
-	Eigen::SparseMatrix<double> L;
-	Eigen::VectorXd GRM_lambda;
-
-	GRM_decomp(GRM, relateds, L, GRM_lambda, Q, Q_lambda);
-	
-	std::cerr << "Reordering trait and covariate matrices ...\n";
-	
-	Eigen::MatrixXd& Y = e_data.data_matrix;
-	Eigen::MatrixXd& C = c_data.data_matrix;
-	
-	double n_traits = Y.cols();
-	double n_samples = Y.rows();
-	double n_covar = C.cols();
-
-	// std::cerr << "Started cis-QTL analysis ...\n";
-	
-	if( rknorm_y ){
-		std::cerr << "Rank-normalizing expression traits ... \n";
-		rank_normalize(Y);
-	}
-	std::cerr << "Scaling expression traits ... \n";
-	scale_and_center(Y);
-	
-	std::cerr << "Calculating partial rotations ...\n";
-	Eigen::MatrixXd QtC = (Q.transpose() * C).eval();
-	Eigen::MatrixXd QtY = (Q.transpose() * Y).eval();
-	Eigen::MatrixXd CtY = (C.transpose() * Y).eval();
-	Eigen::MatrixXd CtC = (C.transpose() * C).eval();
-	Eigen::MatrixXd CtC_i = (CtC.inverse()).eval();
-	
-	std::cerr << "Rotating expression and covariates ... ";
-	//Y = (L.transpose() * Y).eval();
-	Eigen::MatrixXd X = (L.transpose() * C).eval();
-	std::cerr << "Done.\n";
-	
-	std::string theta_file_path = global_opts::out_prefix + "." + "theta" + ".gz";
-	
-	BGZF* theta_file;
-	theta_file = bgzf_open(theta_file_path.c_str(), "w");
-	
-	std::string iter_cerr_suffix = " traits out of " + std::to_string(Y.cols()) + " total";
-	std::cerr << "Fit null model for ";
-	print_iter_cerr(1, 0, iter_cerr_suffix);
-	
-	std::vector<double> phi_v(Y.cols());
-	std::vector<double> hsq_v(Y.cols());
-	std::vector<double> sigma_v(Y.cols());
-	std::vector<double> SSR_v(Y.cols());
-	
-	e_data.stdev.resize(Y.cols());
-	
-	for(int j = 0; j < Y.cols(); j++ ){
-
-		Y.col(j) = (L.transpose() * Y.col(j)).eval();
-
-		LMM_fitter fit(X, Y.col(j), GRM_lambda);
-		fit.fit_REML();
-		
-		const DiagonalXd& Vi = fit.Vi;
-		const double& sigma2 = fit.sigma2;
-		const double& phi = fit.phi;
-		
-		// DiagonalXd Vi = Eigen::VectorXd::Ones(Y.col(j).size()).asDiagonal();
-		// double sigma2 = 1.00;
-		// double phi = 0.05;
-		
-		double tau2 = phi*sigma2;
-		double hsq = tau2 / (tau2 + sigma2);
-		double scale = std::sqrt(tau2 + sigma2);
-		
-		std::stringstream theta_line;
-		
-		theta_line <<
-			clean_chrom(e_data.chr[j]) << "\t" << 
-			e_data.start[j] << "\t" << 
-			e_data.end[j] << "\t" << 
-			e_data.gene_id[j] << "\t" << 
-			sigma2 << "\t" << 
-			tau2 << "\t" << 
-			phi << "\n";
-		
-		write_to_bgzf(theta_line.str().c_str(), theta_file);
-		
-		if(  global_opts::write_resid_mat ){
-			
-			DiagonalXd Psi = calc_Psi(phi, Q_lambda);
-			Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
-			Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
-			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
-			Eigen::VectorXd y_hat = X * b;
-			
-			Eigen::VectorXd y_res = Y.col(j) - y_hat;
-			
-			SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
-			
-			Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
-			
-			Y.col(j) = (L * Y.col(j)).eval();
-		}
-		
-		
-		print_iter_cerr(j, j+1, iter_cerr_suffix);
-	}
-	
-	
-	bgzf_close(theta_file);
-	build_tabix_index(theta_file_path, 1);
-	
-	
-	if(  global_opts::write_resid_mat ){
-		// Y = (L * Y).eval();
-		std::string bed_out = global_opts::out_prefix + ".lmm_resid.bed.gz";
-		std::string bed_header = "## YAX_LMM_RESID";
-		e_data.write_bed(bed_out);
-	}
-	
-}
 
 

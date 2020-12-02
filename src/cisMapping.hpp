@@ -24,6 +24,7 @@
 #include "genotypeData.hpp"
 #include "htsWrappers.hpp"
 #include "fitUtils.hpp"
+#include "fitModels.hpp"
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
 

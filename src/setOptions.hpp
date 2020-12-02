@@ -34,6 +34,8 @@ namespace global_opts
 	
 	// INPUT OPTIONS
 	
+		extern std::string global_region;
+	
 		// GENOTYPE OPTIONS 
 		extern int exclude_missing;
 		extern double dosage_thresh;
@@ -131,6 +133,8 @@ namespace global_opts
 		void save_residuals(const bool&);
 		
 		void set_factor_par(const int&, const double&, const double&);
+		
+		void set_global_region(const std::string& );
 
 }
 
