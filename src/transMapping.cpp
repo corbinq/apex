@@ -2,15 +2,15 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is a part of YAX.
+    This file is a part of APEX.
 
-    YAX is distributed "AS IS" in the hope that it will be 
+    APEX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
     warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
     The above copyright notice and disclaimer of warranty must 
-    be included in all copies or substantial portions of YAX.
+    be included in all copies or substantial portions of APEX.
 */
 
 
@@ -520,22 +520,34 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	scale_and_center(Y, y_scale);
 	
 	std::cerr << "Calculating partial rotations ...\n";
-	Eigen::MatrixXd QtC = (Q.transpose() * C).eval();
-	Eigen::MatrixXd QtG = (Q.transpose() * g_data.genotypes).eval();
-	Eigen::MatrixXd QtY = (Q.transpose() * Y).eval();
-	Eigen::MatrixXd CtY = (C.transpose() * Y).eval();
-	Eigen::MatrixXd CtC = (C.transpose() * C).eval();
-	Eigen::MatrixXd CtC_i = (CtC.inverse()).eval();
+	Eigen::MatrixXd QtY, CtY, QtC, QtG, CtC, CtC_i;
+	bool gvar_precomputed = false;
+	
+	if( !e_data.is_residual ){
+		QtY = (Q.transpose() * Y).eval();
+		CtY = (C.transpose() * Y).eval();
+		Y = (L.transpose() * Y).eval();
+	}
+	if( !gvar_precomputed ){
+		QtG = (Q.transpose() * g_data.genotypes).eval();
+	}
+	
+	QtC = (Q.transpose() * C).eval();
+	CtC = (C.transpose() * C).eval();
+	CtC_i = (CtC.inverse()).eval();
 	
 	std::cerr << "Rotating expression and covariates ... ";
-	Y = (L.transpose() * Y).eval();
-	Eigen::MatrixXd X = (L.transpose() * C).eval();
+	
+	
 	std::cerr << "Done.\n";
 
 	std::vector<double> hsq_vals{0.0, 0.5, 1.0};
 	
-	Eigen::MatrixXd V_mat;
-	calculate_V_anchor_points(V_mat, g_data, C, hsq_vals, CtC, CtC_i, QtG, QtC, Q_lambda);
+	Eigen::MatrixXd V_mat, X;
+	
+	if( !gvar_precomputed ){
+		calculate_V_anchor_points(V_mat, g_data, C, hsq_vals, CtC, CtC_i, QtG, QtC, Q_lambda);
+	}
 	
 	std::vector<double> gene_max_val((int) n_traits, 0.0);
 	std::vector<int> gene_max_idx((int) n_traits, 0);
@@ -587,6 +599,8 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 		t_data.open(theta_path);
 		use_theta = true;
 	}else{
+		X = (L.transpose() * C).eval();
+		
 		std::cerr << "Fit null model for ";
 	}
 	
@@ -604,6 +618,12 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 			t_data.getTheta(j, e_data.gene_id[j], sigma2, tau2, phi);
 			Vi = calc_Vi(phi, GRM_lambda);
 		}else{
+			
+			if( e_data.is_residual ){
+				std::cerr << "Error: --theta must be specified when --bed contains LMM residuals.\n";
+				abort();
+			}
+			
 			LMM_fitter fit(X, Y.col(j), GRM_lambda);
 			fit.fit_REML();
 			
@@ -620,19 +640,20 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 		double hsq = tau2 / (tau2 + sigma2);
 		double scale = std::sqrt(tau2 + sigma2);
 		
-		DiagonalXd Psi = calc_Psi(phi, Q_lambda);
-		Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
-		Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
-		Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
-		Eigen::VectorXd y_hat = X * b;
-		
-		Eigen::VectorXd y_res = Y.col(j) - y_hat;
-		
-		SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
-		
-		// Y now stores the rotated residuals. 
-		Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
-		
+		if( !e_data.is_residual ){
+			DiagonalXd Psi = calc_Psi(phi, Q_lambda);
+			Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
+			Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
+			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+			Eigen::VectorXd y_hat = X * b;
+			
+			Eigen::VectorXd y_res = Y.col(j) - y_hat;
+			
+			SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
+			
+			// Y now stores the rotated residuals. 
+			Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
+		}
 		
 		phi_v[j] = phi;
 		hsq_v[j] = hsq;
@@ -644,7 +665,9 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	}
 	print_iter_cerr(last_j, Y.cols(), iter_cerr_suffix);
 	
-	Y = (L * Y).eval();
+	if( !e_data.is_residual ){
+		Y = (L * Y).eval();
+	}
 	
 	Eigen::MatrixXd VBeta = getVBeta(hsq_v, phi_v, hsq_vals.size());
 	

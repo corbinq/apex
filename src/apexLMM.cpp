@@ -2,19 +2,19 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is a part of YAX.
+    This file is a part of APEX.
 
-    YAX is distributed "AS IS" in the hope that it will be 
+    APEX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
     warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
     The above copyright notice and disclaimer of warranty must 
-    be included in all copies or substantial portions of YAX.
+    be included in all copies or substantial portions of APEX.
 */
 
 
-#include "yaxLMM.hpp"
+#include "apexLMM.hpp"
 
 void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r)
 {
@@ -133,11 +133,165 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 	if(  global_opts::write_resid_mat ){
 		// Y = (L * Y).eval();
 		std::string bed_out = global_opts::out_prefix + ".lmm_resid.bed.gz";
-		std::string bed_header = "## YAX_LMM_RESID";
+		std::string bed_header = "## APEX_LMM_RESID";
 		e_data.write_bed(bed_out);
 	}
 	
 }
+
+
+void fit_LMM_null_models_low_rank(const int& n_fac, table& c_data, bed_data& e_data, const bool& rknorm_y, const bool& rknorm_r, Eigen::MatrixXd& Y_epc )
+{
+	
+	Eigen::MatrixXd Q;
+	Eigen::VectorXd Q_lambda;
+	
+	Eigen::MatrixXd& Y = e_data.data_matrix;
+	Eigen::MatrixXd& C = c_data.data_matrix;
+		
+	double n_traits = Y.cols();
+	double n_samples = Y.rows();
+	double n_covar = C.cols();
+
+	if( rknorm_y ){
+		std::cerr << "Rank-normalizing expression traits ... \n";
+		rank_normalize(Y);
+		rank_normalize(Y_epc);
+	}
+	std::cerr << "Scaling expression traits ... \n";
+	std::vector<double> y_scale;
+	scale_and_center(Y, y_scale);
+	scale_and_center(Y_epc);
+	
+	// bool resid_ePC = true;
+	
+	// if( resid_ePC ){
+			
+		// Eigen::MatrixXd U = get_half_hat_matrix(C);
+
+		// std::cerr << "Calculating expression residuals...\n";
+		// make_resid_from_half_hat(Y_epc, U);
+	// }
+	
+	std::cerr << "Estimating latent factors ... \n";
+	calc_eGRM_PCs(Q, Q_lambda, Y_epc, n_fac);
+	std::cerr << "Done.\n";
+	
+	Y_epc.resize(0,0);
+	
+	std::cerr << "Calculating partial rotations ...\n";
+	Eigen::MatrixXd QtC = (Q.transpose() * C).eval();
+	Eigen::MatrixXd QtY = (Q.transpose() * Y).eval();
+	Eigen::MatrixXd CtY = (C.transpose() * Y).eval();
+	Eigen::MatrixXd CtC = (C.transpose() * C).eval();
+	Eigen::MatrixXd CtC_i = (CtC.inverse()).eval();
+	
+	std::vector<double> hsq_vals{0.0, 0.5, 1.0};
+	
+	std::string theta_file_path = global_opts::out_prefix + "." + "theta" + ".gz";
+	BGZF* theta_file;
+	theta_file = bgzf_open(theta_file_path.c_str(), "w");
+	
+	// -------------------------------------
+	// Begin fitting null models. 
+	// -------------------------------------
+	
+	std::vector<double> phi_v(Y.cols());
+	std::vector<double> hsq_v(Y.cols());
+	std::vector<double> sigma_v(Y.cols());
+	std::vector<double> SSR_v(Y.cols());
+	
+	// Eigen::MatrixXd PY( Y.rows(), Y.cols() );
+	
+	e_data.stdev.resize(Y.cols());
+	
+	theta_data t_data;
+	bool use_theta = false;
+	
+	// if( theta_path != "" ){
+		// std::cerr << "Set null model for ";
+		// t_data.open(theta_path);
+		// use_theta = true;
+	// }else{
+		std::cerr << "Fit null model for ";
+	// }
+	
+	std::string iter_cerr_suffix = " traits out of " + std::to_string(Y.cols()) + " total";
+	print_iter_cerr(1, 0, iter_cerr_suffix);
+	
+	int last_j = 0;
+	for(int j = 0; j < Y.cols(); j++ ){
+		DiagonalXd Vi;
+		double sigma2, phi, tau2;
+		
+		double yty = Y.col(j).squaredNorm();
+		double sample_size = Y.rows();
+		
+		LMM_fitter_low_rank fit(CtC, QtC, CtY.col(j), QtY.col(j), yty, Q_lambda, sample_size);
+		
+		fit.fit_REML();
+		
+		// Vi = fit.Vi;
+		sigma2 = fit.sigma2;
+		phi = fit.phi;
+		tau2 = phi*sigma2;
+		
+		std::stringstream theta_line;
+		
+		theta_line <<
+			clean_chrom(e_data.chr[j]) << "\t" << 
+			e_data.start[j] << "\t" << 
+			e_data.end[j] << "\t" << 
+			e_data.gene_id[j] << "\t" << 
+			sigma2 << "\t" << 
+			tau2 << "\t" << 
+			phi << "\n";
+		
+		write_to_bgzf(theta_line.str().c_str(), theta_file);
+		
+		if ( global_opts::write_resid_mat ){
+			
+			double hsq = tau2 / (tau2 + sigma2);
+			double scale = std::sqrt(tau2 + sigma2);
+			
+			DiagonalXd Psi = calc_Psi_low_rank(phi, Q_lambda);
+			Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC );
+			
+			Eigen::VectorXd XtDy = QtC.transpose() * Psi * QtY.col(j);
+			XtDy = (CtY.col(j) - XtDy).eval();
+			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+			Eigen::VectorXd y_fixeff = C * b;
+			
+			Eigen::VectorXd v1 = QtC * b;
+			Eigen::VectorXd v2 = QtY.col(j) - v1;
+			Eigen::VectorXd y_raneff = Q * Psi * v2;
+			Eigen::VectorXd y_resid = Y.col(j) - y_raneff - y_fixeff;
+			
+			SSR_v[j] = (yty - QtY.col(j).dot(Psi * QtY.col(j)) -  XtDy.dot(b))/sigma2;
+			
+			Y.col(j) = (y_resid/std::sqrt(sigma2)).eval();
+			
+			phi_v[j] = phi;
+			hsq_v[j] = hsq;
+			sigma_v[j] = sigma2;
+			
+			e_data.stdev[j] = std::sqrt(sigma2);
+			
+		}
+		print_iter_cerr(j, j+1, iter_cerr_suffix);
+	}
+	std::cerr << "\n";
+	
+	bgzf_close(theta_file);
+	build_tabix_index(theta_file_path, 1);
+	
+	if(  global_opts::write_resid_mat ){
+		std::string bed_out = global_opts::out_prefix + ".lmm_resid.bed.gz";
+		std::string bed_header = "## APEX_LMM_RESID";
+		e_data.write_bed(bed_out);
+	}
+}
+
 
 
 void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda ){
@@ -231,9 +385,10 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 	
 	
 	BGZF* anchor_file;
+	std::string anchor_path = global_opts::out_prefix + "." + "gvar_points" + ".txt.gz";
 	
 	if( global_opts::write_v_anchors ){
-		std::string anchor_path = global_opts::out_prefix + "." + "gvar_points" + ".txt.gz";
+		
 		anchor_file = bgzf_open(anchor_path.c_str(), "w");
 		write_to_bgzf("#chrom\tpos\tref\talt", anchor_file);
 		std::stringstream out_line;
@@ -302,6 +457,7 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 			write_to_bgzf(out_line.str().c_str(), anchor_file);
 		}
 		bgzf_close(anchor_file);
+		build_tabix_index(anchor_path, 0);
 	}
 	
 	
@@ -312,9 +468,36 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 	return;
 }
 
-void read_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda ){
+void read_V_anchor_points_low_rank( const std::string& anchor_path, Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda ){
+	
+	int n_hsq = hsq_vals.size();
+	int n_snps = g_data.genotypes.cols();
+	
+	V_mat = Eigen::MatrixXd(n_snps, n_hsq);
+	
+	std::vector<std::string> chr;
+	std::vector<int> pos;
+	std::vector<std::string> ref;
+	std::vector<std::string> alt;
 	
 	data_parser dp;
+	
+	dp.add_field(chr, 0);
+	dp.add_field(pos, 1);
+	dp.add_field(ref, 2);
+	dp.add_field(alt, 3);
+	
+	dp.add_matrix(V_mat, false, 4, n_hsq);
+	
+	dp.parse_file(anchor_path, global_opts::global_region);
+	dp.clear();
+	
+	if( chr.size() != n_snps ){
+		std::cerr << "Number of variants in gvar file does not match genotype matrix dimensions." << "\n";
+		abort();
+	}
+	
+	return;
 }
 
 

@@ -2,15 +2,15 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is a part of YAX.
+    This file is a part of APEX.
 
-    YAX is distributed "AS IS" in the hope that it will be 
+    APEX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
     warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
     The above copyright notice and disclaimer of warranty must 
-    be included in all copies or substantial portions of YAX.
+    be included in all copies or substantial portions of APEX.
 */
 
 
@@ -26,11 +26,21 @@ void bed_data::readBedHeader(const char *file_name)
 	kstring_t str = {0,0,0};
 
 	int line_no = 0;
+	
+	is_residual = false;
 
 	while( hts_getline(htsf, KS_SEP_LINE, &str) )
 	{
 		line_no++;
-		if ( str.s[0] == '#' && str.s[1] == '#' ) continue;
+		if ( str.s[0] == '#' && str.s[1] == '#' ){
+			
+			if( strstr (str.s, "APEX_LMM_RESID") != NULL ){
+				std::cerr << "Molecular traits are residualized.\n";
+				is_residual = true;
+			}
+			
+			continue;
+		}
 		
 		header_line = line_no;
 		int n_fields;

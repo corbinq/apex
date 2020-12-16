@@ -2,20 +2,20 @@
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is a part of YAX.
+    This file is a part of APEX.
 
-    YAX is distributed "AS IS" in the hope that it will be 
+    APEX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
     warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
     The above copyright notice and disclaimer of warranty must 
-    be included in all copies or substantial portions of YAX.
+    be included in all copies or substantial portions of APEX.
 */
 
 
-#ifndef YAX_HPP
-#define YAX_HPP
+#ifndef APEX_HPP
+#define APEX_HPP
 
 #include <stdexcept>
 #include <algorithm>

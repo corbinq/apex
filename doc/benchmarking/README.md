@@ -1,6 +1,6 @@
 
-# YAX: cis-xQTL analysis guide
-This page describes benchmarking experiments with YAX for various QTL analysis tasks.  This is intended to serve as a guide for time and memory usage requirements,  identify and delineate numerical  differences between software tools, and highlight unique features of YAX.  <br />
+# APEX: cis-xQTL analysis guide
+This page describes benchmarking experiments with APEX for various QTL analysis tasks.  This is intended to serve as a guide for time and memory usage requirements,  identify and delineate numerical  differences between software tools, and highlight unique features of APEX.  <br />
 
 ##### Table of Contents  
 
@@ -9,12 +9,12 @@ This page describes benchmarking experiments with YAX for various QTL analysis t
  3. [Meta-analysis](#meta-analysis) 
  4. [References](#references) <br />
 
- [*Return to YAX main page.*](/../../)
+ [*Return to APEX main page.*](/../../)
 
 
 ## LMM Benchmarking
 
-We used empirical genotype data for 10,000 samples and simulated molecular phenotype data to benchmark time and memory for trans-xQTL analysis using a linear mixed model (LMM) using YAX LMM, FastGWA<sup>1</sup>, BOLT-LMM<sup>2</sup>, and GMMAT<sup>3-4</sup>. 
+We used empirical genotype data for 10,000 samples and simulated molecular phenotype data to benchmark time and memory for trans-xQTL analysis using a linear mixed model (LMM) using APEX LMM, FastGWA<sup>1</sup>, BOLT-LMM<sup>2</sup>, and GMMAT<sup>3-4</sup>. 
 
 ### Input data
 | Sample size |No. traits | No. SNPs | No. covariates |
@@ -24,8 +24,8 @@ We used empirical genotype data for 10,000 samples and simulated molecular pheno
 ### Time and memory usage
 |                 |     CPU   hours    |     Time   speedup    |     Max   memory    |
 |-----------------|-------------------:|----------------------:|--------------------:|
-|     YAX, p < 5e-5    |             7.5    |               0.36    |        4.88   Gb    |
-|     YAX         |            20.8    |              1.00*    |       4.88   Gb     |
+|     APEX, p < 5e-5    |             7.5    |               0.36    |        4.88   Gb    |
+|     APEX         |            20.8    |              1.00*    |       4.88   Gb     |
 |     FastGWA     |            52.1    |               2.50    |        0.14   Gb    |
 |     BOLT-LMM    |         1,068.9    |              51.39    |        0.67   Gb    |
 |     GMMAT       |       ~*5,692.5*     |            ~*273.68*    |             N/A     |
@@ -35,12 +35,12 @@ We used empirical genotype data for 10,000 samples and simulated molecular pheno
 
 Commands used in LMM benchmarking analysis are given below:
 
-**YAX command:**
+**APEX command:**
  - parallel over chromosomes, all traits at once
  - sparse GRM 
  - compressed BCF format genotype data
 ```
-yax trans --bed $all_traits_bed --bcf $bcf --cov $covar_txt --grm $grm --region ${chr} --out trans_chr${chr}
+apex trans --bed $all_traits_bed --bcf $bcf --cov $covar_txt --grm $grm --region ${chr} --out trans_chr${chr}
 ```
 **BOLT-LMM command:**
  - parallel over traits, all chroms at once 
@@ -74,13 +74,13 @@ GMMAT::glmm.score(obj = null_fit, infile = gds_file, outfile = trait_out_file, v
 
 ![lmm concordance](lmm_conc.png)
 
-LMM association tests from YAX and GMMAT are nearly numerically equivalent, as expected.  BOLT-LMM uses the conjugate gradient method to avoid storing an explicit GRM, and a retrospective quasi-likelihood score test; these differences may explain differences with YAX and GMMAT.  FastGWA uses the GRAMMAR-Gamma approximation to calculate association tests, which may  explain  differences with YAX and GMMAT.  Results are shown for 1 gene on chromosome 1, and are reflective of overall trends. 
+LMM association tests from APEX and GMMAT are nearly numerically equivalent, as expected.  BOLT-LMM uses the conjugate gradient method to avoid storing an explicit GRM, and a retrospective quasi-likelihood score test; these differences may explain differences with APEX and GMMAT.  FastGWA uses the GRAMMAR-Gamma approximation to calculate association tests, which may  explain  differences with APEX and GMMAT.  Results are shown for 1 gene on chromosome 1, and are reflective of overall trends. 
 
 ## cis-eQTL Benchmarking
 
-We compared cis-eQTL analysis using YAX, FastQTL<sup>5</sup>, and QTLtools<sup>6</sup> in the Geuvadis LCL eQTL data set<sup>7-8</sup> (454 samples, 17815 genes, and 70 covariates including PEER factors<sup>12</sup>). Single-variant association slopes and p-values are equivalent between FastQTL and YAX (not shown). QTLtools fits simple linear regressions between trait residuals and genotypes (`lm(y_resid ~ geno)`) rather than using multiple regression t-tests (`lm(y ~ geno + covariates)`), and therefore its p-values are slightly conservative.  
+We compared cis-eQTL analysis using APEX, FastQTL<sup>5</sup>, and QTLtools<sup>6</sup> in the Geuvadis LCL eQTL data set<sup>7-8</sup> (454 samples, 17815 genes, and 70 covariates including PEER factors<sup>12</sup>). Single-variant association slopes and p-values are equivalent between FastQTL and APEX (not shown). QTLtools fits simple linear regressions between trait residuals and genotypes (`lm(y_resid ~ geno)`) rather than using multiple regression t-tests (`lm(y ~ geno + covariates)`), and therefore its p-values are slightly conservative.  
  
-YAX calculates gene-level cis-eQTL p-values accounting for LD using ACAT<sup>11</sup>, which aggregates all single-variant p-values across the cis region. FastQTL and QTLtools calculate gene-level cis-eQTL p-values accounting for LD by modeling the null distribution of the minimum single-variant p-value as a beta density, with beta parameters estimated by permutation.  In the examples below, results using the two methods are highly similar, but ACAT is ~30x faster. In simulation studies, both type I error rates from both methods (ACAT and permutation-based beta approximation) are well-calibrated. 
+APEX calculates gene-level cis-eQTL p-values accounting for LD using ACAT<sup>11</sup>, which aggregates all single-variant p-values across the cis region. FastQTL and QTLtools calculate gene-level cis-eQTL p-values accounting for LD by modeling the null distribution of the minimum single-variant p-value as a beta density, with beta parameters estimated by permutation.  In the examples below, results using the two methods are highly similar, but ACAT is ~30x faster. In simulation studies, both type I error rates from both methods (ACAT and permutation-based beta approximation) are well-calibrated. 
 
 ### Results
 
@@ -88,11 +88,11 @@ YAX calculates gene-level cis-eQTL p-values accounting for LD using ACAT<sup>11<
 
 A: Gene-level cis-eQTL p-values in the Geuvadis LCL dataset. Associations detected only by ACAT are marked in green in each column; associations detected only by FastQTL, QTLtools, or Bonferroni (but not ACAT) are marked in magenta.  
  
-B: Comparison of time and memory usage for FastQTL and QTLtools. FastQTL was run using the adaptive p-value setting with 100 to 1000 permutations; QTLtools was run using 1000 permutations; YAX uses ACAT to account for LD rather than permutations. For each software, autosomal cis-eQTL analysis was run in parallel with 1 CPU per chromosome.
+B: Comparison of time and memory usage for FastQTL and QTLtools. FastQTL was run using the adaptive p-value setting with 100 to 1000 permutations; QTLtools was run using 1000 permutations; APEX uses ACAT to account for LD rather than permutations. For each software, autosomal cis-eQTL analysis was run in parallel with 1 CPU per chromosome.
 
 ## Meta-analysis
 
-Multiple-variant meta-analysis in YAX requires sumstat files (generated by `./yax cis`), which store SNP-trait association data, and vcov files (`./yax store`), which store SNP-SNP covariate-adjusted linkage disequilibrium (LD) data.  
+Multiple-variant meta-analysis in APEX requires sumstat files (generated by `./apex cis`), which store SNP-trait association data, and vcov files (`./apex store`), which store SNP-SNP covariate-adjusted linkage disequilibrium (LD) data.  
  
 We compared sumstat and vcov file storage sizes across 3 QTL studies:
 

@@ -1,17 +1,17 @@
-/*  YAX:
+/*  APEX:
 
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
-    This file is a part of YAX.
+    This file is a part of APEX.
 
-    YAX is distributed "AS IS" in the hope that it will be 
+    APEX is distributed "AS IS" in the hope that it will be 
     useful, but WITHOUT ANY WARRANTY; without even the implied 
     warranty of MERCHANTABILITY, NON-INFRINGEMENT, or FITNESS 
     FOR A PARTICULAR PURPOSE.
 
     The above copyright notice and disclaimer of warranty must 
-    be included in all copies or substantial portions of YAX.
+    be included in all copies or substantial portions of APEX.
 */
 
 #include "Main.hpp"
@@ -58,28 +58,28 @@ using mode_fun = std::function<int(const std::string &, std::vector<std::string>
 
 std::string help_string = 
 "\n" 
-"  YAX: Toolkit for xQTL analysis\n" 
+"  APEX: Toolkit for xQTL analysis\n" 
 "     (c) 2019-2020 Corbin Quick and Li Guan.\n" 
 "\n" 
 "  Usage and options:\n" 
-"     ./yax [mode] --help       Print help menu for [mode].\n" 
+"     ./apex [mode] --help       Print help menu for [mode].\n" 
 "\n" 
 "  Analysis modes:\n" 
-"     ./yax cis {OPTIONS}       Run cis-xQTL analysis.\n" 
+"     ./apex cis {OPTIONS}       Run cis-xQTL analysis.\n" 
 "\n" 
-"     ./yax trans {OPTIONS}     Run trans-xQTL analysis.\n" 
+"     ./apex trans {OPTIONS}     Run trans-xQTL analysis.\n" 
 "\n"
-"     ./yax factor {OPTIONS}    Estimate latent factors from\n" 
+"     ./apex factor {OPTIONS}    Estimate latent factors from\n" 
 "                                 molecular trait data.\n" 
 "\n" 
-"     ./yax lmm {OPTIONS}       Precompute terms for linear\n" 
+"     ./apex lmm {OPTIONS}       Precompute terms for linear\n" 
 "                                 mixed model analysis.\n" 
 "\n" 
-"     ./yax meta {OPTIONS}      Single and multi-variant\n" 
+"     ./apex meta {OPTIONS}      Single and multi-variant\n" 
 "                                 xQTL meta-analysis from\n" 
 "                                 sumstat and vcov files.\n" 
 "\n" 
-"     ./yax store {OPTIONS}     Store vcov (LD) data for\n" 
+"     ./apex store {OPTIONS}     Store vcov (LD) data for\n" 
 "                                 xQTL meta-analysis or\n" 
 "                                 data sharing.\n" 
 "\n" 
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 	
 
 // ------------------------------------
-//  YAX main menu: Parse running mode.
+//  APEX main menu: Parse running mode.
 // ------------------------------------
 
     std::unordered_map<std::string, mode_fun> map{
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
 	};
 	
 	// Argument parsing using https://github.com/Taywee/args
-	args::ArgumentParser p0("yax: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p0("apex: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help0(p0, "help", "Display this help menu", {'h', "help"});
 	
 	p0.Prog(argv[0]);
@@ -201,7 +201,7 @@ int main(int argc, char* argv[])
 
 int cis(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
 	
-	args::ArgumentParser p("yax cis: cis-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("apex cis: cis-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
@@ -343,6 +343,9 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	trim_gene_ids = (bool) trim_ids;
 	
 	std::string region = args::get(region_arg);
+	
+	global_opts::set_global_region(region);
+	
 	std::string gtds = args::get(gtds_arg);
 	target_genes = split_string(args::get(gene_arg), ',');
 	
@@ -645,7 +648,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("yax trans: trans-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("apex trans: trans-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 	
@@ -745,6 +748,8 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	std::string bed_region = args::get(bed_region_arg);
 	std::string gtds = args::get(gtds_arg);
 	target_genes = split_string(args::get(gene_arg), ',');
+	
+	global_opts::set_global_region(region);
 	
 	int block_size = args::get(blocks_arg);
 	
@@ -997,7 +1002,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("yax lmm: LMM pre-processing.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("apex lmm: LMM pre-processing.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 	
@@ -1095,6 +1100,8 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	std::string bed_region = args::get(bed_region_arg);
 	std::string gtds = args::get(gtds_arg);
 	target_genes = split_string(args::get(gene_arg), ',');
+	
+	global_opts::set_global_region(region);
 	
 	int block_size = args::get(blocks_arg);
 	
@@ -1341,7 +1348,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 
 int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
 	
-	args::ArgumentParser p("yax factor: high-dimensional factor analysis.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("apex factor: high-dimensional factor analysis.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
@@ -1420,6 +1427,8 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	
 	std::string region = args::get(region_arg);
 	trim_gene_ids = (bool) trim_ids;
+	
+	global_opts::set_global_region(region);
 	
 	// ----------------------------------
 	// Set global options
@@ -1602,7 +1611,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("yax meta: Meta-analysis of xQTL studies.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("apex meta: Meta-analysis of xQTL studies.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
@@ -1711,6 +1720,8 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	std::string region = args::get(region_arg);
 	target_genes = split_string(args::get(gene_arg), ',');
 	
+	global_opts::set_global_region(region);
+	
 	std::string window_size_s = args::get(window_arg);
 	
 	if( window_size_s == "" ){
@@ -1810,7 +1821,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("yax store: Store vcov (LD; variance-covariance) data.", "Contact: corbinq@gmail.com.\n");
+	args::ArgumentParser p("apex store: Store vcov (LD; variance-covariance) data.", "Contact: corbinq@gmail.com.\n");
     args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
@@ -1898,6 +1909,8 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	std::string region = args::get(region_arg);
 	std::string gtds = args::get(gtds_arg);
 	// target_genes = split_string(args::get(gene_arg), ',');
+	
+	global_opts::set_global_region(region);
 	
 	// Use imputed dosages rather than genotype hard calls
 	use_ds;
