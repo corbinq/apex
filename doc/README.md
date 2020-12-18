@@ -1,22 +1,7 @@
 APEX is a toolkit for analysis of molecular quantitative trait loci (xQTLs), such as mRNA expression or methylation levels. It performs cis and trans analysis, single- or multiple-variant analysis, and single-study or meta-analysis. 
 
-We have conducted benchmarking and simulation experiments to ensure that APEX is accurate, efficient, and scalable for small and large sample sizes; [**see benchmarking**](/apex/doc/benchmarking/) for further details. 
+To install APEX from source or download precompiled binaries, [**see installation guide below**](#installation).  
 
-To install APEX from source or download precompiled binaries, [**see installation guide below**](#installation).  Notable features include
-
-**Fast, scalable linear mixed model for xQTL mapping**
- - Highly optimized linear mixed model (LMM) framework for tens of thousands of traits. This can be used to account for cryptic or known familial relatedness in cis and trans xQTL analysis. 
- - Optimized ordinary least squares (OLS) framework for cis and trans xQTL analysis with no related individuals.
-
-**Multiple-variant and omnibus xQTL analysis**
- - Fast, rigorous analytic p-values for cis-region omnibus tests. 
- - Variable selection and conditional analysis procedures to identify multiple association signals for a single molecular trait.
- 
-**Flexible multiple-variant xQTL meta-analysis framework** 
- - Compact storage formats for xQTL summary statistics, including study-specific LD information. 
- - Single and multiple-variant xQTL meta-analysis procedures.
- - R interface for joint and conditional analysis, Bayesian finemapping, aggregation tests, and penalized regression from xQTL summary data files across one or multiple studies.
- 
 ## Analysis modes and documentation
 - [**xQTL factor analysis.**](/apex/doc/mode_factor/)  `./apex factor {options}`
 	 - Rapid high-dimensional factor analysis to account for technical and biological variation in molecular trait data. 
