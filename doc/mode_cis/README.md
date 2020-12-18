@@ -1,7 +1,7 @@
 
 
 # APEX: cis-xQTL analysis guide
-This page describes cis-xQTL analysis using APEX. Once installed, you can quickly get started by running  ` ./apex cis --help`. <br />
+This page describes cis-xQTL analysis using APEX. Once installed, you can quickly get started by running  `./apex cis --help`. <br />
 
 ## Overview
 cis-xQTL analysis in APEX uses either a) ordinary least squares (OLS) or b) a linear mixed model (LMM) fit by restricted maximum likelihood (REML).  For OLS, APEX requires 3 input files: molecular trait data, technical covariate data, and genotype data.  LMM can be used to account for either cryptic familial relatedness using a kinship or genetic relatedness matrix (GRM), or to account for technical and biological variation using a low-rank matrix of random-effect covariates. For detailed descriptions of input file formats, please see the [input file documentation page](/apex/doc/input_files/). <br />
