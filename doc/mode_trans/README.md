@@ -4,16 +4,16 @@ This page describes trans-xQTL analysis using APEX. Once installed, you can quic
 
 ## Overview
 The command `apex trans` can be used to analyze genome-wide associations between molecular traits and all genetic variants.  This is in contrast to `apex cis`, which tests only analyzes genetic variants within a window of each moleculatr trait.  The underlying statistical methods are broadly similar between modes `cis` and `trans`; however, we introduce additional optimizations in mode `trans` to reduce computation time, memory, and storage. <br />
-Similar to `apex cis` mode, trans-xQTL analysis in APEX (`apex trans`) uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML). For OLS, APEX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, APEX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](/apex/doc/input_files/). <br />
+Similar to `apex cis` mode, trans-xQTL analysis in APEX (`apex trans`) uses either a) ordinary least squares (OLS) b) a linear mixed model (LMM) using either a genetic relatedness matrix (GRM) or low-rank matrix of random effect covariates.  For detailed descriptions of input file formats, please see the [input file documentation page](/apex/doc/input_files/). <br />
 
 ##### Table of Contents  
-  1. [Vanilla trans-xQTL analysis (no related samples)](#ols-trans-xqtl-analysis-with-unrelated-samples)  
+  1. [OLS trans-xQTL analysis](#ols-trans-xqtl-analysis)  
   2. [LMM trans-xQTL analysis](#lmm-trans-xqtl-analysis)  
   3. [Command line options](#command-line-arguments) <br />
 
  [*Return to APEX main page.*](/apex/)
 
-## OLS trans-xQTL analysis with unrelated samples
+## OLS trans-xQTL analysis
 **Example command:** <br />
  `./apex trans --vcf {vcf} --bed {expression-file} --cov {covariate-file} --prefix {output-prefix}` <br />
  <br />
@@ -29,8 +29,8 @@ Similar to `apex cis` mode, trans-xQTL analysis in APEX (`apex trans`) uses eith
  ./apex trans --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --theta-file {theta-prefix}.theta.gz --prefix {output-prefix}
 ```
 <br />
-APEX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in trans-eQTL analysis. To use this feature, specify a genetic relatedness matrix (GRM) file to APEX using  `--grm {grm-file}`. To see accepted input file formats, [please see here.](/doc/input_files/) <br />
-Unlike `apex cis`, LMM analysis in `apex trans` is divided into two steps. First, we estimate variance component parameters for all molecular traits under the null hypothesis (no single-variant genetic effects), and store these estimates for later use. Second, we use these estimates to quickly calculate trans-xQTL association statistics. When jobs are parallelizes across chromosomes, this 2-step approach saves substantial computational resources, as the null model for each molecular trait need only be estimated once. <br />
+Here, a linear mixed model (LMM) is used to account for cryptic or familial relatedness in trans-eQTL analysis. To use this feature, specify a genetic relatedness matrix (GRM) file to APEX using  `--grm {grm-file}`. To see accepted input file formats, [please see here.](/doc/input_files/) <br />
+Unlike `apex cis`, LMM analysis in `apex trans` is divided into two steps. First, we estimate variance component parameters for all molecular traits under the null hypothesis (no single-variant genetic effects), and store these estimates for later use. Second, we use these estimates to quickly calculate trans-xQTL association statistics. When jobs are parallelized across chromosomes, this 2-step approach saves substantial computational resources, as the null model for each molecular trait need only be estimated once. <br />
 
  **LMM software concordance.** APEX's LMM estimates are consistent with the R packages [GMMAT](https://github.com/hanchenphd/GMMAT) and [GENESIS](http://www.bioconductor.org/packages/release/bioc/html/GENESIS.html) using AI-REML. 
 

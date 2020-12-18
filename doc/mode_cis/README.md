@@ -4,17 +4,17 @@
 This page describes cis-xQTL analysis using APEX. Once installed, you can quickly get started by running  ` ./apex cis --help`. <br />
 
 ## Overview
-cis-xQTL analysis in APEX uses either a) ordinary least squares (OLS) for unrelated samples or b) a linear mixed model (LMM) to account for cryptic or familial relatedness fit by restricted maximum likelihood (REML).  For OLS, APEX requires 3 input files: molecular trait data, technical covariate data, and genotype data. For LMM, APEX additionally requires a kinship or genetic relatedness matrix (GRM). For detailed descriptions of input file formats, please see the [input file documentation page](/apex/doc/input_files/). <br />
+cis-xQTL analysis in APEX uses either a) ordinary least squares (OLS) or b) a linear mixed model (LMM) fit by restricted maximum likelihood (REML).  For OLS, APEX requires 3 input files: molecular trait data, technical covariate data, and genotype data.  LMM can be used to account for either cryptic familial relatedness using a kinship or genetic relatedness matrix (GRM), or to account for technical and biological variation using a low-rank matrix of random-effect covariates. For detailed descriptions of input file formats, please see the [input file documentation page](/apex/doc/input_files/). <br />
 
 ##### Table of Contents  
 
- 1. [Vanilla cis-xQTL analysis (no related samples)](#ols-cis-xqtl-analysis-with-unrelated-samples)   
- 2. [LMM cis-xQTL analysis](#lmm-cis-xqtl-analysis)
+ 1. [OLS cis-xQTL analysis](#ols-cis-xqtl-analysis)   
+ 2. [LMM cis-xQTL analysis with a GRM](#lmm-cis-xqtl-analysis)
  3. [Command line options](#command-line-arguments) <br />
 
  [*Return to APEX main page.*](/apex/)
 
-## OLS cis-xQTL analysis with unrelated samples
+## OLS cis-xQTL analysis
 **Example command:** <br />
  `./apex cis --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name} --long` <br />
 
@@ -46,7 +46,7 @@ cis-xQTL analysis in APEX uses either a) ordinary least squares (OLS) for unrela
 **Example command:** <br />
  `./apex cis --vcf {vcf} --bed {expression-file} --cov {covariate-file} --grm {grm-file} --prefix {out-name}` <br />
 <br />
-APEX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in cis-eQTL analysis of the form <img src="https://render.githubusercontent.com/render/math?math=y = X\beta %2B g %2B \varepsilon "> where <img src="https://render.githubusercontent.com/render/math?math=g\sim\mathcal{N}(0,\tau^{2}\GRM)"> and <img src="https://render.githubusercontent.com/render/math?math=\varepsilon\sim\mathcal{N}(0,\sigma^{2}I)">. To use this feature, specify a genetic relatedness matrix (GRM) file to APEX using  `--grm {grm-file}`.  Output files and options are otherwise similar to those from OLS cis-xQTL analysis (when `--grm` is not specified). [See here](/doc/input_files/) for accepted input file formats. <br />
+Here, APEX uses a linear mixed model (LMM) to account for cryptic or familial relatedness in cis-eQTL analysis of the form <img src="https://render.githubusercontent.com/render/math?math=y = X\beta %2B g %2B \varepsilon "> where <img src="https://render.githubusercontent.com/render/math?math=g\sim\mathcal{N}(0,\tau^{2}\GRM)"> and <img src="https://render.githubusercontent.com/render/math?math=\varepsilon\sim\mathcal{N}(0,\sigma^{2}I)">. To use this feature, specify a genetic relatedness matrix (GRM) file to APEX using  `--grm {grm-file}`.  Output files and options are otherwise similar to those from OLS cis-xQTL analysis (when `--grm` is not specified). [See here](/doc/input_files/) for accepted input file formats. <br />
  
 **Example command:** <br />
  `./apex cis --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name} --long` <br />
