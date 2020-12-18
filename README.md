@@ -5,7 +5,7 @@ To install APEX from source or download precompiled binaries, [**see installatio
 ## Analysis modes and documentation
 - [**xQTL factor analysis.**](/apex/doc/mode_factor/)  `./apex factor {options}`
 	 - Rapid high-dimensional factor analysis to account for technical and biological variation in molecular trait data. 
-- [**xQTL linear mixed models.**](/apex/doc/mode_factor/)  `./apex lmm {options}`
+- [**xQTL linear mixed models.**](/apex/doc/mode_lmm/)  `./apex lmm {options}`
 	 - Precompute null model terms for rapid LMM association analysis. 
 - [**cis-xQTL analysis.**](/apex/doc/mode_cis/) `./apex cis {options}`
 	 - Analyze xQTL associations within a genomic window of each molecular trait.  For example, analyze variant associations within 1 megabase (Mb) of each gene's transcription start site (TSS).  
