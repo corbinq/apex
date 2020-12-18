@@ -1,7 +1,7 @@
 
 
 # APEX: variance-covariance / LD storage guide
-This page describes how to store variance-covariance matrices, which capture covariate-adjusted linkage disequilibrium (LD), in APEX. These files are required for multiple-variant analysis from summary statistics (without individual-level data), including meta-analysis.  Once installed, you can quickly get started by running ` ./apex store --help`. <br />
+This page describes how to store variance-covariance matrices, which capture covariate-adjusted linkage disequilibrium (LD), in APEX. These files are required for multiple-variant analysis from summary statistics (without individual-level data), including meta-analysis.  Once installed, you can quickly get started by running `./apex store --help`. <br />
 
 ## Overview
 We recommend running `apex store` separately on each chromosome, which can be accomplished by specifying `--region chr1`.  Each chromosomal vcov file is indexed by chromosomal position and byte offset, allowing fast access to variance-covariance data within a specific region or a specific variant.  [See here](/apex/doc/benchmarking/#meta-analysis) for information on expected vcov file sizes. <br />

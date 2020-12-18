@@ -1,6 +1,6 @@
 
 # APEX: factor analysis guide
-This page describes factor analysis using APEX. Once installed, you can quickly get started by running  ` ./apex factor --help`. <br />
+This page describes factor analysis using APEX. Once installed, you can quickly get started by running  `./apex factor --help`. <br />
 
 ## Overview
 The command `apex factor`  provides factor analysis and principal components analysis to infer latent technical and biological variables from molecular trait data.  The inferred covariates can be included in cis and trans xQTL analysis as fixed-effect or random-effect covariates.   `apex factor`  accepts expression, covariate, and genotype input files; however,  expression is used in factor analysis.  Output files from `apex factor`  include inferred factor covariates together with observed covariates (if specified via `--cov {FILE}`) in a format suitable for association analysis using APEX.  For detailed descriptions of input file formats, please see the [input file documentation page](/apex/doc/input_files/). <br />

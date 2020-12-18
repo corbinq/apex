@@ -1,6 +1,6 @@
 
 # APEX: trans-xQTL analysis guide
-This page describes trans-xQTL analysis using APEX. Once installed, you can quickly get started by running  ` ./apex trans --help`. <br />
+This page describes trans-xQTL analysis using APEX. Once installed, you can quickly get started by running  `./apex trans --help`. <br />
 
 ## Overview
 The command `apex trans` can be used to analyze genome-wide associations between molecular traits and all genetic variants.  This is in contrast to `apex cis`, which tests only analyzes genetic variants within a window of each moleculatr trait.  The underlying statistical methods are broadly similar between modes `cis` and `trans`; however, we introduce additional optimizations in mode `trans` to reduce computation time, memory, and storage. <br />
