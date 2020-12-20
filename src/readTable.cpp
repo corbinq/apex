@@ -13,33 +13,7 @@
     be included in all copies or substantial portions of APEX.
 */
 
-/*
-
-	Corbin's notes on readTable :
-	
-	COVARIATE DATA
-	
-	readTable source files and the 'table' class are for processing 
-	covariate files, subsetting and filtering covariate columns, and
-	subsetting and merging individual IDs in the covariate file with 
-	those in the expression file and genotype file. 
-	
-	We need to take some care in the file format. Some covariate files
-	store each sample as a row, while others store each covariate as 
-	a row (similar to expression bed files)
-	
-	HTSLIB's htsFile class is used to seamlessly read from raw text, 
-	gzip-compressed, or bgzip compressed input. 
-	
-	Eigen's MatrixXd class is used to store covariate data. 
-	
-	Non-numeric discrete covariates (factors) are not currently allowed.
-	For now, these should be dummy-coded in the covariate file. 
-	
-*/
-
 #include "readTable.hpp"
-
 
 void table::setRows(std::vector<std::string>& keep){
 	rows.setKeepIDs(keep);

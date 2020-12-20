@@ -120,12 +120,10 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 		
 		Eigen::MatrixXd UtG = U.transpose() * g_data.genotypes;
 		std::cerr << "Calculating genotype residual variances ...";
-		//Eigen::VectorXd SD_vec(UtG.cols());
 		for( int i = 0; i < UtG.cols(); i++)
 		{
 			
 			g_data.var[i] = g_data.genotypes.col(i).squaredNorm() - UtG.col(i).squaredNorm();
-			//SD_vec[i] = std::sqrt(g_data.var[i]);
 		}
 		std::cerr << "Done.\n";
 	}
@@ -161,9 +159,6 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 	std::cerr << "Scaling expression residuals ...\n";
 	scale_and_center(Y, e_data.stdev);
 	
-	// std::cout << Y.format(EigenTSV) << "\n";
-	// return 0;
-	
 	Y.transposeInPlace();
 	
 	double n_samples = U.rows();
@@ -182,28 +177,11 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 	BGZF* gene_file;
 	BGZF* long_file;
 	
-	
-	/*
-	if( !just_long ){
-		
-		block_file = bgzf_open(block_file_path.c_str(), "w");
-		
-		bed_block_file = bgzf_open(bed_block_file_path.c_str(), "w");
-		
-		write_to_bgzf("#chrom\tstart\tend\tgene\tegene_pval\tn_samples\tn_covar\tresid_sd\tn_cis_variants\n", bed_block_file);
-		
-	}
-	
-	bool write_long = (make_long || just_long);
-	
-	*/
-	
 	gene_file = bgzf_open(gene_file_path.c_str(), "w");
 	write_to_bgzf("#chrom\tpos\tref\talt\tgene_chrom\tgene_id\tbeta\tse\tpval\n", gene_file);
 	
 	long_file = bgzf_open(long_file_path.c_str(), "w");
 	write_to_bgzf("#chrom\tpos\tref\talt\tgene_chrom\tgene_id\tbeta\tse\tpval\n", long_file);
-	
 	
 	int bl = 0;
 	
@@ -333,94 +311,6 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 			
 			write_to_bgzf(long_line.str().c_str(), long_file);
 			
-			/*
-			for( int j = 0; j < Y.rows(); j++){
-				
-				std::stringstream block_line;
-				
-				// std::vector<double> pvals;
-		
-				for( int ii = s_g, im = 0; ii < s_g + n_g; ++ii, ++im){
-				
-					std::stringstream long_line;
-			
-					double g_yres_crossprod = Score(im, j);
-					if( g_data.flipped[ii] ) g_yres_crossprod *= -1.0;
-					
-					// if( !just_long ) block_line << "\t" << g_yres_crossprod;
-					
-					double beta, beta_se, zscore, pval_esnp;
-					
-					if( g_data.var[ii] > 0 ){
-						beta = g_yres_crossprod/g_data.var[ii];
-						// beta_se = std::sqrt( (n_samples - 1)/g_data.var[ii] - beta*beta)/std::sqrt(n_samples - n_covar - 1);
-						zscore = beta/beta_se;
-						// pval_esnp = pf( zscore*zscore, 1.0, n_samples - n_covar - 1, true );
-					}else{
-						beta = 0;
-						beta_se = 0;
-						zscore = 0;
-						pval_esnp = -1;
-					}
-
-					// pvals.push_back(pval_esnp);
-
-					if( write_long ){
-
-						long_line << 
-							clean_chrom(g_data.chr[ii]) << "\t" <<
-							g_data.pos[ii] << "\t" <<
-							g_data.ref[ii] << "\t" <<
-							g_data.alt[ii] << "\t" <<
-							e_data.gene_id[j] << "\t" <<
-							e_data.stdev[j]*beta << "\t" <<
-							e_data.stdev[j]*beta_se  << "\t" <<
-							pval_esnp << "\n";
-					}
-
-					// if( write_long ) write_to_bgzf(long_line.str().c_str(), long_file);
-				}
-				
-				
-				
-				if( !just_long ){
-					
-					// if( pos_s > 0 && pos_e > 0 ){
-						
-						block_line << "\n";
-						
-						std::string block_line_left = 
-							clean_chrom(e_data.chr[j]) + "\t" + 
-							std::to_string(pos_s) + "\t" + 
-							std::to_string(pos_e) + "\t" + 
-							std::to_string(v_s);
-						
-						write_to_bgzf(block_line_left, block_file);
-						write_to_bgzf(block_line.str().c_str(), block_file);
-						
-					}
-					
-					if( pvals.size() > 0 ){
-						
-						std::stringstream bed_block_line;
-						
-						bed_block_line <<
-							clean_chrom(e_data.chr[jj]) << "\t" << 
-							e_data.start[jj] << "\t" << 
-							e_data.end[jj] << "\t" << 
-							e_data.gene_id[jj] << "\t" << 
-							ACAT_non_missing(pvals) << "\t" << 
-							X.rows() << "\t" << 
-							X.cols() << "\t" << 
-							e_data.stdev[jj] << "\t" <<
-							v_e - v_s + 1 << "\n";
-						
-						write_to_bgzf(bed_block_line.str().c_str(), bed_block_file);
-					}
-				}
-				
-			}
-			*/
 		}else{
 			std::cerr << "\nERROR: " <<bl << ", " << s_g << ", " << n_g << "\n"; 
 			abort();
@@ -461,22 +351,6 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 	
 	bgzf_close(gene_file);
 	
-	
-
-	/*
-	if ( write_long ){
-		bgzf_close(long_file);
-		//build_tabix_index(long_file_path);
-	}
-
-	if( !just_long ){
-		bgzf_close(block_file);
-		bgzf_close(bed_block_file);
-		build_tabix_index(block_file_path, 1);
-		build_tabix_index(bed_block_file_path, 1);
-	}
-	*/
-
 	return;
 }
 
@@ -495,22 +369,11 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	Eigen::MatrixXd& Y = e_data.data_matrix;
 	Eigen::MatrixXd& C = c_data.data_matrix;
 	
-	// std::cerr << "Reordering trait and covariate matrices ...\n";
-	
-	// Eigen::MatrixXd Y = (Tr * e_data.data_matrix).eval();
-	// Eigen::MatrixXd C = (Tr * c_data.data_matrix).eval();
-	
-	// std::cerr << "Reordering genotypes ...\n";
-	
-	// g_data.genotypes = (Tr * g_data.genotypes).eval();
-	
 	double n_traits = Y.cols();
 	double n_samples = Y.rows();
 	double n_snps = g_data.n_variants;
 	double n_covar = C.cols();
 
-	// std::cerr << "Started cis-QTL analysis ...\n";
-	
 	if( rknorm_y ){
 		std::cerr << "Rank-normalizing expression traits ... \n";
 		rank_normalize(Y);
@@ -560,21 +423,6 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	BGZF* gene_file;
 	BGZF* long_file;
 	
-	/*
-	if( !just_long ){
-		
-		block_file = bgzf_open(block_file_path.c_str(), "w");
-		
-		bed_block_file = bgzf_open(bed_block_file_path.c_str(), "w");
-		
-		write_to_bgzf("#chrom\tstart\tend\tgene\tegene_pval\tn_samples\tn_covar\tresid_sd\tn_cis_variants\n", bed_block_file);
-		
-	}
-	
-	bool write_long = (make_long || just_long);
-	
-	*/
-	
 	gene_file = bgzf_open(gene_file_path.c_str(), "w");
 	write_to_bgzf("#chrom\tpos\tref\talt\tgene_chrom\tgene_id\tbeta\tse\tpval\n", gene_file);
 	
@@ -586,8 +434,6 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	std::vector<double> hsq_v(Y.cols());
 	std::vector<double> sigma_v(Y.cols());
 	std::vector<double> SSR_v(Y.cols());
-	
-	// Eigen::MatrixXd PY( Y.rows(), Y.cols() );
 	
 	e_data.stdev.resize(Y.cols());
 	
@@ -632,10 +478,6 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 			phi = fit.phi;
 			tau2 = phi*sigma2;
 		}
-		
-		// DiagonalXd Vi = Eigen::VectorXd::Ones(Y.col(j).size()).asDiagonal();
-		// double sigma2 = 1.00;
-		// double phi = 0.05;
 		
 		double hsq = tau2 / (tau2 + sigma2);
 		double scale = std::sqrt(tau2 + sigma2);
@@ -703,25 +545,8 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 			Eigen::VectorXd dV;
 			
 			if( global_opts::low_mem ){
-				
 				std::cerr << "Low mem trans LMM not supported\n.";
 				abort();
-				
-				// g_data.read_genotypes(sr, hdr, s_g, n_g );
-				
-				// Eigen::SparseMatrix<double>& G = g_data.genotypes;
-				
-				// Eigen::VectorXd UtG_block_sqnm = (U.transpose() * G).colwise().squaredNorm().eval(); 
-				
-				// for( int si = s_g, ii = 0; si < s_g + n_g; si++, ii++)
-				// {
-					// g_data.var[si] = G.col(ii).squaredNorm() - UtG_block_sqnm(ii);
-					// //cout << g_data.var[i] << "\n";
-				// }
-				// dV = getVectorXd(g_data.var, s_g, n_g);
-
-				// StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y_res * G).transpose().eval();
-				
 			}
 			
 			const Eigen::SparseMatrix<double>& G = g_data.genotypes.middleCols(s_g, n_g);
@@ -736,15 +561,10 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 			
 			Eigen::MatrixXd StdScore2 = (U_b.cwiseAbs2() * scale_vec.asDiagonal()).cwiseQuotient(V_b);
 			
-			// dV = getVectorXd(g_data.var, s_g, n_g);
-			// StdScore = dV.cwiseSqrt().asDiagonal().inverse() * (Y_res * G).transpose().eval();
-			
 			std::stringstream long_line;
 			
 			for(int j = 0; j < U_b.cols(); j++){
 				for(int i = 0; i < U_b.rows(); i++){
-					// double scale_fac = (n_samples - 1)/SSR_v[j];
-					// double val2 = scale_fac*(U_b(i,j) * U_b(i,j) )/V_b(i,j);
 					
 					const double& val2 = StdScore2(i,j);
 					
@@ -778,95 +598,6 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 			}
 			
 			write_to_bgzf(long_line.str().c_str(), long_file);
-			
-			/*
-			for( int j = 0; j < Y_res.rows(); j++){
-				
-				std::stringstream block_line;
-				
-				// std::vector<double> pvals;
-		
-				for( int ii = s_g, im = 0; ii < s_g + n_g; ++ii, ++im){
-				
-					std::stringstream long_line;
-			
-					double g_yres_crossprod = Score(im, j);
-					if( g_data.flipped[ii] ) g_yres_crossprod *= -1.0;
-					
-					// if( !just_long ) block_line << "\t" << g_yres_crossprod;
-					
-					double beta, beta_se, zscore, pval_esnp;
-					
-					if( g_data.var[ii] > 0 ){
-						beta = g_yres_crossprod/g_data.var[ii];
-						// beta_se = std::sqrt( (n_samples - 1)/g_data.var[ii] - beta*beta)/std::sqrt(n_samples - n_covar - 1);
-						zscore = beta/beta_se;
-						// pval_esnp = pf( zscore*zscore, 1.0, n_samples - n_covar - 1, true );
-					}else{
-						beta = 0;
-						beta_se = 0;
-						zscore = 0;
-						pval_esnp = -1;
-					}
-
-					// pvals.push_back(pval_esnp);
-
-					if( write_long ){
-
-						long_line << 
-							clean_chrom(g_data.chr[ii]) << "\t" <<
-							g_data.pos[ii] << "\t" <<
-							g_data.ref[ii] << "\t" <<
-							g_data.alt[ii] << "\t" <<
-							e_data.gene_id[j] << "\t" <<
-							e_data.stdev[j]*beta << "\t" <<
-							e_data.stdev[j]*beta_se  << "\t" <<
-							pval_esnp << "\n";
-					}
-
-					// if( write_long ) write_to_bgzf(long_line.str().c_str(), long_file);
-				}
-				
-				
-				
-				if( !just_long ){
-					
-					// if( pos_s > 0 && pos_e > 0 ){
-						
-						block_line << "\n";
-						
-						std::string block_line_left = 
-							clean_chrom(e_data.chr[j]) + "\t" + 
-							std::to_string(pos_s) + "\t" + 
-							std::to_string(pos_e) + "\t" + 
-							std::to_string(v_s);
-						
-						write_to_bgzf(block_line_left, block_file);
-						write_to_bgzf(block_line.str().c_str(), block_file);
-						
-					}
-					
-					if( pvals.size() > 0 ){
-						
-						std::stringstream bed_block_line;
-						
-						bed_block_line <<
-							clean_chrom(e_data.chr[jj]) << "\t" << 
-							e_data.start[jj] << "\t" << 
-							e_data.end[jj] << "\t" << 
-							e_data.gene_id[jj] << "\t" << 
-							ACAT_non_missing(pvals) << "\t" << 
-							X.rows() << "\t" << 
-							X.cols() << "\t" << 
-							e_data.stdev[jj] << "\t" <<
-							v_e - v_s + 1 << "\n";
-						
-						write_to_bgzf(bed_block_line.str().c_str(), bed_block_file);
-					}
-				}
-				
-			}
-			*/
 		}else{
 			std::cerr << "\nERROR: " <<bl << ", " << s_g << ", " << n_g << "\n"; 
 			abort();
@@ -877,51 +608,7 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	std::cerr << "\n";
 
 	bgzf_close(long_file);
-	
-	// for( int j = 0; j < n_genes; j++){
-		
-		// const int& ii = gene_max_idx[j];
-		// const int& val = gene_max_val[j];
-
-		// const double& V = g_data.var[ii];
-		// const double& scale = e_data.stdev[j];
-		// double U = val * std::sqrt(V);
-		// double beta = U/V;
-		// double beta_se = std::sqrt( ((n_samples - 1)/V- beta*beta)/(n_samples - n_covar - 1) );
-
-		// std::stringstream gene_line;
-		// gene_line << 
-			// clean_chrom(g_data.chr[ii]) << "\t" <<
-			// g_data.pos[ii] << "\t" <<
-			// g_data.ref[ii] << "\t" <<
-			// g_data.alt[ii] << "\t" <<
-			// clean_chrom(e_data.chr[j]) << "\t" <<
-			// e_data.gene_id[j] << "\t" <<
-			// scale*beta << "\t" <<
-			// scale*beta_se  << "\t" <<
-			// u_stat_pval(val, n_covar, n_samples) << "\n";
-		
-		// write_to_bgzf(gene_line.str().c_str(), gene_file);	
-	// }
-	
-	
 	bgzf_close(gene_file);
-	
-	
-
-	/*
-	if ( write_long ){
-		bgzf_close(long_file);
-		//build_tabix_index(long_file_path);
-	}
-
-	if( !just_long ){
-		bgzf_close(block_file);
-		bgzf_close(bed_block_file);
-		build_tabix_index(block_file_path, 1);
-		build_tabix_index(bed_block_file_path, 1);
-	}
-	*/
 
 	return;
 }

@@ -1,5 +1,4 @@
-/*  fitModels: QTL model fitting. 
-
+/* 
     Copyright (C) 2020 
     Authors: Corbin Quick <qcorbin@hsph.harvard.edu>
 	         Li Guan <guanli@umich.edu>

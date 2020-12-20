@@ -1,5 +1,4 @@
-/*  APEX:
-
+/* 
     Copyright (C) 2020 
     Author: Corbin Quick <qcorbin@hsph.harvard.edu>
 
@@ -59,29 +58,31 @@ using mode_fun = std::function<int(const std::string &, std::vector<std::string>
 std::string help_string = 
 "\n" 
 "  APEX: Toolkit for xQTL analysis\n" 
-"     (c) 2019-2020 Corbin Quick and Li Guan.\n" 
+"     (c) 2019-2021 Corbin Quick and Li Guan.\n" 
 "\n" 
 "  Usage and options:\n" 
 "     ./apex [mode] --help       Print help menu for [mode].\n" 
 "\n" 
-"  Analysis modes:\n" 
-"     ./apex cis {OPTIONS}       Run cis-xQTL analysis.\n" 
-"\n" 
-"     ./apex trans {OPTIONS}     Run trans-xQTL analysis.\n" 
-"\n"
+"  Preprocessing modes:\n" 
 "     ./apex factor {OPTIONS}    Estimate latent factors from\n" 
 "                                 molecular trait data.\n" 
 "\n" 
 "     ./apex lmm {OPTIONS}       Precompute terms for linear\n" 
 "                                 mixed model analysis.\n" 
 "\n" 
-"     ./apex meta {OPTIONS}      Single and multi-variant\n" 
-"                                 xQTL meta-analysis from\n" 
-"                                 sumstat and vcov files.\n" 
+"  Analysis modes:\n" 
+"     ./apex cis {OPTIONS}       Run cis-xQTL analysis.\n" 
 "\n" 
+"     ./apex trans {OPTIONS}     Run trans-xQTL analysis.\n" 
+"\n"
+"  Meta-analysis modes:\n" 
 "     ./apex store {OPTIONS}     Store vcov (LD) data for\n" 
 "                                 xQTL meta-analysis or\n" 
 "                                 data sharing.\n" 
+"\n" 
+"     ./apex meta {OPTIONS}      Single and multi-variant\n" 
+"                                 xQTL meta-analysis from\n" 
+"                                 sumstat and vcov files.\n" 
 "\n" 
 "  Contact: corbinq@gmail.com\n";
 
@@ -1340,10 +1341,6 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	
     return 0;
 };
-
-
-
-
 
 
 int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
