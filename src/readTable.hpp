@@ -13,23 +13,6 @@
     be included in all copies or substantial portions of APEX.
 */
 
-
-/*
-	readTable source files and the 'table' class are for processing 
-	covariate files, subsetting and filtering covariate columns, and
-	subsetting and merging individual IDs in the covariate file with 
-	those in the expression file and genotype file. 
-	
-	HTSLIB's htsFile class is used to seamlessly read from raw text, 
-	gzip-compressed, or bgzip compressed input. 
-	
-	Eigen's MatrixXd class is used to store covariate data. 
-	
-	Non-numeric discrete covariates (factors) are not currently allowed.
-	For now, these should be dummy-coded in the covariate file. 
-	
-*/
-
 #ifndef READTABLE_HPP
 #define READTABLE_HPP
 
