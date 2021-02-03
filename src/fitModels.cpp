@@ -523,6 +523,20 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 			if( (VARSC > 0 && (VARSC/V(i)) > 1 - global_opts::RSQ_PRUNE && V(i) > 0) || !check_filter ){
 				double beta = stdev * SCORE/VARSC;
 				
+				// Edits start here:
+				
+				if( VARSC < 0.00 ){
+					std::cerr << "WARNING: VARSC = " << VARSC << "\n";
+				}
+				
+				if( SSE_i < SCORE*SCORE/VARSC ){
+					std::cerr << "WARNING: SSE_i - SCORE*SCORE/VARSC < 0 \n";
+					std::cerr << "         SSE_i = " << SSE_i << " \n";
+					std::cerr << "         SCORE = " << SCORE << " \n";
+					std::cerr << "         VARSC = " << VARSC << " \n";
+				}
+				
+				
 				double se = stdev * std::sqrt(SSE_i - SCORE*SCORE/VARSC) / std::sqrt(df*VARSC);
 				double pval = -99;
 				
