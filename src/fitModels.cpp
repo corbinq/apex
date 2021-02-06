@@ -501,6 +501,17 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 		C_JiU_0 = Cov * JiU_0;
 
 		SSE_0 = df_0 - U_0.dot(JiU_0);
+
+		if( SSE_0 <= 0.00 ){
+			std::cerr << "FATAL: SSE_0 <= 0.00\n";
+
+			std::cout << "df_0 = " << df_0 << "\n";
+			std::cout << "U_0 = \n" << U_0 << "\n"; 
+			std::cout << "J_0 = \n" << J_0 << "\n";
+
+			abort();
+		}
+
 	}
 	
 	for( int i = 0; i < U.size(); ++i){
@@ -521,6 +532,20 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 			}
 			double VIF = calc_vif(V(i), VARSC);
 			if( (VARSC > 0 && (VARSC/V(i)) > 1 - global_opts::RSQ_PRUNE && V(i) > 0) || !check_filter ){
+
+
+
+				if( SSE_i < SCORE*SCORE/VARSC ){
+					std::cerr << "WARNING: SSE_i - SCORE*SCORE/VARSC < 0 \n";
+					std::cerr << "         SSE_i = " << SSE_i << " \n";
+					std::cerr << "         SCORE = " << SCORE << " \n";
+					std::cerr << "         VARSC = " << VARSC << " \n\n";
+					std::cerr << "         U_0 = \n" << U_0 << "\n";
+					// std::cerr << "         JiU_0 = \n" << JiU_0 << "\n";
+					std::cerr << "         Cov = \n" << Cov << "\n"; 
+					std::cerr << "         J_0 = \n" << J_0 << "\n";
+				}
+				
 				double beta = stdev * SCORE/VARSC;
 				
 				double se = stdev * std::sqrt(SSE_i - SCORE*SCORE/VARSC) / std::sqrt(df*VARSC);
