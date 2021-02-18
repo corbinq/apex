@@ -30,6 +30,7 @@
 #include <sys/wait.h>
 
 #include "args/args.hxx"
+#include "args/catch.hpp"
 
 #include "setOptions.hpp"
 

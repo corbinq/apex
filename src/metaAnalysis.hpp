@@ -154,7 +154,7 @@ class cis_meta_data
 		void merge(const std::vector<std::vector<int>>&, const std::vector<std::vector<bool>>&);
 		void meta_analyze();
 		
-		void conditional_analysis(const int&, std::ostream&, std::ostream&);
+		void conditional_analysis(const int&, std::ostream&, std::ostream&, std::ostream&);
 		void conditional_analysis();
 		void conditional_analysis_het(const int&, std::ostream&);
 		void conditional_analysis_het();

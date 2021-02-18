@@ -479,7 +479,9 @@ void meta_svar_sumstat::condition_on_het(const int& k){
 lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const Eigen::MatrixXd& Cov, const bool& check_filter, const std::vector<bool>& exclude ){
 	
 	lm_output out;
-	
+
+	out.lm_error_message = "";
+
 	Eigen::MatrixXd Ji;
 	Eigen::VectorXd JiU_0;
 	Eigen::VectorXd C_JiU_0;
@@ -491,6 +493,8 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 	double df = df_0 - m_0 - 1;
 	
 	int i_m = 0;
+
+	bool fatal_error = false;
 	
 	if( m_0 > 0 ){
 		
@@ -503,20 +507,26 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 		SSE_0 = df_0 - U_0.dot(JiU_0);
 
 		if( SSE_0 <= 0.00 ){
-			std::cerr << "FATAL: SSE_0 <= 0.00\n";
+			/*
+			std::cerr << "ERROR: SSE_0 <= 0.00\n";
 
-			std::cout << "df_0 = " << df_0 << "\n";
-			std::cout << "U_0 = \n" << U_0 << "\n"; 
-			std::cout << "J_0 = \n" << J_0 << "\n";
-
-			abort();
+			std::cerr << "df_0 = " << df_0 << "\n";
+			std::cerr << "U_0 = \n" << U_0 << "\n"; 
+			std::cerr << "J_0 = \n" << J_0 << "\n";
+			*/
+			fatal_error = true;
+			// abort();
+			out.lm_error_message = "fatal error; SSE_0 <= 0.00; n_snps = " + std::to_string(U_0.size()) + ".\n";
 		}
 
 	}
-	
+	int n_err = 0;
 	for( int i = 0; i < U.size(); ++i){
 		bool skip = false;
+		
 		if( exclude.size() > 0 ) skip = exclude[i];
+		if( fatal_error ) skip = true;
+
 		if( skip && check_filter ){
 			// std::cerr << "\nskip\n\n";
 			out.push_back(-99, -99, -99);
@@ -533,18 +543,30 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 			double VIF = calc_vif(V(i), VARSC);
 			if( (VARSC > 0 && (VARSC/V(i)) > 1 - global_opts::RSQ_PRUNE && V(i) > 0) || !check_filter ){
 
-
-
 				if( SSE_i < SCORE*SCORE/VARSC ){
+					n_err++;
+					if( out.lm_error_message == "" ){
+						out.lm_error_message = "warning; SSE < U^2/V; nsnps = " + std::to_string(U_0.size()) + "; n_cases = ";
+					}
+
+					/*
 					std::cerr << "WARNING: SSE_i - SCORE*SCORE/VARSC < 0 \n";
+					std::cerr << "         VIF = " << VIF << " \n";
 					std::cerr << "         SSE_i = " << SSE_i << " \n";
 					std::cerr << "         SCORE = " << SCORE << " \n";
-					std::cerr << "         VARSC = " << VARSC << " \n\n";
+					std::cerr << "         VARSC = " << VARSC << " \n";
+					std::cerr << "         V(i) = " << V(i) << " \n\n";
+					std::cerr << "         U(i) = " << U(i) << " \n\n"; 
 					std::cerr << "         U_0 = \n" << U_0 << "\n";
-					// std::cerr << "         JiU_0 = \n" << JiU_0 << "\n";
-					std::cerr << "         Cov = \n" << Cov << "\n"; 
+					std::cerr << "         C_JiU_0(i) = \n" << C_JiU_0(i) << "\n";
+					std::cerr << "         Cov.row(i) = \n" << Cov.row(i) << "\n"; 
+					std::cerr << "         Ji = \n" << Ji << "\n"; 
 					std::cerr << "         J_0 = \n" << J_0 << "\n";
-				}
+					*/
+
+					out.push_back(-99, -99, -99, VIF);
+
+				}else{
 				
 				double beta = stdev * SCORE/VARSC;
 				
@@ -561,12 +583,19 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				
 				
 				out.push_back(beta, se, pval, VIF);
+
+				}
 			}else{
 				// std::cerr << "\nWARNING: RSQ_VIF = " << (VARSC/V(i)) << ", VARSC = "<< VARSC << "\n\n";
 				out.push_back(-99, -99, -99, VIF);
 			}
 		}
 	}
+	
+	if( n_err > 0 ){
+		out.lm_error_message += std::to_string(n_err) + " / " + std::to_string(U.size()) + ";\n";
+	}
+	
 	
 	return out;
 }
@@ -625,7 +654,9 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 
 forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, vcov_getter& vget, double pval_thresh, const std::vector<double>& weights )
 {
-
+	
+	error_message = "";
+	
 	Eigen::VectorXd U_0 = Eigen::VectorXd(0);
 	Eigen::MatrixXd J_0 = Eigen::MatrixXd(0,0);
 	Eigen::MatrixXd Cov = Eigen::VectorXd(0);
@@ -658,6 +689,10 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		
 		lm_output reg = lm_from_sumstats(U, V, n, m, stdev, U_0, J_0, Cov, true, excl);
 		// std::cerr << "Fit model.\n";
+
+		if( reg.lm_error_message != "" ){
+			error_message += "Step " + std::to_string(total_steps+1) + ": " + reg.lm_error_message;
+		}
 
 		if( nk == 0 && reg0.beta.size() == 0 ){
 			reg0 = reg;
@@ -832,6 +867,11 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			
 			lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, stdev, U_0k, J_0k, Cov_k, false);
 			
+			if( reg_k.lm_error_message != "" ){
+				error_message += "Final step " + std::to_string(k_i+1) + "/" + std::to_string(keep.size()) + ": " + reg_k.lm_error_message;  
+			}
+
+
 			beta.push_back(reg_k.beta[0]);
 			se.push_back(reg_k.se[0]);
 			pval_joint.push_back(reg_k.pval[0]);
@@ -848,7 +888,9 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 
 forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, indiv_vcov_getter& vget, double pval_thresh, const std::vector<double>& weights )
 {
-
+	
+	error_message = "";
+	
 	Eigen::VectorXd U_0 = Eigen::VectorXd(0);
 	Eigen::MatrixXd J_0 = Eigen::MatrixXd(0,0);
 	Eigen::MatrixXd Cov = Eigen::VectorXd(0);

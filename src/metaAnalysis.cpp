@@ -1105,13 +1105,16 @@ void cis_meta_data::get_vcov_gene(const int& gene_index, const bool& centered)
 }
 
 
-void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os, std::ostream& os_b)
+void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os, std::ostream& os_b, std::ostream& os_log )
 {
 	
 	if( N_CIS[gene_index] <= 0 ){
-		std::cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
-		std::cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
+		std::cerr << "\nWARNING: No variants present for " << gene_id[gene_index] << ".\n";
+		std::cerr << "    Note: score.size() == " << score[gene_index].size() << "\n\n";
 		
+		os_log << "\nWARNING: No variants present for " << gene_id[gene_index] << ".\n";
+		os_log << "    Note: score.size() == " << score[gene_index].size() << "\n\n";
+
 		return;
 	}
 	
@@ -1160,7 +1163,11 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	for( int s = 1; s < study_list[gene_index].size(); s++){
 		in_studies += ("," + std::to_string(study_list[gene_index][s] + 1));
 	}
-	
+
+	if( out.error_message != "" ){
+		os_log << "ERROR: GENE = " + gene + " :\n" + out.error_message + "\n"; 
+	}
+
 	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
 	
 	if( out.beta.size() > 0 ){
@@ -1190,7 +1197,8 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 		}
 		
 	}else{
-		std::cerr << "\nERROR: No variant signals reported for " << gene << ", with " << n_var << " total variants.\n\n";
+		std::cerr << "\nWARNING: No variant signals reported for " << gene << ", with " << n_var << " total variants.\n\n";
+		os_log << "\nWARNING: No variant signals reported for " << gene << ", with " << n_var << " total variants.\n\n";
 	}
 }
 
@@ -1199,8 +1207,8 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 {
 	
 	if( N_CIS[gene_index] <= 0 ){
-		std::cerr << "\nERROR: No variants present for " << gene_id[gene_index] << ".\n";
-		std::cerr << "Note: score.size() == " << score[gene_index].size() << "\n\n";
+		std::cerr << "\nWARNING: No variants present for " << gene_id[gene_index] << ".\n";
+		std::cerr << "    Note: score.size() == " << score[gene_index].size() << "\n\n";
 		
 		return;
 	}
@@ -1337,7 +1345,10 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 void cis_meta_data::conditional_analysis(){
 	
 	// stepwise output
-	
+
+	std::string log_out_name = global_opts::out_prefix + ".cis_meta.stepwise.err_logs";
+	std::ofstream os_err(log_out_name.c_str(), std::ofstream::out);
+
 	std::string out_name = global_opts::out_prefix + ".cis_meta.stepwise.tsv";
 	std::ofstream os(out_name.c_str(), std::ofstream::out);
 	
@@ -1363,7 +1374,7 @@ void cis_meta_data::conditional_analysis(){
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	for(int i = 0; i < gene_id.size(); ++i){
 		int j = i;
-		conditional_analysis(j, os, os_b);
+		conditional_analysis(j, os, os_b, os_err);
 		j = i;
 		thinned_iter_cerr(j, i+1, iter_cerr_suffix, 1);
 	}

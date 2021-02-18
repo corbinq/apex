@@ -960,16 +960,18 @@ class meta_svar_sumstat
 };
 
 inline double calc_vif(const double& v0, const double& v1){
-	if(  v0 - v1 <= 0 ){
+	if(  v1 <= 0 ){
 		return std::numeric_limits<double>::infinity();
 	}else{
-		return v0/(v0 - v1);
+		return v0/v1;
 	}
 }
 
 class lm_output
 {
 	public:
+		std::string lm_error_message;
+
 		std::vector<std::string> variable;
 		
 		std::vector<double> beta;
@@ -1013,6 +1015,8 @@ static const std::vector<double> vd0(0);
 class forward_lm
 {
 	public:
+		std::string error_message;
+
 		std::vector<std::string> variable;
 		
 		std::vector<double> beta;

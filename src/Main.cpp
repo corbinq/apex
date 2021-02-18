@@ -84,44 +84,46 @@ std::string help_string =
 "                                 xQTL meta-analysis from\n" 
 "                                 sumstat and vcov files.\n" 
 "\n" 
-"  Contact: corbinq@gmail.com\n";
+"  Contact: qcorbin@hsph.harvard.edu\n";
 
 
 // ------------------------------------
 //  Wrapper for parsing within-mode command line options 
 // ------------------------------------
 
-int parseModeArgs(args::ArgumentParser& p, std::vector<std::string>::const_iterator& args_begin, std::vector<std::string>::const_iterator& args_end){
+int parseModeArgs(args::ArgumentParser& p, args::Flag& hf, std::vector<std::string>::const_iterator& args_begin, std::vector<std::string>::const_iterator& args_end){
 	
-    try
-    {
+    //try
+    //{
         p.ParseArgs(args_begin, args_end);
-    }
-	catch (const args::Completion& e)
+    // }
+	// catch (const args::Completion& e)
+    // {
+    //    std::cout << e.what();
+    //    return 0;
+    // }
+    // catch (args::Help help_temp)
+    if( hf.Matched() )
     {
-        std::cout << e.what();
-        return 0;
-    }
-    catch (args::Help)
-    {
-		restore_cursor();
+	restore_cursor();
         std::cout << p;
         exit(0);
     }
-    catch (args::ParseError e)
+    /*
+    catch (args::ParseError& e)
     {
-		restore_cursor();
+	restore_cursor();
         std::cerr << e.what() << "\n";
         std::cerr << p;
         exit(1);
     }
-    catch (args::ValidationError e)
+    catch (args::ValidationError& e)
     {
-		restore_cursor();
+	restore_cursor();
         std::cerr << e.what() << "\n";
         std::cerr << p;
         exit(1);
-    }
+    }*/
 }
 
 
@@ -162,8 +164,8 @@ int main(int argc, char* argv[])
 	};
 	
 	// Argument parsing using https://github.com/Taywee/args
-	args::ArgumentParser p0("apex: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help0(p0, "help", "Display this help menu", {'h', "help"});
+	args::ArgumentParser p0("apex: GWAS/QTL Toolkit.", "Contact: qcorbin@hsph.harvard.edu.\n");
+//    args::Flag help0(p0, "help", "Display this help menu", {'h', "help"});
 	
 	p0.Prog(argv[0]);
 	
@@ -174,39 +176,49 @@ int main(int argc, char* argv[])
 	
 	const std::vector<std::string> args(argv + 1, argv + argc);
 	
-	try
-    {
+    //try
+    //{
         auto next = p0.ParseArgs(args);
-        if (mode)
+    	
+
+    	if (mode)
         {
-			return args::get(mode)(argv[0], next, std::end(args));
-        } else
-        {
-            std::cout << help_string;
-        }
-    }
-    catch (args::Help)
-    {
+		//std::cerr << "Found matching mode.\n";
+		args::get(mode)(argv[0], next, std::end(args));
+		return 1;
+        } //else
+        //{
+        //    std::cout << help_string;
+        // }
+    //}
+    //std::cerr << "No match.\n";
+
+    //catch (args::Help)
+    //{
         std::cout << help_string;
         return 0;
-    }
-    catch (args::Error e)
-    {
-        std::cerr << "\nUnknown command line argument(s).\nPrinting help menu:\n" << std::endl;
-        std::cerr << help_string;
-        return 1;
-    }
+    // }
+    //catch (args::Error e)
+    // {
+    //    std::cerr << "\nUnknown command line argument(s).\nPrinting help menu:\n" << std::endl;
+     //   std::cerr << help_string;
+      //  return 1;
+    //}
+    
     return 0;
 }
 
 
 int cis(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
 	
-	args::ArgumentParser p("apex cis: cis-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
-	args::CompletionFlag completion(p, {"complete"});
+	args::ArgumentParser p("apex cis: cis-xQTL analysis.", "Contact: qcorbin@hsph.harvard.edu.\n");
+//      args::Flag help(p, "help", "Display this help menu", {'h', "help"});
+	
+// args::CompletionFlag completion(p, {"complete"});
 
 	p.Prog(progname);
+
+	args::Flag help(p, "help", "Display this help menu", {'h', "help"});
 
 	args::Group analysis_args(p, "Analysis options");
 		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
@@ -269,7 +281,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	// Parse command line arguments 
 	// ----------------------------------
 	
-	parseModeArgs(p, beginargs, endargs);
+	parseModeArgs(p,help, beginargs, endargs);
 	
 	// ----------------------------------
 	// I/O File Paths
@@ -649,8 +661,8 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("apex trans: trans-xQTL analysis.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::ArgumentParser p("apex trans: trans-xQTL analysis.", "Contact: qcorbin@hsph.harvard.edu.\n");
+    args::Flag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 	
 	p.Prog(progname);
@@ -704,7 +716,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Parse command line arguments 
 	// ----------------------------------
 	
-	parseModeArgs(p, beginargs, endargs);
+	parseModeArgs(p,help, beginargs, endargs);
 	
 	// ----------------------------------
 	// I/O File Paths
@@ -1003,8 +1015,8 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("apex lmm: LMM pre-processing.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::ArgumentParser p("apex lmm: LMM pre-processing.", "Contact: qcorbin@hsph.harvard.edu.\n");
+    args::Flag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 	
 	p.Prog(progname);
@@ -1056,7 +1068,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	// Parse command line arguments 
 	// ----------------------------------
 	
-	parseModeArgs(p, beginargs, endargs);
+	parseModeArgs(p,help, beginargs, endargs);
 	
 	// ----------------------------------
 	// I/O File Paths
@@ -1345,8 +1357,8 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 
 int factor(const std::string &progname, std::vector<std::string>::const_iterator beginargs, std::vector<std::string>::const_iterator endargs){
 	
-	args::ArgumentParser p("apex factor: high-dimensional factor analysis.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::ArgumentParser p("apex factor: high-dimensional factor analysis.", "Contact: qcorbin@hsph.harvard.edu.\n");
+    args::Flag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
 	p.Prog(progname);
@@ -1387,7 +1399,7 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	// Parse command line arguments 
 	// ----------------------------------
 	
-	parseModeArgs(p, beginargs, endargs);
+	parseModeArgs(p,help, beginargs, endargs);
 	
 	// ----------------------------------
 	// I/O File Paths
@@ -1608,8 +1620,8 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("apex meta: Meta-analysis of xQTL studies.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::ArgumentParser p("apex meta: Meta-analysis of xQTL studies.", "Contact: qcorbin@hsph.harvard.edu.\n");
+    args::Flag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
 	p.Prog(progname);
@@ -1658,7 +1670,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// Parse command line arguments 
 	// ----------------------------------
 	
-	parseModeArgs(p, beginargs, endargs);
+	parseModeArgs(p,help, beginargs, endargs);
 	
 	// ----------------------------------
 	// Process test options
@@ -1818,8 +1830,8 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Define command line flags
 	// ----------------------------------
 	
-	args::ArgumentParser p("apex store: Store vcov (LD; variance-covariance) data.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help(p, "help", "Display this help menu", {'h', "help"});
+	args::ArgumentParser p("apex store: Store vcov (LD; variance-covariance) data.", "Contact: qcorbin@hsph.harvard.edu.\n");
+    args::Flag help(p, "help", "Display this help menu", {'h', "help"});
 	args::CompletionFlag completion(p, {"complete"});
 
 	p.Prog(progname);
@@ -1867,7 +1879,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	// Parse command line arguments 
 	// ----------------------------------
 	
-	parseModeArgs(p, beginargs, endargs);
+	parseModeArgs(p,help, beginargs, endargs);
 	
 	// ----------------------------------
 	// I/O File Paths
