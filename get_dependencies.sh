@@ -1,5 +1,6 @@
 #!/bin/bash
-
+set -euxo pipefail
+IFS=$'\n\t'
 
 # args library for processing command line arguments
 git clone https://github.com/Taywee/args.git src/args
@@ -22,13 +23,13 @@ git clone https://github.com/jonathonl/shrinkwrap.git src/shrinkwrap
 
 
 # try loading modules  
-if [ $(whereis module | cut -d: -f2 | wc -c) -lt 0 ]; then
+if [ `which module` ]; then
 	module load boost
 #	module load htslib
 fi
 
 # boost::math library
-if [ $(whereis boost | cut -d: -f2 | wc -c) -lt 0 ]; 
+if [ ! `which boost` ];
 then
 	git clone https://github.com/boostorg/boost src/boost
 	echo "WARNING: Could not find boost library on system.\n"
@@ -41,7 +42,7 @@ then
 	./b2 headers
 	cd ../../
 else
-	echo "Found boost installed at $(whereis boost | cut -d: -f2)"
+	echo "Found boost installed at $(which boost)"
 fi
 
 # htslib library, which we use for BCF/VCF access and indexing
