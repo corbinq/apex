@@ -1,0 +1,11 @@
+jonathonl/shrinkwrap@v1.1.0
+htslib,https://github.com/samtools/htslib/releases/download/1.12/htslib-1.12.tar.bz2 -DCMAKE_VERBOSE_MAKEFILE=1 --cmake htslib.cmake
+
+# Unfortunately we have to mirror eigen. cget does not work with downloading files directly from
+# gitlab, where eigen is currently hosted, due to an issue with urlopen being rejected with a 403.
+# There is a PR for cget but it is not merged yet: https://github.com/pfultz2/cget/pull/84
+eigen,https://portaldev.sph.umich.edu/eigen/eigen-master-3ddc0974ce4.tar.bz2 -H sha512:5a4b28d1d88869fc6a96887af78b1282131353f67a8b72480d46dfcbb601682b81c3f418fc3e286e3aecb855814d7099169b43550e1bc995c73d778f22e4aa00
+
+boost,http://downloads.sourceforge.net/project/boost/boost/1.67.0/boost_1_67_0.tar.bz2 --cmake boost.cmake -DBOOST_WITH_IOSTREAMS=1 -DBOOST_WITH_PYTHON=1 -DBOOST_WITH_SYSTEM=1 -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC
+yixuan/spectra@0.9.x
+Taywee/args@ae22269df734a2b0957a9ab4e37be41f61866dbe
