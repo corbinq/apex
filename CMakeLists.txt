@@ -63,6 +63,9 @@ set(SOURCE_FILES
   src/BRENT/brent_fmin.cpp
   src/BRENT/brent_fmin.hpp)
 add_executable(apex ${SOURCE_FILES})
-target_compile_options(apex PUBLIC -static -Wall -Wpedantic -flto -openmp -fno-math-errno)
+target_compile_options(apex PUBLIC "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>" -Wall -Wpedantic -flto -openmp -fno-math-errno)
+
+# -static not supported on MacOS, can't statically link to C runtime
+target_link_options(apex PUBLIC "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>" -flto -fuse-linker-plugin -Wno-unused-function)
 target_include_directories(apex PUBLIC ${CGET_PREFIX}/include src/BRENT ${BZIP2_INCLUDE_DIRS})
 target_link_libraries(apex PUBLIC ${LIB_ZSTD} ${LIB_LZMA} ${LIB_Z} ${LIB_HTS} ${Boost_LIBRARIES} ${BZIP2_LIBRARIES})
