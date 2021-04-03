@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 project(apex VERSION 0.0.1)
 
-add_compile_options(-static -Wall -Wpedantic -flto -openmp -fno-math-errno)
-
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 14)
 
@@ -65,5 +63,6 @@ set(SOURCE_FILES
   src/BRENT/brent_fmin.cpp
   src/BRENT/brent_fmin.hpp)
 add_executable(apex ${SOURCE_FILES})
+target_compile_options(apex PUBLIC -static -Wall -Wpedantic -flto -openmp -fno-math-errno)
 target_include_directories(apex PUBLIC ${CGET_PREFIX}/include src/BRENT ${BZIP2_INCLUDE_DIRS})
 target_link_libraries(apex PUBLIC ${LIB_ZSTD} ${LIB_LZMA} ${LIB_Z} ${LIB_HTS} ${Boost_LIBRARIES} ${BZIP2_LIBRARIES})
