@@ -31,7 +31,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "args/args.hxx"
+#include "args.hxx"
 
 #include "setOptions.hpp"
 
