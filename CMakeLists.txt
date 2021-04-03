@@ -15,6 +15,7 @@ find_library(LIB_Z z HINT ${CGET_PREFIX}/lib)
 find_library(LIB_HTS hts HINT ${CGET_PREFIX}/lib)
 
 find_package(BZip2)
+find_package(OpenMP)
 
 #set(BOOST_INCLUDEDIR ${CGET_PREFIX}/include)
 #set(BOOST_LIBRARYDIR ${CGET_PREFIX}/lib)
@@ -69,3 +70,8 @@ target_compile_options(apex PUBLIC "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>" -Wa
 target_link_options(apex PUBLIC "$<$<NOT:$<PLATFORM_ID:Darwin>>:-static>" -flto -fuse-linker-plugin -Wno-unused-function)
 target_include_directories(apex PUBLIC ${CGET_PREFIX}/include src/BRENT ${BZIP2_INCLUDE_DIRS})
 target_link_libraries(apex PUBLIC ${LIB_ZSTD} ${LIB_LZMA} ${LIB_Z} ${LIB_HTS} ${Boost_LIBRARIES} ${BZIP2_LIBRARIES})
+
+if(OpenMP_CXX_FOUND)
+  target_compile_options(apex PUBLIC "${OpenMP_CXX_FLAGS}")
+  target_link_libraries(apex PUBLIC OpenMP::OpenMP_CXX)
+endif()
