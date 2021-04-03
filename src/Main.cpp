@@ -143,8 +143,11 @@ int main(int argc, char* argv[])
     signal(SIGABRT, lam_kill);
     signal(SIGTERM, lam_kill);
     // signal(SIGTSTP, lam_wait);
-	
+
+#ifndef __APPLE__
+  // This function is not implemented in OS X's stdlib.
 	at_quick_exit (restore_cursor);
+#endif
 	atexit (restore_cursor);
 	
 
