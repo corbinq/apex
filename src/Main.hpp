@@ -23,7 +23,9 @@
 #include <cstdlib>
 #include <csignal>
 
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
 
 #include <sys/stat.h>
 #include <sys/types.h>
