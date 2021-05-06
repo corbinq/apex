@@ -46,6 +46,22 @@ cd apex
 bash get_dependencies.sh
 make
 ```
+
+CMake can also be used to compile the source. Required dependencies can be obtained and compiled using [cget](https://cget.readthedocs.io/en/latest/).
+
+```
+# Install dependencies with cget.
+cget install .
+
+# Compile with CMake.
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=../cget/cget/cget.cmake
+make
+```
+
+Change to `-DCMAKE_BUILD_TYPE=Release` for a release build with all optimizations enabled.
+
 Precompiled binaries are also available for 64-bit Linux systems as follows:
 ```
 git clone https://github.com/corbinq/apex.git
