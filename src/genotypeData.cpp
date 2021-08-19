@@ -17,73 +17,6 @@
 
 bool sp_geno_fmt = true;
 
-void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col, std::vector<int>& related)
-{
-	int n = kp_ids.size();
-	
-	GRM = Eigen::SparseMatrix<double>(n,n);
-	
-	if( filename == "" ){
-		GRM.setIdentity();
-		return;
-	}
-	
-	std::unordered_map<std::string, int> id_map;
-	for( int i = 0; i < n; i++ ){
-		id_map[ kp_ids[i] ] = i;
-	}
-	
-	std::vector<std::string> id1, id2;
-	std::vector<double> val;
-	
-	data_parser dp;
-	dp.add_field(id1, 0);
-	dp.add_field(id2, 1);
-	dp.add_field(val, r_col - 1);
-	
-	int nr = 0;
-	dp.parse_file(filename, nr);
-
-	using td = Eigen::Triplet<double>;
-
-	std::vector<td> triplets;
-	
-	bool add_diag = true;
-	
-	for( int i = 0; i < nr; i++ )
-	{
-		const auto f1 = id_map.find(id1[i]);
-		const auto f2 = id_map.find(id2[i]);
-		
-		if( add_diag ){
-			if( id1[i] == id2[i] ){
-				add_diag = false;
-			}
-		}
-		
-		if( f1 != id_map.end() && f2 != id_map.end() )
-		{
-			int& ii = f1->second;
-			int& jj = f2->second;
-			if( ii != jj ){
-				related.push_back(ii);
-				related.push_back(jj);
-			}
-			triplets.push_back(td(ii,jj,r_scale*val[i]));
-			triplets.push_back(td(jj,ii,r_scale*val[i]));
-		}
-		
-	}
-	if( add_diag ){
-		for(int i = 0; i < n; ++i) triplets.push_back(td(i,i,1.0));
-	}
-	
-	std::sort( related.begin(), related.end() );
-	related.erase( std::unique( related.begin(), related.end() ), related.end() );
-	
-	GRM.setFromTriplets(triplets.begin(), triplets.end());
-}
-
 void genotype_data::read_bcf_variants(bcf_srs_t*& sr, bcf_hdr_t*& hdr, int& n_var, bool store_geno, bool scan_geno)
 {
 
@@ -396,7 +329,7 @@ inline bool genotype_data::process_bcf_variant(bcf1_t*& rec, bcf_hdr_t*& hdr, bo
 		
 		if( !keep_ ){
 			//genotypes.conservativeResize(n_variants, Eigen::NoChange);
-			std::cout << "FAILED\n";
+			std::cerr << "Warning: Failed to add genotypes.\n";
 			return false;
 		}
 		

@@ -24,26 +24,10 @@
 #include "mapID.hpp"
 #include "htsWrappers.hpp"
 #include "dataParser.hpp"
+#include "eigenData.hpp"
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-
-
-void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& GRM, const std::vector<std::string>& kp_ids, const double& r_scale, const int& r_col, std::vector<int>& related);
-
-void read_dense_GRM(const std::string&, Eigen::MatrixXd&, std::vector<std::string>&);
-
-/*
-class rel_blocks
-{
-	public:
-		void addPair(const int& i, const int&j){
-			
-		};
-		std::
-	
-}
-*/
 
 class sparse_gt
 {

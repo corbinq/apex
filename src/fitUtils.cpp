@@ -101,6 +101,10 @@ Eigen::MatrixXd get_half_hat_matrix(const Eigen::MatrixXd& X){
 	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> XtX_es(X.transpose() * X);
 	Eigen::VectorXd lambda = XtX_es.eigenvalues();
 	for( auto& a : lambda ){
+		if( a <= 0.00 ){
+			std::cerr << "ERROR: Covariate matrix is not full rank.  Check input. \n";
+			abort();
+		}
 		a = 1/std::sqrt(a);
 	}
 	Eigen::MatrixXd U = X * XtX_es.eigenvectors() * lambda.asDiagonal();
@@ -111,6 +115,10 @@ void make_half_hat_matrix(Eigen::MatrixXd& X){
 	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> XtX_es(X.transpose() * X);
 	Eigen::VectorXd lambda = XtX_es.eigenvalues();
 	for( auto& a : lambda ){
+		if( a <= 0.00 ){
+			std::cerr << "ERROR: Covariate matrix is not full rank.  Check input. \n";
+			abort();
+		}
 		a = 1/std::sqrt(a);
 	}
 	X *= XtX_es.eigenvectors();
@@ -140,3 +148,5 @@ void appendInterceptColumn( Eigen::MatrixXd &X ){
 	X.col(X.cols()-1) = Eigen::VectorXd::Ones(X.rows());
 	return;
 }
+
+

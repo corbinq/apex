@@ -57,7 +57,11 @@ Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq );
 
 Eigen::MatrixXd getVBeta(const std::vector<double>& hsq_v, const std::vector<double>& phi_v, const int& p);
 
-void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<std::vector<int>>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
+
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<std::vector<int>>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda );
+
+void subset_eigen( Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda );
 
 
 
@@ -216,6 +220,8 @@ class theta_data
 		std::vector<double> sigma2;
 		std::vector<double> tau2;
 		std::vector<double> phi;
+		std::vector<double> ssr;
+		std::vector<double> y_scale;
 		
 		std::unordered_map<std::string, int> gene_map; 
 		
@@ -230,6 +236,8 @@ class theta_data
 			dp.add_field(sigma2, 4);
 			dp.add_field(tau2, 5);
 			dp.add_field(phi, 6);
+			dp.add_field(ssr, 7);
+			dp.add_field(y_scale, 8);
 			
 			dp.parse_file(file_path, region);
 			
@@ -239,7 +247,7 @@ class theta_data
 			return;
 		};
 		theta_data() {}; 
-		void getTheta(const int& i, const std::string& gene, double& sigma2_, double& tau2_, double& phi_){
+		void getTheta(const int& i, const std::string& gene, double& sigma2_, double& tau2_, double& phi_, double& ssr_, double& y_scale_){
 			int j;
 			if( gene_id[i] == gene ){
 				j = i;
@@ -250,6 +258,8 @@ class theta_data
 			sigma2_ = sigma2[j];
 			tau2_ = tau2[j];
 			phi_ = phi[j];
+			ssr_ = ssr[j];
+			y_scale_ = y_scale[j];
 			return;
 		};
 };

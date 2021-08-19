@@ -209,24 +209,21 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	p.Prog(progname);
 
 	args::Group analysis_args(p, "Analysis options");
-		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		// args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
 		args::Flag stepwise(analysis_args, "", "Estimate and store conditionally independent cis signal genotypes.", {"stepwise"});
-		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
 		args::ValueFlag<int> max_mod_arg(analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
 		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
-		args::ValueFlag<int> epc_arg(analysis_args, "", "Number of ePCs extracted from trait matrix.", {"epcs"});
-		args::ValueFlag<int> epc_fe_arg(analysis_args, "", "Number of ePCs used as fixed effect covariates.", {"fe-epcs"});
-		args::Flag use_egrm(analysis_args, "", "Use eGRM rather than fixed-effect ePCs.", {"use-egrm"});
-		args::ValueFlag<std::string> loco_arg(analysis_args, "", "Leave-one-chr-out (LOCO) to calculate ePCs or eGRMs.", {"loco"});
+
+	args::Group factor_args(p, "Hidden factor options (if not precomputed)");
+		args::ValueFlag<int> epc_arg(factor_args, "", "Number of ePCs extracted from trait matrix.", {"epcs"});
+		args::ValueFlag<int> epc_fe_arg(factor_args, "", "Number of ePCs used as fixed effect covariates.", {"fe-epcs"});
+		args::Flag use_egrm(factor_args, "", "Use eGRM rather than fixed-effect ePCs.", {"use-egrm"});
+		args::ValueFlag<std::string> loco_arg(factor_args, "", "Leave-one-chr-out (LOCO) to calculate ePCs or eGRMs.", {"loco"});
 		
 		// Remove these later
-		args::ValueFlag<std::string> iter_arg(analysis_args, "", "Number of factor analysis iterations (0 for PCA).", {"iter"});
-		args::ValueFlag<std::string> pp_arg(analysis_args, "", "Factor analysis prior p.", {"prior-p"});
-		args::ValueFlag<std::string> pt_arg(analysis_args, "", "Factor analysis prior tau.", {"prior-tau"});
-		
-	args::Group cis_args(p, "Output options");
-		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
-		args::Flag just_long(cis_args, "", "Only write long-table cis-QTL results.", {'L', "just-long"});
+		args::ValueFlag<std::string> iter_arg(factor_args, "", "Number of factor analysis iterations (0 for PCA).", {"iter"});
+		args::ValueFlag<std::string> pp_arg(factor_args, "", "Factor analysis prior p.", {"prior-p"});
+		args::ValueFlag<std::string> pt_arg(factor_args, "", "Factor analysis prior tau.", {"prior-tau"});
 	
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -234,14 +231,23 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		// args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
 		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
 	
-	args::Group input_args(p, "Input files");
+	args::Group input_args(p, "Basic input files");
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
-		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
-		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
-		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "BED file of QTL traits (or LMM residuals).", {'b', "bed", "expression"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
+	
+	args::Group lmm_input_args(p, "LMM input files");
+		args::ValueFlag<std::string> theta_arg(lmm_input_args, "", "Use stored LMM null model parameters.", {"theta"});
+		args::ValueFlag<std::string> eig_arg(lmm_input_args, "", "GRM decomposition file.", {"eigen"});
+		args::ValueFlag<std::string> grm_arg(lmm_input_args, "", "Sparse GRM file.", {"grm"});
+		args::ValueFlag<std::string> kin_arg(lmm_input_args, "", "Sparse kinship file.", {"kin"});
+		args::ValueFlag<std::string> anchor_arg(lmm_input_args, "", "Genotype LMM anchor point file.", {"gvar"});
+	
+	args::Group cis_args(p, "Output options");
+		args::Flag make_long(cis_args, "", "Write cis-QTL results in long table format.", {'l', "long"});
+		args::Flag just_long(cis_args, "", "Only write long-table cis-QTL results.", {'L', "just-long"});
 	
 	/*
 	args::Group subset_args(p, "Subsetting samples");
@@ -259,7 +265,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset to specified genomic region.", {'r', "region"});
 		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
-		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
+		// args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::ValueFlag<double> pval_arg(opt_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
 		args::ValueFlag<double> rsq_arg(opt_args, "", "Rsq threshold for variable selection.", {"rsq"});
@@ -281,11 +287,14 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	std::string e_path = args::get(bed_arg);
 	std::string g_path = args::get(bcf_arg);
 	std::string c_path = args::get(cov_arg);
+	std::string anchor_path = args::get(anchor_arg);
 	
 	
 	// ----------------------------------
 	// GRM paths and options
 	// ----------------------------------
+	
+	std::string eig_path = args::get(eig_arg);
 	
 	std::string grm_path = args::get(grm_arg);
 	std::string kin_path = args::get(kin_arg);
@@ -300,7 +309,12 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		grm_scale = 2.00; 
 	}
 	
-	
+	if( grm_path != "" ){
+		if( eig_path != "" ){
+			std::cerr << "ERROR: Specify --kin/--grm or --eig, but not both.\n";
+			abort();
+		}
+	}
 	
 	// ----------------------------------
 	// Input subsetting: Regions, genotype fields, target genes
@@ -348,7 +362,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	global_opts::set_global_region(region);
 	
 	std::string gtds = args::get(gtds_arg);
-	target_genes = split_string(args::get(gene_arg), ',');
+	target_genes = std::vector<std::string>(0,""); // split_string(args::get(gene_arg), ',');
 	
 	// Use imputed dosages rather than genotype hard calls
 	if( gtds == "" || gtds == "GT" ){
@@ -555,7 +569,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		return 0;
 	}
 	
-	if( low_mem || fit_null ){
+	if( low_mem ){
 		clear_line_cerr();
 		std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
 		g_data.genotypes.resize(0,0);
@@ -573,8 +587,8 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
 	Eigen::SparseMatrix<double> GRM;
-	std::vector<int> relateds;
-	if( grm_path != "" ){
+	std::vector<std::vector<int>> relateds;
+	if( grm_path != "" && eig_path == "" ){
 		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
@@ -587,17 +601,31 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		return 0;
 	}
 	
+	/*
 	if( fit_null ){
-		if( grm_path == "" ){
+		if( grm_path == "" && eig_path == "" ){
 			std::cerr << "Error: GRM is required to fit null models.\n";
 			return 1;
 		}
-		fit_LMM_null_models(c_data, e_data, GRM, relateds, rknorm_y, rknorm_r);
+		
+		Eigen::SparseMatrix<double> L;
+		Eigen::VectorXd L_lambda;
+
+		if( eig_path != "" ){
+			read_eigen(eig_path, L, L_lambda, intersected_samples);
+		}else{
+			GRM_decomp(GRM, relateds, L, L_lambda );
+			GRM.resize(0,0);
+			relateds.resize(0);
+		}
+		
+		fit_LMM_null_models(c_data, e_data, L, L_lambda, rknorm_y, rknorm_r);
 		std::cerr << "\nNull model estimation complete. \nSpecify --theta-file {prefix}.theta.gz to re-use estimates for analysis.\n";
 		return 0;
 	}
+	*/
 	
-	if( grm_path == "" ){
+	if( grm_path == "" && eig_path == "" ){
 		if( n_ePCs > 0 ){
 			std::cerr << "Using " << n_ePCs << " ePCs.\n";
 			std::cerr << "Reading full trait matrix to construct ePCs...\n";
@@ -635,7 +663,24 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 			std::cerr << "Error: GRM cannot currently be included with random ePCs.\n";
 			return 1;
 		}else{
-			run_cis_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, bm, rknorm_y, rknorm_r, true, make_long, just_long);
+			if( use_low_mem ){
+				std::cerr << "Error: --low-mem cannot currently be used with linear mixed models.\n";
+				std::cerr << "To reduce memory usage, please specify --region {REGION} to analyze in chunks.\n";
+				return 1;
+			}
+			
+			Eigen::SparseMatrix<double> L;
+			Eigen::VectorXd L_lambda;
+
+			if( eig_path != "" ){
+				read_eigen(eig_path, L, L_lambda, intersected_samples);
+			}else{
+				GRM_decomp(GRM, relateds, L, L_lambda );
+				GRM.resize(0,0);
+				relateds.resize(0);
+			}
+			
+			run_cis_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, L, L_lambda, bm, rknorm_y, rknorm_r, true, make_long, just_long, theta_path, anchor_path);
 		}
 	}
 	
@@ -656,11 +701,10 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	p.Prog(progname);
 
 	args::Group analysis_args(p, "Analysis options");
-		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
-		args::Flag save_resid(analysis_args, "", "Estimate and store LMM null model residuals.", {"save-resid"});
-		args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
-		args::ValueFlag<std::string> cis_arg(analysis_args, "", "Use stored cis signals as covariates in trans analysis.", {"cis-file"});
+		// args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
+		// args::Flag save_resid(analysis_args, "", "Estimate and store LMM null model residuals.", {"save-resid"});
 		args::ValueFlag<double> fpr_arg(analysis_args, "", "Nominal false positive rate (p-value threshold).", {"fpr"});
+		args::ValueFlag<std::string> cis_arg(analysis_args, "", "Use stored cis signals as covariates in trans analysis.", {"cis-file"});
 
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -668,14 +712,19 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
 		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
 	
-	args::Group input_args(p, "Input files");
+	args::Group input_args(p, "Basic input files");
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
-		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
-		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
-		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
+		args::ValueFlag<std::string> bed_arg(input_args, "", "BED file path for traits (or LMM residuals).", {'b', "bed"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
+		
+	args::Group lmm_input_args(p, "LMM preprocessed input files");
+		args::ValueFlag<std::string> theta_arg(lmm_input_args, "", "Use stored LMM null model parameters.", {"theta"});
+		args::ValueFlag<std::string> eig_arg(lmm_input_args, "", "GRM decomposition file.", {"eigen"});
+		args::ValueFlag<std::string> grm_arg(lmm_input_args, "", "Sparse GRM file.", {"grm"});
+		args::ValueFlag<std::string> kin_arg(lmm_input_args, "", "Sparse kinship file.", {"kin"});
+		args::ValueFlag<std::string> anchor_arg(lmm_input_args, "", "Genotype LMM anchor point file.", {"gvar"});
 	
 	/*
 	args::Group subset_args(p, "Subsetting samples");
@@ -696,7 +745,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
 		args::ValueFlag<std::string> bed_region_arg(opt_args, "", "Subset bed to specified genomic region.", {"bed-region"});
 		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
-		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
+		// args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		args::ValueFlag<int> blocks_arg(opt_args, "100", "Number of variants per trans-xQTL block.", {"block-size"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
 	
@@ -717,13 +766,16 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	std::string e_path = args::get(bed_arg);
 	std::string g_path = args::get(bcf_arg);
 	std::string c_path = args::get(cov_arg);
+	std::string anchor_path = args::get(anchor_arg);
 	
-	global_opts::save_residuals( (bool) save_resid);
+	// global_opts::save_residuals( (bool) save_resid);
 	
 	
 	// ----------------------------------
 	// GRM paths and options
 	// ----------------------------------
+	
+	std::string eig_path = args::get(eig_arg);
 	
 	std::string grm_path = args::get(grm_arg);
 	std::string kin_path = args::get(kin_arg);
@@ -732,6 +784,8 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	if( kin_path != "" ){
 		if( grm_path != "" ){
 			std::cerr << "ERROR: Specify --kin or --grm, but not both.\n";
+			std::cerr << "      Alternately, specify  --eig using preprocessed\n";
+			std::cerr << "      GRM decomposition from `apex lmm --get-eig`.\n";
 			abort();
 		}
 		grm_path = kin_path;
@@ -748,7 +802,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	std::string region = args::get(region_arg);
 	std::string bed_region = args::get(bed_region_arg);
 	std::string gtds = args::get(gtds_arg);
-	target_genes = split_string(args::get(gene_arg), ',');
+	target_genes = std::vector<std::string>(0,""); // split_string(args::get(gene_arg), ',');
 	
 	global_opts::set_global_region(region);
 	
@@ -949,7 +1003,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		return 0;
 	}
 	
-	if( low_mem || fit_null ){
+	if( low_mem ){ // || fit_null ){
 		clear_line_cerr();
 		std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
 		g_data.genotypes.resize(0,0);
@@ -965,32 +1019,62 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
 	Eigen::SparseMatrix<double> GRM;
-	std::vector<int> relateds;
-	if( grm_path != "" ){
+	std::vector<std::vector<int>> relateds;
+	if( grm_path != "" && eig_path == "" ){
 		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
 	bool make_sumstat = true;
 	bool make_long = true;
 	
-	if( fit_null ){
-		if( grm_path == "" ){
+	/*if( fit_null ){
+		if( grm_path == "" && eig_path == "" ){
 			std::cerr << "Error: GRM is required to fit null models.\n";
 			return 1;
 		}
-		fit_LMM_null_models(c_data, e_data, GRM, relateds, rknorm_y, rknorm_r);
+		
+		Eigen::SparseMatrix<double> L;
+		Eigen::VectorXd L_lambda;
+
+		if( eig_path != "" ){
+			read_eigen(eig_path, L, L_lambda, intersected_samples);
+		}else{
+			GRM_decomp(GRM, relateds, L, L_lambda );
+			GRM.resize(0,0);
+			relateds.resize(0);
+		}
+
+		fit_LMM_null_models(c_data, e_data, L, L_lambda, rknorm_y, rknorm_r);
 		std::cerr << "Analysis complete. Specify --null-params {theta-file} to re-use null model estimates.\n";
 		return 0;
-	}
+	}*/
 	
-	if( grm_path == "" ){
+	if( grm_path == "" && eig_path == "" ){
 		run_trans_QTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, cis_path, bed_region);
 	}else{
 		if( cis_path != "" ){
 			std::cerr << "Error: Options --grm {grm} and --cis-file {file} and currently incompatible.\n";
 			return 1;
 		}
-		run_trans_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
+		if( use_low_mem ){
+			std::cerr << "Error: --low-mem cannot currently be used with linear mixed models.\n";
+			std::cerr << "To reduce memory usage, please specify --region {REGION} to analyze in chunks.\n";
+			return 1;
+		}
+		
+		
+		Eigen::SparseMatrix<double> L;
+		Eigen::VectorXd L_lambda;
+
+		if( eig_path != "" ){
+			read_eigen(eig_path, L, L_lambda, intersected_samples);
+		}else{
+			GRM_decomp(GRM, relateds, L, L_lambda );
+			GRM.resize(0,0);
+			relateds.resize(0);
+		}
+
+		run_trans_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, L, L_lambda, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path, anchor_path);
 	}
 	
     return 0;
@@ -1010,10 +1094,10 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	p.Prog(progname);
 
 	args::Group analysis_args(p, "Analysis options");
-		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
-		args::Flag save_resid(analysis_args, "", "Estimate and store LMM null model residuals.", {"save-resid"});
-		// args::ValueFlag<std::string> theta_arg(analysis_args, "", "Use stored LMM null model parameters.", {"theta-file"});
-		args::Flag write_anchors(analysis_args, "", "Save genotype variance interpolation points.", {"write-gvar"});
+		args::Flag save_eigen(analysis_args, "", "Calculate and store GRM decomposition.", {"get-eigen"});
+		args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"get-theta"});
+		args::Flag save_resid(analysis_args, "", "Calculate and store LMM null model residuals.", {"get-resid"});
+		args::Flag write_anchors(analysis_args, "", "Calculate and store genotype variance interpolation points.", {"get-gvar"});
 
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
@@ -1026,6 +1110,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
 		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
+		args::ValueFlag<std::string> eig_arg(input_args, "", "GRM decomposition file.", {"eigen"});
 		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
 		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
@@ -1048,7 +1133,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
 		args::ValueFlag<std::string> bed_region_arg(opt_args, "", "Subset bed to specified genomic region.", {"bed-region"});
 		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
-		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
+		// args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		args::ValueFlag<int> blocks_arg(opt_args, "100", "Number of variants per trans-xQTL block.", {"block-size"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
 	
@@ -1077,6 +1162,10 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	// GRM paths and options
 	// ----------------------------------
 	
+	bool has_grm_data = false;
+	
+	std::string eig_path = args::get(eig_arg);
+	
 	std::string grm_path = args::get(grm_arg);
 	std::string kin_path = args::get(kin_arg);
 	double grm_scale = 1.00;
@@ -1090,6 +1179,10 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		grm_scale = 2.00; 
 	}
 	
+	if(  grm_path != "" || eig_path != "" ){
+		has_grm_data = true;
+	}
+	
 	
 	// ----------------------------------
 	// Input subsetting: Regions, genotype fields, target genes
@@ -1100,7 +1193,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	std::string region = args::get(region_arg);
 	std::string bed_region = args::get(bed_region_arg);
 	std::string gtds = args::get(gtds_arg);
-	target_genes = split_string(args::get(gene_arg), ',');
+	target_genes = std::vector<std::string>(0, ""); // split_string(args::get(gene_arg), ',');
 	
 	global_opts::set_global_region(region);
 	
@@ -1238,8 +1331,11 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	// order of intersected samples should match genotype file
 	
 	std::vector<std::string> intersected_samples_gto = g_data.ids.file;
+	
+	std::unordered_set<std::string> intersected_samples_hash(intersected_samples.begin(), intersected_samples.end());
+	
 	for(int i = 0; i < intersected_samples_gto.size(); ){
-		if( has_element(intersected_samples, intersected_samples_gto[i]) ){
+		if( has_element(intersected_samples_hash, intersected_samples_gto[i]) ){
 			i++;
 		}else{
 			intersected_samples_gto.erase(intersected_samples_gto.begin() + i);
@@ -1288,22 +1384,29 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 
 	std::cerr << "Processed expression for " << e_data.data_matrix.cols() << " genes across " << e_data.data_matrix.rows() << " samples.\n";
 	
-	g_data.read_bcf_variants(sr, hdr, n_var, !low_mem, !low_mem);
-	
-	if( g_data.chr.size() == 0 ){
-		std::cerr << "\nNo variants present in specified region(s). Exiting.\n\n";
-		return 0;
+	if( save_eigen ){
+		use_low_mem = true;
 	}
 	
-	if( low_mem || fit_null ){
-		clear_line_cerr();
-		std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
-		g_data.genotypes.resize(0,0);
-	}else{
-		std::cerr << "\rFreezing genotype data for " << n_var << " variants ... \r";
-		g_data.freeze_genotypes();
-		clear_line_cerr();
-		std::cerr << "Processed genotype data for " << n_var << " variants.\n\n";
+	if ( write_anchors ){
+	
+		g_data.read_bcf_variants(sr, hdr, n_var, !use_low_mem, !use_low_mem);
+		
+		if( g_data.chr.size() == 0 ){
+			std::cerr << "\nNo variants present in specified region(s). Exiting.\n\n";
+			return 0;
+		}
+		
+		if( use_low_mem || fit_null || save_eigen ){
+			clear_line_cerr();
+			std::cerr << "Processed variant data for " << n_var << " variants.\n\n";
+			g_data.genotypes.resize(0,0);
+		}else{
+			std::cerr << "\rFreezing genotype data for " << n_var << " variants ... \r";
+			g_data.freeze_genotypes();
+			clear_line_cerr();
+			std::cerr << "Processed genotype data for " << n_var << " variants.\n\n";
+		}
 	}
 	
 	block_intervals bm;
@@ -1311,22 +1414,72 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
 	Eigen::SparseMatrix<double> GRM;
-	std::vector<int> relateds;
-	if( grm_path != "" ){
+	std::vector<std::vector<int>> relateds;
+	if( grm_path != "" && eig_path == "" ){
 		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
 	bool make_sumstat = true;
 	bool make_long = true;
 	
-	if( fit_null ){
+	if( save_eigen ){
 		if( grm_path == "" ){
+			std::cerr << "Error: GRM is required for decomposition.\n";
+			return 1;
+		}
+		
+		Eigen::SparseMatrix<double> L;
+		Eigen::VectorXd L_lambda;
+		
+		GRM_decomp( GRM, relateds, L, L_lambda );
+		
+		write_eigen( prefix, L, L_lambda, intersected_samples);
+		
+		return 0;
+	}
+	
+	if( fit_null ){
+		if( grm_path == "" && eig_path == "" ){
 			std::cerr << "Error: GRM is required to fit null models.\n";
 			return 1;
 		}
-		fit_LMM_null_models(c_data, e_data, GRM, relateds, rknorm_y, rknorm_r);
+		
+		Eigen::SparseMatrix<double> L;
+		Eigen::VectorXd L_lambda;
+
+		if( eig_path != "" ){
+			read_eigen(eig_path, L, L_lambda, intersected_samples);
+		}else{
+			GRM_decomp(GRM, relateds, L, L_lambda );
+			GRM.resize(0,0);
+			relateds.resize(0);
+		}
+
+		fit_LMM_null_models(c_data, e_data, L, L_lambda, rknorm_y, rknorm_r);
 		std::cerr << "Analysis complete. Specify --null-params {theta-file} to re-use null model estimates.\n";
 		return 0;
+	}
+	
+	if ( write_anchors ) {
+		
+		if( grm_path == "" && eig_path == "" ){
+			std::cerr << "Error: GRM is required to fit null models.\n";
+			return 1;
+		}
+		
+		Eigen::SparseMatrix<double> L;
+		Eigen::VectorXd L_lambda;
+
+		if( eig_path != "" ){
+			read_eigen(eig_path, L, L_lambda, intersected_samples);
+		}else{
+			GRM_decomp(GRM, relateds, L, L_lambda );
+			GRM.resize(0,0);
+			relateds.resize(0);
+		}
+
+		save_V_anchor_points(sr, hdr, g_data, c_data, L, L_lambda);
+		
 	}
 	
 	// if( grm_path == "" ){
@@ -1839,6 +1992,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::ValueFlag<std::string> cov_arg(input_args, "", "Covariate/trait file path.", { 'c', "cov"});
 		// args::ValueFlag<std::string> trait_arg(input_args, "", "Trait file path.", {'t', "trait-file"});
 		args::ValueFlag<std::string> bed_arg(input_args, "", "Expression file path for QTL analysis.", {'b', "bed", "expression"});
+		args::ValueFlag<std::string> eig_arg(input_args, "", "GRM decomposition file.", {"eig"});
 		args::ValueFlag<std::string> grm_arg(input_args, "", "Sparse GRM file.", {"grm"});
 		args::ValueFlag<std::string> kin_arg(input_args, "", "Sparse kinship file.", {"kin"});
 		args::ValueFlag<std::string> gtds_arg(input_args, "", "Genotype field (\"GT\" by default, or \"DS\" for imputed dosages).", {"field"});
@@ -1882,6 +2036,8 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	// ----------------------------------
 	// GRM paths and options
 	// ----------------------------------
+	
+	std::string eig_path = args::get(eig_arg);
 	
 	std::string grm_path = args::get(grm_arg);
 	std::string kin_path = args::get(kin_arg);
@@ -2120,10 +2276,12 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	Eigen::MatrixXd &Y = e_data.data_matrix;
 	Eigen::MatrixXd &X = c_data.data_matrix;
 	
-	Eigen::SparseMatrix<double> GRM;
-	std::vector<int> relateds;
+	// Eigen::SparseMatrix<double> GRM;
+	// std::vector<std::vector<int>> relateds;
 	if( grm_path != "" ){
-		read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
+		std::cerr << "'apex store' does not currently support GRM/LMM.\n";
+		abort();
+		// read_sparse_GRM(grm_path, GRM, intersected_samples, grm_scale, 3, relateds);
 	}
 	
 	std::cerr << "Making variance-covariance (vcov) files ...\n";

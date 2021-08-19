@@ -355,17 +355,14 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 }
 
 
-void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& theta_path)
+void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& GRM_lambda, const bool& rknorm_y, const bool& rknorm_r, const bool& make_sumstat, const bool& make_long, const int& chunk_size, const std::string& theta_path, const std::string& anchor_path)
 {
 	
 	Eigen::SparseMatrix<double> Q;
 	Eigen::VectorXd Q_lambda;
-	Eigen::SparseMatrix<double> L;
-	Eigen::VectorXd GRM_lambda;
 
-	GRM_decomp(GRM, relateds, L, GRM_lambda, Q, Q_lambda);
-	GRM.resize(0,0);
-	
+	subset_eigen(L, GRM_lambda, Q, Q_lambda);
+
 	Eigen::MatrixXd& Y = e_data.data_matrix;
 	Eigen::MatrixXd& C = c_data.data_matrix;
 	
@@ -375,34 +372,46 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	double n_covar = C.cols();
 
 	if( rknorm_y ){
-		std::cerr << "Rank-normalizing expression traits ... \n";
-		rank_normalize(Y);
+		if( e_data.is_residual ){
+			std::cerr << "IGNORING instruction to rank-normalize LMM residuals ... \n";
+		}else{
+			std::cerr << "Rank-normalizing expression traits ... \n";
+			rank_normalize(Y);
+		}
 	}
-	std::cerr << "Scaling expression traits ... \n";
-	std::vector<double> y_scale;
-	scale_and_center(Y, y_scale);
 	
-	std::cerr << "Calculating partial rotations ...\n";
+	std::vector<double> y_scale;
+	
 	Eigen::MatrixXd QtY, CtY, QtC, QtG, CtC, CtC_i;
-	bool gvar_precomputed = false;
+	bool gvar_precomputed = ( anchor_path != "" );
 	
 	if( !e_data.is_residual ){
+		
+		std::cerr << "Scaling expression traits ... \n";
+	
+		scale_and_center(Y, y_scale);
+		
 		QtY = (Q.transpose() * Y).eval();
 		CtY = (C.transpose() * Y).eval();
 		Y = (L.transpose() * Y).eval();
+	}else{
+		
+		y_scale = std::vector<double>( (int) n_traits, 1.00 );
 	}
-	if( !gvar_precomputed ){
-		QtG = (Q.transpose() * g_data.genotypes).eval();
+	
+	if( !gvar_precomputed ||  !e_data.is_residual ){
+		std::cerr << "Calculating partial rotations ...\n";
+		
+		QtC = (Q.transpose() * C).eval();
+		CtC = (C.transpose() * C).eval();
+		
+		if( !gvar_precomputed ){
+			QtG = (Q.transpose() * g_data.genotypes).eval();
+			CtC_i = (CtC.inverse()).eval();
+		}
+		
+		std::cerr << "Done.\n";
 	}
-	
-	QtC = (Q.transpose() * C).eval();
-	CtC = (C.transpose() * C).eval();
-	CtC_i = (CtC.inverse()).eval();
-	
-	std::cerr << "Rotating expression and covariates ... ";
-	
-	
-	std::cerr << "Done.\n";
 
 	std::vector<double> hsq_vals{0.0, 0.5, 1.0};
 	
@@ -410,6 +419,10 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	
 	if( !gvar_precomputed ){
 		calculate_V_anchor_points(V_mat, g_data, C, hsq_vals, CtC, CtC_i, QtG, QtC, Q_lambda);
+		QtG.resize(0,0);
+		CtC_i.resize(0,0);
+	}else{
+		read_V_anchor_points(anchor_path, V_mat, g_data, hsq_vals);
 	}
 	
 	std::vector<double> gene_max_val((int) n_traits, 0.0);
@@ -438,17 +451,16 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 	e_data.stdev.resize(Y.cols());
 	
 	theta_data t_data;
-	bool use_theta = false;
+	bool use_theta = ( theta_path != "" );
 	
-	if( theta_path != "" ){
+	if( use_theta ){
 		std::cerr << "Set null model for ";
 		t_data.open(theta_path);
-		use_theta = true;
 	}else{
-		X = (L.transpose() * C).eval();
-		
 		std::cerr << "Fit null model for ";
 	}
+	
+	X = (L.transpose() * C).eval();
 	
 	std::string iter_cerr_suffix = " traits out of " + std::to_string(Y.cols()) + " total";
 	print_iter_cerr(1, 0, iter_cerr_suffix);
@@ -461,7 +473,7 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 		double tau2;
 
 		if( use_theta ){
-			t_data.getTheta(j, e_data.gene_id[j], sigma2, tau2, phi);
+			t_data.getTheta(j, e_data.gene_id[j], sigma2, tau2, phi, SSR_v[j], y_scale[j]);
 			Vi = calc_Vi(phi, GRM_lambda);
 		}else{
 			

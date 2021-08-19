@@ -16,15 +16,13 @@
 
 #include "apexLMM.hpp"
 
-void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, const bool& rknorm_y, const bool& rknorm_r)
+void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& GRM_lambda, const bool& rknorm_y, const bool& rknorm_r)
 {
 	
 	Eigen::SparseMatrix<double> Q;
 	Eigen::VectorXd Q_lambda;
-	Eigen::SparseMatrix<double> L;
-	Eigen::VectorXd GRM_lambda;
 
-	GRM_decomp(GRM, relateds, L, GRM_lambda, Q, Q_lambda);
+	subset_eigen(L, GRM_lambda, Q, Q_lambda);
 	
 	std::cerr << "Reordering trait and covariate matrices ...\n";
 	
@@ -42,7 +40,8 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 		rank_normalize(Y);
 	}
 	std::cerr << "Scaling expression traits ... \n";
-	scale_and_center(Y);
+	std::vector<double> y_scale;
+	scale_and_center(Y, y_scale);
 	
 	std::cerr << "Calculating partial rotations ...\n";
 	Eigen::MatrixXd QtC = (Q.transpose() * C).eval();
@@ -83,6 +82,8 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 		const double& sigma2 = fit.sigma2;
 		const double& phi = fit.phi;
 		
+		
+		
 		// DiagonalXd Vi = Eigen::VectorXd::Ones(Y.col(j).size()).asDiagonal();
 		// double sigma2 = 1.00;
 		// double phi = 0.05;
@@ -90,6 +91,34 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 		double tau2 = phi*sigma2;
 		double hsq = tau2 / (tau2 + sigma2);
 		double scale = std::sqrt(tau2 + sigma2);
+		
+		// Calculate "sum of squared residuals"
+
+		DiagonalXd Psi = calc_Psi(phi, Q_lambda);
+		Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
+		Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
+		Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+		Eigen::VectorXd y_hat = X * b;
+		
+		Eigen::VectorXd y_res = Y.col(j) - y_hat;
+		
+		SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
+	
+		
+		// if( !e_data.is_residual ){
+			// DiagonalXd Psi = calc_Psi(phi, Q_lambda);
+			// Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
+			// Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
+			// Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
+			// Eigen::VectorXd y_hat = X * b;
+			
+			// Eigen::VectorXd y_res = Y.col(j) - y_hat;
+			
+			// SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
+			
+			// // Y now stores the rotated residuals. 
+			// Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
+		// }
 		
 		std::stringstream theta_line;
 		
@@ -100,22 +129,14 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 			e_data.gene_id[j] << "\t" << 
 			sigma2 << "\t" << 
 			tau2 << "\t" << 
-			phi << "\n";
+			phi << "\t" <<
+			SSR_v[j] << "\t" <<
+			y_scale[j] << "\n";
 		
 		write_to_bgzf(theta_line.str().c_str(), theta_file);
-		
+			
 		if(  global_opts::write_resid_mat ){
-			
-			DiagonalXd Psi = calc_Psi(phi, Q_lambda);
-			Eigen::MatrixXd XtDX = (CtC - QtC.transpose() * Psi * QtC )/(1.00 + phi);
-			Eigen::VectorXd XtDy = X.transpose() * Vi * Y.col(j);
-			Eigen::VectorXd b = XtDX.colPivHouseholderQr().solve(XtDy);
-			Eigen::VectorXd y_hat = X * b;
-			
-			Eigen::VectorXd y_res = Y.col(j) - y_hat;
-			
-			SSR_v[j] = y_res.dot(Vi * Y.col(j))/sigma2;
-			
+		
 			Y.col(j) = (Vi * y_res/std::sqrt(sigma2)).eval();
 			
 			Y.col(j) = (L * Y.col(j)).eval();
@@ -134,7 +155,7 @@ void fit_LMM_null_models(table& c_data, bed_data& e_data, Eigen::SparseMatrix<do
 		// Y = (L * Y).eval();
 		std::string bed_out = global_opts::out_prefix + ".lmm_resid.bed.gz";
 		std::string bed_header = "## APEX_LMM_RESID";
-		e_data.write_bed(bed_out);
+		e_data.write_bed(bed_out, bed_header);
 	}
 	
 }
@@ -298,10 +319,19 @@ void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, c
 	
 	BGZF* anchor_file;
 	
+	int n_hsq = hsq_vals.size();
+	int n_snps = g_data.genotypes.cols();
+	int n_samples = g_data.genotypes.rows();
+	int n_cov = CtC.rows();
+	
 	if( global_opts::write_v_anchors ){
-		std::string anchor_path = global_opts::out_prefix + "." + "gvar_points" + ".txt.gz";
+		std::string anchor_path = global_opts::out_prefix + ".gvar_points.gz";
 		anchor_file = bgzf_open(anchor_path.c_str(), "w");
+		
+		write_to_bgzf("##\t" + std::to_string(n_samples) + "\t" + std::to_string(n_snps) + "\t" + std::to_string(n_cov) + "\n", anchor_file);
+		
 		write_to_bgzf("#chrom\tpos\tref\talt", anchor_file);
+		
 		std::stringstream out_line;
 		for(const double& val : hsq_vals){
 			out_line << "\tVR" << 100.0*val;
@@ -309,9 +339,6 @@ void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, c
 		out_line << "\n";
 		write_to_bgzf(out_line.str().c_str(), anchor_file);
 	}
-	
-	int n_hsq = hsq_vals.size();
-	int n_snps = g_data.genotypes.cols();
 	
 	std::vector<Eigen::MatrixXd> M_list;
 	V_mat = Eigen::MatrixXd(n_snps, n_hsq);
@@ -372,7 +399,6 @@ void calculate_V_anchor_points( Eigen::MatrixXd& V_mat, genotype_data& g_data, c
 		bgzf_close(anchor_file);
 	}
 	
-	
 	V_mat = (V_mat * (getPredParams(hsq_vals).transpose())).eval();
 	
 	std::cerr << "Done.\n";
@@ -385,11 +411,19 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 	
 	
 	BGZF* anchor_file;
-	std::string anchor_path = global_opts::out_prefix + "." + "gvar_points" + ".txt.gz";
+	std::string anchor_path = global_opts::out_prefix + "." + "gvar_points.gz";
+	
+	int n_hsq = hsq_vals.size();
+	int n_snps = g_data.genotypes.cols();
+	int n_samples = g_data.genotypes.rows();
+	int n_cov = CtC.rows();
 	
 	if( global_opts::write_v_anchors ){
 		
 		anchor_file = bgzf_open(anchor_path.c_str(), "w");
+		
+		write_to_bgzf("##\t" + std::to_string(n_samples) + "\t" + std::to_string(n_snps) + "\t" + std::to_string(n_cov) + "\n", anchor_file);
+		
 		write_to_bgzf("#chrom\tpos\tref\talt", anchor_file);
 		std::stringstream out_line;
 		for(const double& val : hsq_vals){
@@ -398,9 +432,6 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 		out_line << "\n";
 		write_to_bgzf(out_line.str().c_str(), anchor_file);
 	}
-	
-	int n_hsq = hsq_vals.size();
-	int n_snps = g_data.genotypes.cols();
 	
 	std::vector<Eigen::MatrixXd> M_list;
 	V_mat = Eigen::MatrixXd(n_snps, n_hsq);
@@ -460,7 +491,6 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 		build_tabix_index(anchor_path, 0);
 	}
 	
-	
 	V_mat = (V_mat * (getPredParams(hsq_vals).transpose())).eval();
 	
 	std::cerr << "Done.\n";
@@ -468,7 +498,8 @@ void calculate_V_anchor_points_low_rank( Eigen::MatrixXd& V_mat, genotype_data& 
 	return;
 }
 
-void read_V_anchor_points_low_rank( const std::string& anchor_path, Eigen::MatrixXd& V_mat, genotype_data& g_data, const Eigen::MatrixXd& C, const std::vector<double>& hsq_vals, const Eigen::MatrixXd& CtC, const Eigen::MatrixXd& CtC_i, const Eigen::MatrixXd& QtG, Eigen::MatrixXd& QtC, const Eigen::VectorXd Q_lambda ){
+void read_V_anchor_points( const std::string& anchor_path, Eigen::MatrixXd& V_mat, genotype_data& g_data, const std::vector<double>& hsq_vals)
+{
 	
 	int n_hsq = hsq_vals.size();
 	int n_snps = g_data.genotypes.cols();
@@ -497,7 +528,40 @@ void read_V_anchor_points_low_rank( const std::string& anchor_path, Eigen::Matri
 		abort();
 	}
 	
+	V_mat = (V_mat * (getPredParams(hsq_vals).transpose())).eval();
+	
 	return;
 }
 
+void save_V_anchor_points( bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_data, table& c_data, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& GRM_lambda )
+{
+	
+	Eigen::SparseMatrix<double> Q;
+	Eigen::VectorXd Q_lambda;
 
+	subset_eigen(L, GRM_lambda, Q, Q_lambda);
+
+	Eigen::MatrixXd& C = c_data.data_matrix;
+	
+	std::cerr << "Calculating partial rotations ...\n";
+	Eigen::MatrixXd QtY, CtY, QtC, QtG, CtC, CtC_i;
+
+	QtG = (Q.transpose() * g_data.genotypes).eval();
+	
+	QtC = (Q.transpose() * C).eval();
+	CtC = (C.transpose() * C).eval();
+	CtC_i = (CtC.inverse()).eval();
+	
+	std::cerr << "Rotating expression and covariates ... ";
+	
+	
+	std::cerr << "Done.\n";
+
+	std::vector<double> hsq_vals{0.0, 0.5, 1.0};
+	
+	Eigen::MatrixXd V_mat, X;
+	
+	calculate_V_anchor_points(V_mat, g_data, C, hsq_vals, CtC, CtC_i, QtG, QtC, Q_lambda);
+	
+	return;
+}

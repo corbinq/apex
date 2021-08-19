@@ -12,6 +12,7 @@ git clone https://gitlab.com/libeigen/eigen.git src/eigen
 git clone --single-branch --branch 0.9.x https://github.com/yixuan/spectra.git src/spectra
 
 git clone https://github.com/jonathonl/shrinkwrap.git src/shrinkwrap
+cd src/shrinkwrap && git reset --hard 5be49b4b62b86904191e7528040b296281fe5c26 && cd - 
 
 # Brent's algorithm
 

@@ -224,13 +224,13 @@ class data_parser
 				v_string[i]->push_back(std::string(str.s + offsets[i_string[i]]));
 			}
 			for( int i = 0; i < v_long.size(); i++){
-				v_long[i]->push_back(atol(str.s + offsets[i_long[i]]));
+				v_long[i]->push_back(std::atol(str.s + offsets[i_long[i]]));
 			}
 			for( int i = 0; i < v_int.size(); i++){
-				v_int[i]->push_back(atoi(str.s + offsets[i_int[i]]));
+				v_int[i]->push_back(std::atoi(str.s + offsets[i_int[i]]));
 			}
 			for( int i = 0; i < v_double.size(); i++){
-				v_double[i]->push_back(atof(str.s + offsets[i_double[i]]));
+				v_double[i]->push_back(std::atof(str.s + offsets[i_double[i]]));
 			}
 			for( matrix_filler& mf : v_matrix ){
 				mf.push_line(str, offsets, n_fields);

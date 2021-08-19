@@ -243,41 +243,141 @@ Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq ){
 	return vv * Beta;
 }
 
-void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda ){
+
+void block_diag_eigendecomp( Eigen::SparseMatrix<double>& M, std::vector<int>& block_sizes, Eigen::SparseMatrix<double>& eig_vectors, Eigen::VectorXd& eig_values ){
+	
+	using td = Eigen::Triplet<double>;
+
+	int n = M.cols();
+	int n_blocks = block_sizes.size();
+	
+	if( M.rows() != n ){
+		std::cerr << "FATAL ERROR: Cannot decompose non-square block matrix!\n";
+		abort();
+	}
+
+	int nvals = n;
+	for( const int& nb : block_sizes){
+		nvals += ( nb*(nb - 1) ) ;
+	}
+
+	std::vector<td> triplets;
+	triplets.reserve(nvals);
+	
+	eig_values.resize(n);
+	eig_vectors.resize(n,n);
+	
+	int offset = 0;
+	
+	// Perform decompositions 
+	
+	std::cerr << "Decomposing block";
+	
+	for( int i = 0; i < n_blocks; i++ ){
+		
+		const int& n_i = block_sizes[i];
+		
+		std::cerr << "\rDecomposing block " << i << " (" << n_i << ") out of " << n_blocks << " ... ";
+		
+		Eigen::MatrixXd M_i = Eigen::MatrixXd(M.topLeftCorner(n_i + offset, n_i + offset).bottomRightCorner(n_i, n_i));
+		// M_i.makeCompressed();
+
+		// std::cerr << "GRM eigendecomposition ... ";
+		
+		Eigen::SelfAdjointEigenSolver <Eigen::MatrixXd> Eig_i(M_i);
+		
+		if (Eig_i.info() != Eigen::Success){
+			std::cerr << "FATAL ERROR: block decomposition failed!\n";
+			abort();
+		}
+		
+		for( int ii = 0; ii < n_i; ii++ ){
+			
+			eig_values.coeffRef( ii + offset ) = Eig_i.eigenvalues().coeffRef( ii );
+			
+			for( int jj = 0; jj < n_i; jj++ ){
+				
+				triplets.push_back(td(ii + offset,jj + offset, Eig_i.eigenvectors().coeffRef(ii,jj) ));
+			}
+		}
+		
+		offset += n_i;
+	}
+	std::cerr << "Done\n.";
+	
+	
+	for(int ii = offset; ii < n; ii++){
+		eig_values.coeffRef(ii) = M.coeffRef(ii,ii);
+		triplets.push_back(td(ii, ii, 1.00 ));
+	}
+	
+	// Clear GRM, as we are now done with it. 
+	M.resize(0,0);
+	
+	// Construct combined matrix of eigenvectors
+
+	std::cerr << "Creating eigenvector matrix ... ";
+	eig_vectors.setFromTriplets(triplets.begin(), triplets.end());
+	std::cerr << "Done.\n";
+	
+	return;
+}
+
+
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<std::vector<int>>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda ){
 	
 	
 	double delta_thresh = 1e-5;
 	double drop0_thresh = 2e-6;
 
-	std::vector<int> unrelateds;
-	PermutXd Tr(GRM.rows()); 
+	int n = GRM.rows();
+
+	int max_block_size = 0;
+	std::vector<int> block_sizes;
+
+	std::vector<bool> is_unrelated(n, true);
 	
-	int i = 0;
-	for( int j = 0; j < GRM.cols(); j++ ){
-		if( i < relateds.size() ){
-			if( relateds[i] == j ){
-				i++;
-			}else{
-				unrelateds.push_back(j);
-			}
-		}else{
+	std::vector<int> unrelateds;
+	PermutXd Tr(n); 
+	
+	// Identify unrelated individuals, and record block sizes. 
+	for( const auto& related_block_i : relateds ){
+		int size_i = related_block_i.size();
+		if( size_i > max_block_size ){
+			max_block_size = size_i;
+		}
+		block_sizes.push_back( size_i );
+		
+		for( const auto& ii : related_block_i ){
+			is_unrelated[ii] = false;
+		}
+	}
+	// Collect ordered indices of unrelated individuals. 
+	for( int j = 0; j < n; j++ ){
+		if( is_unrelated[j] ){
 			unrelateds.push_back(j);
 		}
 	}
-	i = 0;
-	for( const int& ii : relateds ){
-		Tr.indices()[ii] = i;
-		i++;
+	is_unrelated.clear();
+	
+	int i = 0;
+	
+	for( const auto& related_block_i : relateds ){
+		for( const int& ii : related_block_i ){
+			Tr.indices()[ii] = i;
+			i++;
+		}
 	}
 	for( const int& ii : unrelateds ){
 		Tr.indices()[ii] = i;
 		i++;
 	}
 
-	int nrel = relateds.size();
 	int nind = unrelateds.size();
+	int nrel = n - nind;
+	int n_blocks = relateds.size();
 	
-	std::cerr << "Found "<< nrel << " related individuals ... \n";
+	std::cerr << "Found " << n_blocks << " related blocks with " << nrel << " total individuals (largest block = " << max_block_size << ") ... \n";
 	
 	std::cerr << "Reordering related GRM blocks ... ";
 	
@@ -292,34 +392,38 @@ void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relat
 
 	std::cerr << "Done.\n";
 
-	Eigen::SparseMatrix<double> GRM_rel = GRM.topLeftCorner(nrel,nrel);
-	GRM_rel.makeCompressed();
+	// Eigen::SparseMatrix<double> GRM_rel = GRM.topLeftCorner(nrel,nrel).bottomRightCorner(nrel,nrel);
+	// GRM_rel.makeCompressed();
 
 	std::cerr << "GRM eigendecomposition ... ";
 	
-	Eigen::SelfAdjointEigenSolver <Eigen::SparseMatrix<double>> GRM_eig(GRM_rel);
+	block_diag_eigendecomp( GRM, block_sizes, L, L_lambda );
 	
-	if (GRM_eig.info() != Eigen::Success){
-		std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
-		abort();
-	}
 	std::cerr << "Done.\n";
 	
-	L_lambda = GRM_eig.eigenvalues();
+	// Eigen::SelfAdjointEigenSolver <Eigen::SparseMatrix<double>> GRM_eig(GRM_rel);
 	
-	L_lambda.conservativeResize(nrel + nind);
-	for(int i = nrel; i < nrel + nind; i++){
-		L_lambda(i) = GRM.coeffRef(i,i);
-	}
+	// if (GRM_eig.info() != Eigen::Success){
+		// std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
+		// abort();
+	// }
+	// std::cerr << "Done.\n";
+	
+	// L_lambda = GRM_eig.eigenvalues();
+	
+	// L_lambda.conservativeResize(nrel + nind);
+	// for(int i = nrel; i < nrel + nind; i++){
+		// L_lambda(i) = GRM.coeffRef(i,i);
+	// }
 	
 	
-	L = GRM_eig.eigenvectors().sparseView(drop0_thresh, 1.0 - std::numeric_limits<double>::epsilon());
+	// L = GRM_eig.eigenvectors().sparseView(drop0_thresh, 1.0 - std::numeric_limits<double>::epsilon());
 	
-	L.conservativeResize(nrel + nind,nrel + nind);
+	// L.conservativeResize(nrel + nind,nrel + nind);
 	
-	for(int i = nrel; i < nrel + nind; i++){
-		L.coeffRef(i,i) = 1.00;
-	}
+	// for(int i = nrel; i < nrel + nind; i++){
+		// L.coeffRef(i,i) = 1.00;
+	// }
 	
 	L.makeCompressed();
 	
@@ -348,11 +452,13 @@ void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relat
 	}
 	PC_sel.setFromTriplets(PC_trips.begin(), PC_trips.end());
 	
-	std::cerr << "Selected " << kp.size() << " eigenvectors.\n";
+	std::cerr << "Selected " << kp.size() << " eigenvectors.  ";
 	
 
 	Q = (L * PC_sel).eval();
 	Q.makeCompressed();
+	
+	std::cerr << "Done.\n";
 	
 	// GRM = (Tr.transpose() * GRM).eval();
 	// GRM = (GRM * Tr).eval();
@@ -362,40 +468,61 @@ void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<int>& relat
 	return;
 }
 
-void dense_GRM_decomp( Eigen::MatrixXd& GRM, const std::vector<int>& relateds, Eigen::MatrixXd& L, Eigen::VectorXd& L_lambda, Eigen::MatrixXd& Q, Eigen::VectorXd& Q_lambda ){
+
+void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<std::vector<int>>& relateds, Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda ){
+	
 	
 	double delta_thresh = 1e-5;
 	double drop0_thresh = 2e-6;
 
-	std::vector<int> unrelateds;
-	PermutXd Tr(GRM.rows()); 
+	int n = GRM.rows();
+
+	int max_block_size = 0;
+	std::vector<int> block_sizes;
+
+	std::vector<bool> is_unrelated(n, true);
 	
-	int i = 0;
-	for( int j = 0; j < GRM.cols(); j++ ){
-		if( i < relateds.size() ){
-			if( relateds[i] == j ){
-				i++;
-			}else{
-				unrelateds.push_back(j);
-			}
-		}else{
+	std::vector<int> unrelateds;
+	PermutXd Tr(n); 
+	
+	// Identify unrelated individuals, and record block sizes. 
+	for( const auto& related_block_i : relateds ){
+		int size_i = related_block_i.size();
+		if( size_i > max_block_size ){
+			max_block_size = size_i;
+		}
+		block_sizes.push_back( size_i );
+		
+		for( const auto& ii : related_block_i ){
+			is_unrelated[ii] = false;
+		}
+	}
+	// Collect ordered indices of unrelated individuals. 
+	for( int j = 0; j < n; j++ ){
+		if( is_unrelated[j] ){
 			unrelateds.push_back(j);
 		}
 	}
-	i = 0;
-	for( const int& ii : relateds ){
-		Tr.indices()[ii] = i;
-		i++;
+	is_unrelated.clear();
+	
+	int i = 0;
+	
+	for( const auto& related_block_i : relateds ){
+		for( const int& ii : related_block_i ){
+			Tr.indices()[ii] = i;
+			i++;
+		}
 	}
 	for( const int& ii : unrelateds ){
 		Tr.indices()[ii] = i;
 		i++;
 	}
 
-	int nrel = relateds.size();
 	int nind = unrelateds.size();
+	int nrel = n - nind;
+	int n_blocks = relateds.size();
 	
-	std::cerr << "Found "<< nrel << " related individuals ... \n";
+	std::cerr << "Found " << n_blocks << " related blocks with " << nrel << " total individuals (largest block = " << max_block_size << ") ... \n";
 	
 	std::cerr << "Reordering related GRM blocks ... ";
 	
@@ -406,36 +533,33 @@ void dense_GRM_decomp( Eigen::MatrixXd& GRM, const std::vector<int>& relateds, E
 	GRM = (Tr * GRM).eval();
 	GRM = (GRM * Tr.transpose()).eval();
 	
+	GRM.makeCompressed();
+
 	std::cerr << "Done.\n";
+
+	// Eigen::SparseMatrix<double> GRM_rel = GRM.topLeftCorner(nrel,nrel).bottomRightCorner(nrel,nrel);
+	// GRM_rel.makeCompressed();
 
 	std::cerr << "GRM eigendecomposition ... ";
 	
-	Eigen::SelfAdjointEigenSolver <Eigen::MatrixXd> GRM_eig(GRM.topLeftCorner(nrel,nrel));
+	block_diag_eigendecomp( GRM, block_sizes, L, L_lambda );
 	
-	if (GRM_eig.info() != Eigen::Success){
-		std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
-		abort();
-	}
-	std::cerr << "Done.\n";
+	std::cerr << "reordering ... ";
 	
-	L_lambda = GRM_eig.eigenvalues();
-	
-	L_lambda.conservativeResize(nrel + nind);
-	for(int i = nrel; i < nrel + nind; i++){
-		L_lambda(i) = GRM.coeffRef(i,i);
-	}
-	
-	
-	L = GRM_eig.eigenvectors();
-	
-	L.conservativeResize(nrel + nind,nrel + nind);
-	
-	for(int i = nrel; i < nrel + nind; i++){
-		L.coeffRef(i,i) = 1.00;
-	}
+	L.makeCompressed();
 	
 	L = (Tr.transpose() * L).eval();
 	
+	std::cerr << "Done.\n";
+	
+	return;
+}
+
+
+void subset_eigen( Eigen::SparseMatrix<double>& L, Eigen::VectorXd& L_lambda, Eigen::SparseMatrix<double>& Q, Eigen::VectorXd& Q_lambda ){
+	
+	double delta_thresh = 1e-5;
+
 	std::vector<int> kp;
 	for( int i = 0; i < L_lambda.size(); i++ ){
 		if( std::abs( L_lambda(i) - 1 ) > delta_thresh ){
@@ -445,24 +569,130 @@ void dense_GRM_decomp( Eigen::MatrixXd& GRM, const std::vector<int>& relateds, E
 	
 	// Permutation matrix to extract selected eigenvectors.
 	using td = Eigen::Triplet<double>;
-	Eigen::MatrixXd PC_sel(L_lambda.size(),kp.size());
+	Eigen::SparseMatrix<double> PC_sel(L_lambda.size(),kp.size());
+	std::vector<td> PC_trips;
 	
 	// Selected eigenvalues.
 	Q_lambda = Eigen::VectorXd(kp.size());
 	
-	i = 0;
+	int i = 0;
 	for( const int& k : kp){
-		PC_sel(k,i) = 1.00;
+		PC_trips.push_back(td(k,i,1.00));
 		Q_lambda(i) =  L_lambda(k) - 1.00;
 		i++;
 	}
+	PC_sel.setFromTriplets(PC_trips.begin(), PC_trips.end());
 	
-	std::cerr << "Selected " << kp.size() << " eigenvectors.\n";
-	
+	std::cerr << "Selected " << kp.size() << " eigenvectors.  ";
+
 	Q = (L * PC_sel).eval();
+	Q.makeCompressed();
 	
 	return;
 }
+
+
+// void dense_GRM_decomp( Eigen::MatrixXd& GRM, const std::vector<std::vector<int>>& relateds, Eigen::MatrixXd& L, Eigen::VectorXd& L_lambda, Eigen::MatrixXd& Q, Eigen::VectorXd& Q_lambda ){
+	
+	// double delta_thresh = 1e-5;
+	// double drop0_thresh = 2e-6;
+
+	// std::vector<int> unrelateds;
+	// PermutXd Tr(GRM.rows()); 
+	
+	// int i = 0;
+	// for( int j = 0; j < GRM.cols(); j++ ){
+		// if( i < relateds.size() ){
+			// if( relateds[i] == j ){
+				// i++;
+			// }else{
+				// unrelateds.push_back(j);
+			// }
+		// }else{
+			// unrelateds.push_back(j);
+		// }
+	// }
+	// i = 0;
+	// for( const int& ii : relateds ){
+		// Tr.indices()[ii] = i;
+		// i++;
+	// }
+	// for( const int& ii : unrelateds ){
+		// Tr.indices()[ii] = i;
+		// i++;
+	// }
+
+	// int nrel = relateds.size();
+	// int nind = unrelateds.size();
+	
+	// std::cerr << "Found "<< nrel << " related individuals ... \n";
+	
+	// std::cerr << "Reordering related GRM blocks ... ";
+	
+	// // A better way to do this would be  
+	// //    grm = grm.twistedBy(Tr);
+	// // Oddly, this fails on my system. 
+	
+	// GRM = (Tr * GRM).eval();
+	// GRM = (GRM * Tr.transpose()).eval();
+	
+	// std::cerr << "Done.\n";
+
+	// std::cerr << "GRM eigendecomposition ... ";
+	
+	// Eigen::SelfAdjointEigenSolver <Eigen::MatrixXd> GRM_eig(GRM.topLeftCorner(nrel,nrel));
+	
+	// if (GRM_eig.info() != Eigen::Success){
+		// std::cerr << "FATAL ERROR: GRM decomposition failed!\n";
+		// abort();
+	// }
+	// std::cerr << "Done.\n";
+	
+	// L_lambda = GRM_eig.eigenvalues();
+	
+	// L_lambda.conservativeResize(nrel + nind);
+	// for(int i = nrel; i < nrel + nind; i++){
+		// L_lambda(i) = GRM.coeffRef(i,i);
+	// }
+	
+	
+	// L = GRM_eig.eigenvectors();
+	
+	// L.conservativeResize(nrel + nind,nrel + nind);
+	
+	// for(int i = nrel; i < nrel + nind; i++){
+		// L.coeffRef(i,i) = 1.00;
+	// }
+	
+	// L = (Tr.transpose() * L).eval();
+	
+	// std::vector<int> kp;
+	// for( int i = 0; i < L_lambda.size(); i++ ){
+		// if( std::abs( L_lambda(i) - 1 ) > delta_thresh ){
+			// kp.push_back(i);
+		// }
+	// }
+	
+	// // Permutation matrix to extract selected eigenvectors.
+	// using td = Eigen::Triplet<double>;
+	// Eigen::MatrixXd PC_sel(L_lambda.size(),kp.size());
+	
+	// // Selected eigenvalues.
+	// Q_lambda = Eigen::VectorXd(kp.size());
+	
+	// i = 0;
+	// for( const int& k : kp){
+		// PC_sel(k,i) = 1.00;
+		// Q_lambda(i) =  L_lambda(k) - 1.00;
+		// i++;
+	// }
+	
+	// std::cerr << "Selected " << kp.size() << " eigenvectors.\n";
+	
+	// Q = (L * PC_sel).eval();
+	
+	// return;
+// }
 
 
 void meta_svar_sumstat::condition_on_het(const int& k){

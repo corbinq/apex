@@ -129,6 +129,27 @@ inline void build_tabix_index(std::string file_name, int type = 0){
 	}
 };
 
+inline void operator<< (BGZF& fp, const char*& inp)
+{
+	BGZF* fp_pt = &fp; 
+	if( bgzf_write(fp_pt, (const void*) inp, strlen(inp)) < 0 ){
+		std::cerr << "Error: Could not write to output file\n";
+		exit(1);
+	}
+    return;
+}
+
+inline void operator<< (BGZF& fp, const std::string& inp)
+{
+	BGZF* fp_pt = &fp; 
+	if( bgzf_write(fp_pt, (const void*) inp.c_str(), inp.length()) < 0 ){
+		std::cerr << "Error: Could not write to output file\n";
+		exit(1);
+	}
+    return;
+}
+
+
 std::vector<std::string> get_chroms(std::string file_name, std::vector<int>& n_variants = null_vector_int);
 
 #endif
