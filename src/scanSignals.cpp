@@ -34,7 +34,7 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 
 	Eigen::MatrixXd U = get_half_hat_matrix(X);
 	Eigen::VectorXd dV(g_data.var.size());
-
+	
 	if( !global_opts::low_mem ){
 		
 		std::cerr << "Calculating genotype-covariate covariance...\n";
@@ -167,8 +167,35 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 				
 				// std::cerr << "Start U V\n";
 				
-				const Eigen::VectorXd& U = out_mat.col(jm);
-				const Eigen::VectorXd& V = dV.segment(bm.bcf_s[i], n_g);
+				Eigen::VectorXd U = out_mat.col(jm);
+				Eigen::VectorXd V = dV.segment(bm.bcf_s[i], n_g);
+				
+				// ---------------------------------
+				// Messy work-around: 
+				//     Set "U" and "V" elements to `0` for SNPs 
+				//   outside the cis-gene window. 
+				//     This can occur because there is a little 
+				//   excess overlap from the SNP-gene "blocks".
+				//   Therefore they must be copied here ... 
+				// ----------------------------------
+
+				const int& start_jj = e_data.start[jj];
+				const int& end_jj = e_data.end[jj];
+				for( int snp_i =0; snp_i < U.size(); snp_i++ ){
+					int pos_i = g_data.pos[bm.bcf_s[i] + snp_i];
+					
+					// if SNP is outside cis window, set score to 0.00 so never selected.  
+					if(  pos_i < e_data.start[jj] - global_opts::cis_window_bp ){
+						U(snp_i) = 0.00;
+						V(snp_i) = 0.00;
+					}else if( pos_i > e_data.end[jj] + global_opts::cis_window_bp ){
+						U(snp_i) = 0.00;
+						V(snp_i) = 0.00;
+					}
+				}
+				
+				
+                //  ---------------------------------
 				
 				// std::cerr << "out_mat: " << out_mat.rows() << "\t" << out_mat.cols() << "\n";
 				
