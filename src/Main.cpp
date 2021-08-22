@@ -122,6 +122,7 @@ int parseModeArgs(args::ArgumentParser& p, std::vector<std::string>::const_itera
         std::cerr << p;
         exit(1);
     }
+	return 0;
 }
 
 
@@ -594,7 +595,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	if( stepwise ){
 		if( grm_path != "" ){
-			std::cerr << "Error: GRM not currently supported for cis_signal.\n";
+			std::cerr << "Error: LMM not currently supported for stepwise analysis.\n";
 			return 1;
 		}
 		scan_signals(sr, hdr, g_data, c_data, e_data, bm, rknorm_y, rknorm_r);
