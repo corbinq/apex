@@ -91,7 +91,7 @@ namespace global_opts
 		extern bool write_v_anchors;
 		
 		// ANALYSIS MODE
-		extern bool IVW_H1_SIGMA;
+		extern char meta_weight_method;
 		extern bool conditional_analysis;
 		extern bool trans_eqtl_mode;
 		extern double backward_thresh;
@@ -120,7 +120,7 @@ namespace global_opts
 		
 	// PROCESS OPTIONS
     
-		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
+		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
 		
 		bool set_lmm_options(const bool& wap);
 		

@@ -459,244 +459,6 @@ void cis_sumstat_data::open(const std::string& pf, const std::string& reg)
 	// ln.set(vcov.pos);
 }
 
-void cis_meta_data::merge_intersection(const std::vector<std::vector<int>>& si, const std::vector<std::vector<bool>>& sflipped)
-{
-	// Merge sumstat data, keeping the intersection of genes across studies.
-	
-	int n_studies = ss.size();
-	
-	// gene index
-	std::vector<int> jj(n_studies, 0);
-	
-	// number of genes per study
-	std::vector<int> n_genes(n_studies);
-	
-	// start and end indexes
-	int i_s = 0, i_e = 0;
-	
-	for( int i = 0; i < n_studies; i++ ){
-		n_genes[i] = ss[i].gene_id.size();
-	}
-	std::string iter_cerr_suffix = " shared genes ...";
-	
-	std::cerr << "Found ";
-	print_iter_cerr(1, 0, iter_cerr_suffix);
-	int last = 0;
-	
-	while( all_lt( jj, n_genes ) ){
-
-		bool skip = false;
-		
-		int start_0 = 0;
-		int end_0 = 0;
-		int ichr_0 = i_chrom( ss[0].chr[jj[0]] ); 
-		
-		// find the maximum current chromosome
-		for( int s = 0; s < n_studies; s++ ){
-			if( i_chrom( ss[s].chr[jj[s]] ) > ichr_0 ){
-				ichr_0 = i_chrom( ss[s].chr[jj[s]] );
-			}
-		}
-		
-		// seq all studies to the max chromosome
-		for( int s = 0; s < n_studies; s++ ){
-			while( i_chrom( ss[s].chr[jj[s]] ) < ichr_0 ){
-				jj[s]++;
-				if( jj[s] >= n_genes[s] ) break;
-			}
-			if( i_chrom( ss[s].chr[jj[s]] ) != ichr_0 ){
-				skip = true;
-			}
-		}
-		
-		// break if any study reached the end
-		if( !all_lt( jj, n_genes ) ) break;
-		// skip to next candidate if the chromosome isn't shared across studies
-		if( skip ) continue;
-		
-		// find the maximum current position
-		for( int s = 0; s < n_studies; s++ ){
-			if( ss[s].start[jj[s]] > start_0 ){
-				start_0 = ss[s].start[jj[s]];
-				end_0 = ss[s].end[jj[s]];
-			}
-		}
-		
-		// std::cout << start_0 << "\n";
-		
-		// seq all studies to the max position
-		for( int s = 0; s < n_studies; s++ ){
-			while( ss[s].start[jj[s]] < start_0 ){
-				jj[s]++;
-				if( jj[s] >= n_genes[s] ) break;
-				if( i_chrom( ss[s].chr[jj[s]] ) != ichr_0 ){
-					skip = true;
-					// break because we're on a new chromosome
-					break;
-				}
-			}
-			if( ss[s].start[jj[s]] != start_0 ){
-				// if the position is absent in a single study, we skip it 
-				skip = true;
-				// we continue the outer loop to move all study indexes forward
-			}
-		}
-		// break if any study reached the end
-		if( !all_lt( jj, n_genes ) ) break;
-		// skip to next candidate if the position isn't shared across studies
-		if( skip ) continue;
-		
-		// OK, we can now be sure that all studies have the same chr,start.
-		
-		std::string chr_0 = ss[0].chr[jj[0]];
-		std::string gene_id_0 = ss[0].gene_id[jj[0]];
-		
-		for( int s = 0; s < n_studies; s++ ){
-			if( !( ss[s].gene_id[jj[s]] == gene_id_0 ) ){
-				jj[s]++;
-				skip = true;
-			}
-		}
-		
-		/*if( !skip && global_opts::filter_genes ){
-			if(!has_element(global_opts::target_genes, gene_id_0)){
-				for( int s = 0; s < n_studies; s++ ){
-					jj[s]++;
-				}
-				skip = true;
-			}
-		}*/
-		
-		// skip to next candidate if the gene name doesn't match across studies
-		
-		if( skip ) continue;
-		
-		double N_0 = 0;
-		double DF_0 = 0;
-		double SD_0 = 0; 
-		double DENOM = 0;
-		
-		std::vector<double> SD_perStudy_0(n_studies);
-		std::vector<double> DF_perStudy_0(n_studies);
-		std::vector<double> SSR_perStudy_0(n_studies);
-		
-		std::vector<double> ivw_0(n_studies);
-		
-		for( int s = 0; s < n_studies; s++ ){
-			
-			SD_perStudy_0[s] = ss[s].SD[jj[s]];
-			DF_perStudy_0[s] = ss[s].NS[jj[s]] - ss[s].NC[jj[s]];
-			
-			SSR_perStudy_0[s] = (ss[s].NS[jj[s]] - 1)*SD_perStudy_0[s]*SD_perStudy_0[s];
-			
-			ivw_0[s] = DF_perStudy_0[s]/SSR_perStudy_0[s];
-			
-			N_0 += ss[s].NS[jj[s]];
-			DF_0 += DF_perStudy_0[s];
-			SD_0 += (ss[s].NS[jj[s]] - 1)*SD_perStudy_0[s]*SD_perStudy_0[s] * ivw_0[s];
-			DENOM += ivw_0[s];
-			
-		}
-		SD_0 = std::sqrt(SD_0 / DENOM);
-
-		std::vector<int> c_s(n_studies);
-		std::vector<int> c_e(n_studies);
-		
-		
-		// now we want to find the range of overlapping indexes
-		for( int s = 0; s < n_studies; s++ ){
-			c_s[s] = ss[s].S_CIS[jj[s]];
-			c_e[s] = ss[s].S_CIS[jj[s]] + ss[s].N_CIS[jj[s]] - 1;
-			while( si[s][i_s] < c_s[s] && i_s < si[s].size() ){
-				i_s++;
-			}
-			while( si[s][i_e] < c_e[s] && i_e < si[s].size() ){
-				i_e++;
-			}			
-		}
-		// shift the end index back, so that we have the intersection of variants
-		for( int s = 0; s < n_studies; s++ ){
-			while( si[s][i_e] > c_e[s] || i_e >= si[s].size() ){
-				i_e--;
-			}			
-		}
-
-		Eigen::VectorXd score_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
-		std::vector<Eigen::VectorXd> score_perStudy_0(n_studies, Eigen::VectorXd::Zero(i_e - i_s + 1));
-		//Eigen::VectorXd var_0 = Eigen::VectorXd::Zero(i_e - i_s + 1);
-		
-		for( int s = 0; s < n_studies; s++ ){
-			const Eigen::VectorXd& sc_s = ss[s].score[jj[s]];
-			for( int i = 0, ii = i_s; ii <= i_e; ++ii, ++i ){
-				int idx = si[s][ii] - ss[s].S_CIS[jj[s]];
-				
-				if( idx < 0 || idx >= sc_s.size() ){
-					std::cerr << "\nFatal: index out of bounds in cis_meta_data::merge\n";
-					abort();
-				}
-				
-				double adj_s = ivw_0[s]*SD_perStudy_0[s];
-				
-				if( sflipped[s][ii] ){
-					score_0(i) -= sc_s( idx )*adj_s;
-					score_perStudy_0[s](i) -= sc_s( idx )*SD_perStudy_0[s];
-				}else{
-					score_0(i) += sc_s( idx )*adj_s;
-					score_perStudy_0[s](i) += sc_s( idx )*SD_perStudy_0[s];
-				}
-			}
-			// now increment to the next gene
-			jj[s]++;
-		}
-		// move forward if there are no shared variants
-		// if( score_0.size() == 0 ) continue;
-		
-		// std::cout << start_0 << "\t" << gene_id_0 << "\n";
-
-		// OK, now we're sure that the gene is shared across studies
-		
-		/*
-		if( global_opts::filter_genes ){
-			if( !has_element(global_opts::target_genes, gene_id_0) ){
-				continue;
-			}
-		}
-		*/
-		
-		chr.push_back(chr_0);
-		start.push_back(start_0);
-		end.push_back(end_0);
-		gene_id.push_back(gene_id_0);
-		
-		S_CIS.push_back(i_s);
-		N_CIS.push_back(i_e - i_s + 1);
-		
-		N.push_back(N_0);
-		DF.push_back(DF_0);
-		SD.push_back(SD_0);
-		score.push_back(score_0);
-		score_perStudy.push_back(score_perStudy_0);
-		
-		SSR_perStudy.push_back(SSR_perStudy_0);
-		SD_perStudy.push_back(SD_perStudy_0);
-		DF_perStudy.push_back(DF_perStudy_0);
-		ivw.push_back(ivw_0);
-		
-		std::vector<int> all_studies;
-		for(int i = 0; i < n_studies; i++){
-			all_studies.push_back(i);
-		}
-		study_list.push_back(all_studies);
-		
-		// var_score.push_back(var_0);
-		
-		thinned_iter_cerr(last, chr.size(), iter_cerr_suffix, 1);
-	}
-	
-	clear_line_cerr();
-	std::cerr << "Meta-analysis: " << chr.size() << " total shared genes.\n";
-}
-
 
 void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::vector<std::vector<bool>>& sflipped)
 {
@@ -787,10 +549,7 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 			}
 		}
 		
-		double N_0 = 0;
-		double DF_0 = 0;
-		double SD_0 = 0; 
-		double DENOM = 0;
+		double N_0 = 0.0, DF_0 = 0.0, SD_0 = 0.0;
 		
 		std::vector<double> SD_perStudy_0(n_studies);
 		std::vector<double> DF_perStudy_0(n_studies);
@@ -805,15 +564,17 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 			
 			SSR_perStudy_0[s] = (ss[s].NS[jj[s]] - 1)*SD_perStudy_0[s]*SD_perStudy_0[s];
 			
-			ivw_0[s] = DF_perStudy_0[s]/SSR_perStudy_0[s];
+			if( global_opts::meta_weight_method == 'n' ){
+				ivw_0[s] = 1.00;
+			}else{
+				ivw_0[s] = DF_perStudy_0[s]/SSR_perStudy_0[s];
+			}
 			
 			N_0 += ss[s].NS[jj[s]];
 			DF_0 += DF_perStudy_0[s];
-			SD_0 += (ss[s].NS[jj[s]] - 1)*SD_perStudy_0[s]*SD_perStudy_0[s] * ivw_0[s];
-			DENOM += ivw_0[s];
-			
+			SD_0 += SSR_perStudy_0[s] * ivw_0[s];
 		}
-		SD_0 = std::sqrt(SD_0 / DENOM);
+		SD_0 = std::sqrt(SD_0 / DF_0);
 
 		std::vector<int> c_s(n_studies);
 		std::vector<int> c_e(n_studies);
@@ -884,13 +645,11 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 						abort();
 					}
 					
-					double adj_s = ivw_0[s]*SD_perStudy_0[s];
-					
 					if( sflipped[s][ii] ){
-						score_0(i) -= sc_s( idx )*adj_s;
+						score_0(i) -= sc_s( idx )*SD_perStudy_0[s]*ivw_0[s];
 						score_perStudy_0[s](i) -= sc_s( idx )*SD_perStudy_0[s];
 					}else{
-						score_0(i) += sc_s( idx )*adj_s;
+						score_0(i) += sc_s( idx )*SD_perStudy_0[s]*ivw_0[s];
 						score_perStudy_0[s](i) += sc_s( idx )*SD_perStudy_0[s];
 					}
 				}
@@ -981,33 +740,45 @@ void cis_meta_data::meta_analyze()
 		
 		for(int j = S_CIS[i], jj = 0; jj < N_CIS[i]; ++j, ++jj ){
 			
-			double beta, se;
+			double beta = 0.00, se = 0.00;
 			
-			if( global_opts::IVW_H1_SIGMA ){
-				beta = 0;
-				double denom = 0;
-				for( const int& s : study_list[i] ){
-					
-					double sc = score_perStudy[i][s](jj);
-					double dv = diagV_perStudy(i,jj,s);
-					
-					double sigma_sq = (SSR_perStudy[i][s] - sc*sc/dv)/(DF_perStudy[i][s]-1);
-					
-					denom += dv/sigma_sq;
-					beta += sc/sigma_sq;
-				}
-				beta = beta/denom;
-				se = std::sqrt(1/denom);
-				
-			}else{
-				double dv = diagV(i, jj);
-				if(dv > 0 ){
-					beta = score[i](jj)/dv;
-					se = std::sqrt( (DF[i] - 1)/dv - beta*beta)/std::sqrt(DF[i] - 1);
-				}
-			}
+			double ssr_meta = 0.00, u_meta = 0.00, v_meta = 0.00, df_meta = 0.00;
 
-			if( se > 0  ){
+			for( const int& s : study_list[i] ){
+				
+				const double& sc_s = score_perStudy[i][s](jj);
+				const double& dv_s = diagV_perStudy(i,jj,s);
+				const double& ssr_s = SSR_perStudy[i][s];
+				const double& df_s = DF_perStudy[i][s];
+				
+				double w_s;
+				
+				if( global_opts::meta_weight_method == 'n' ){
+					w_s = 1.00;
+				}else if( global_opts::meta_weight_method == '1' ){
+					w_s = (df_s - 1.00)/(ssr_s - sc_s*sc_s/dv_s);
+				}else if( global_opts::meta_weight_method == '0' ){
+					w_s = df_s/ssr_s;
+				}else{
+					std::cerr << "ERROR: Unknown weighting method.\n";
+					abort();
+				}
+				
+				u_meta += w_s * sc_s;
+				v_meta += w_s * dv_s;
+				
+				ssr_meta += w_s * ssr_s;
+				
+				df_meta += df_s;
+				
+			}
+			if( v_meta > 0.00 ){
+				
+				beta = u_meta/v_meta;
+				se = std::sqrt(ssr_meta/v_meta - beta * beta )/std::sqrt(df_meta - 1.00);
+			}
+			
+			if( se > 0.00  ){
 
 				double z = beta/se;
 				double pval = pf( z*z, 1.0, DF[i] - 1, true );
@@ -1132,7 +903,7 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	double tss_pos = 0.5*(start[gene_index] + end[gene_index]);
 	std::vector<double> dtss(n_var);
 	for(int i = 0; i < n_var; i++){
-		dtss[i] = ( tss_pos - (double) vc.pos[s_var + i]);
+		dtss[i] = ( tss_pos - (double) vc.pos[s_var + i] );
 	}
 	
 	Eigen::VectorXd dV( n_var );
@@ -1151,9 +922,18 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	
 	vcov_getter vget(vc, ivw[gene_index], s_var, n_var, study_list[gene_index]);
 	
-	stdev = 1;
-
-	forward_lm out(U, dV, n, df0, stdev, vget, global_opts::LM_ALPHA, dtss);
+	double adj = 1.00;
+	stdev = 1.00;
+	
+	if( global_opts::meta_weight_method == 'n' ){
+		//stdev = SD[gene_index];
+		// adj = std::sqrt(df0)/std::sqrt(n - 1.00);
+		adj = SD[gene_index];
+	} //else{
+		// stdev = 1.00;
+	// }
+	
+	forward_lm out(U/adj, dV, n, df0, stdev*adj, vget, global_opts::LM_ALPHA, dtss);
 	
 	//cout << "4\n";
 	std::string in_studies = std::to_string(study_list[gene_index][0] + 1);
@@ -1349,7 +1129,7 @@ void cis_meta_data::conditional_analysis(){
 	
 	std::string buddy_out_name = global_opts::out_prefix + ".cis_meta.buddies.tsv";
 	std::ofstream os_b;
-	if( global_opts::RSQ_BUDDY < 1 ){
+	if( global_opts::RSQ_BUDDY < 1.00 ){
 		os_b.open(buddy_out_name.c_str(), std::ofstream::out);
 		print_header(std::vector<std::string>{"#signal_variant", "buddy_variant", "r", "rsq"}, os_b);
 	}
@@ -1371,7 +1151,7 @@ void cis_meta_data::conditional_analysis(){
 	clear_line_cerr();
 	std::cerr << "Completed stepwise meta-analysis of " << std::to_string(gene_id.size()) << " total genes.\n";
 	
-	if( global_opts::RSQ_BUDDY < 1 ) os_b.close();
+	if( global_opts::RSQ_BUDDY < 1.00 ) os_b.close();
 	os.close();
 }
 

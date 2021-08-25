@@ -33,7 +33,7 @@ int n_ePCs = 0;
 int max_signals = 10;
 int window_size = 1000000;
 std::vector<std::string> target_genes;
-bool use_ivw_1 = false;
+char ivw_method = '0';
 bool use_ds = false;
 bool trim_gene_ids = false;
 double stepwise_backward_thresh = 1.00;
@@ -211,9 +211,22 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 
 	args::Group analysis_args(p, "Analysis options");
 		// args::Flag fit_null(analysis_args, "", "Estimate and store LMM null model parameters.", {"fit-null"});
-		args::Flag stepwise(analysis_args, "", "Estimate and store conditionally independent cis signal genotypes.", {"stepwise"});
-		args::ValueFlag<int> max_mod_arg(analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
 		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
+		args::ValueFlag<std::string> region_arg(analysis_args, "", "Subset to specified genomic region.", {'r', "region"});
+		args::ValueFlag<std::string> window_arg(analysis_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
+	
+	args::Group scale_args(p, "Scale and transform options");
+		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
+		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (can be used with rankNormal).", {"rankNormal-resid"});
+		// args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
+		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
+		
+    args::Group step_args(p, "Stepwise analysis options");
+		args::Flag stepwise(step_args, "", "Estimate and store conditionally independent cis signal genotypes.", {"stepwise"});
+		args::ValueFlag<int> max_mod_arg(step_args, "", "Maximum model size in stepwise regression.", {"max-model"});
+		args::ValueFlag<double> pval_arg(step_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
+		args::Flag use_marginal_pval(step_args, "", "Apply threshold to marginal rather than ACAT p-value in stepwise algorithm.", {"use-marginal-pval"});
+		args::ValueFlag<double> rsq_arg(step_args, "", "Rsq threshold for variable selection.", {"rsq"});
 
 	args::Group factor_args(p, "Hidden factor options (if not precomputed)");
 		args::ValueFlag<int> epc_arg(factor_args, "", "Number of ePCs extracted from trait matrix.", {"epcs"});
@@ -225,12 +238,6 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<std::string> iter_arg(factor_args, "", "Number of factor analysis iterations (0 for PCA).", {"iter"});
 		args::ValueFlag<std::string> pp_arg(factor_args, "", "Factor analysis prior p.", {"prior-p"});
 		args::ValueFlag<std::string> pt_arg(factor_args, "", "Factor analysis prior tau.", {"prior-tau"});
-	
-	args::Group scale_args(p, "Scale and transform options");
-		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
-		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (can be used with rankNormal).", {"rankNormal-resid"});
-		// args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
-		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
 	
 	args::Group input_args(p, "Basic input files");
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
@@ -264,12 +271,8 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 		args::ValueFlag<int> threads_arg(opt_args, "", "No. threads (not to exceed no. available cores).", {"threads"});
 		args::Flag low_mem(opt_args, "", "Lower memory usage.", {"low-mem"});
 		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
-		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset to specified genomic region.", {'r', "region"});
-		args::ValueFlag<std::string> window_arg(opt_args, "1000000", "Window size in base pairs for cis-QTL or gene-based analysis.", {'w', "window"});
 		// args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
-		args::ValueFlag<double> pval_arg(opt_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
-		args::ValueFlag<double> rsq_arg(opt_args, "", "Rsq threshold for variable selection.", {"rsq"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
 	
 	// ----------------------------------
@@ -420,7 +423,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, (bool) use_marginal_pval);
 	
 	if( prefix == "" )
 	{
@@ -857,7 +860,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( sloppy ){
 		global_opts::use_sloppy_covar();
@@ -1242,7 +1245,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	// if( sloppy ){
 		// global_opts::use_sloppy_covar();
@@ -1776,17 +1779,20 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		args::Flag meta_svar(meta_args, "", "Perform single-variant meta-analysis.", {"meta"});
 		args::Flag meta_stepwise(meta_args, "", "Perform stepwise (conditional) meta-analysis.", {"stepwise"});
 	
+	
 	args::Group analysis_args(p, "Analysis options");
-		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene p-values.", {"dtss-weight"});
-		args::ValueFlag<std::string> test_arg(analysis_args, "het,alt", "Meta-analysis test forms (comma-separated combination of 'het,hom,alt').", {'t', "tests"});
-		args::Flag ivw_1(analysis_args, "", "Calculate IVW weights under the alternative hypothesis.", {"ivw1"});
-		args::Flag het_meta(analysis_args, "", "Allow heterogeneous genotype effects across studies in stepwise meta-analysis.", {"het"});
-		args::ValueFlag<int> max_mod_arg(analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
-		args::ValueFlag<double> rsq_arg(analysis_args, "", "Maximum rsq threshold.", {"rsq"});
-		args::ValueFlag<double> buddy_arg(analysis_args, "", "Print LD buddies (specify rsq threshold).", {"buddies"});
-		args::Flag use_marginal_pval(analysis_args, "", "Apply threshold to marginal rather than ACAT p-value in stepwise algorithm (no adjustment for no. variants).", {"marginal"});
-		args::ValueFlag<double> pval_arg(analysis_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
-		args::ValueFlag<double> backward_arg(analysis_args, "", "Backward step p-value threshold in stepwise selection.", {"backward"});
+		args::ValueFlag<double> dtss_arg(analysis_args, "", "dTSS weight for eGene/signal p-values.", {"dtss-weight"});
+		args::ValueFlag<std::string> ivw_flag(analysis_args, "", "Meta-analysis weighting method ('IVW-0' [default], 'IVW-1', or 'N' for sample size).", {"weights"});
+	
+	args::Group step_analysis_args(p, "Stepwise analysis options");
+	    args::ValueFlag<double> backward_arg(step_analysis_args, "", "Apply backward step p-value threshold in stepwise selection.", {"backward"});
+		args::ValueFlag<int> max_mod_arg(step_analysis_args, "", "Maximum model size in stepwise regression.", {"max-model"});
+		args::ValueFlag<double> rsq_arg(step_analysis_args, "", "Maximum Rsq (=1-1/VIF) threshold.", {"rsq"});
+		args::ValueFlag<double> buddy_arg(step_analysis_args, "", "Print LD buddies (specify rsq threshold).", {"buddies"});
+		args::Flag het_meta(step_analysis_args, "", "Allow heterogeneous genotype effects across studies in stepwise meta-analysis.", {"het"});
+		args::ValueFlag<std::string> test_arg(step_analysis_args, "hom,acat", "Meta-analysis het test forms (comma-separated combination of 'het,hom,acat').", {"het-tests"});
+		args::ValueFlag<double> pval_arg(step_analysis_args, "", "P-value threshold for stepwise procedures.", {"pvalue"});
+		args::Flag use_marginal_pval(step_analysis_args, "", "Apply threshold to marginal rather than ACAT p-value in stepwise algorithm.", {"use-marginal-pval"});
 	/*
 	args::Group filter_args(p, "Filtering variants");
 		args::ValueFlag<std::string> iid_e_arg(subset_args, "", "List of variants to exclude (file path).", {"exclude-snps"});
@@ -1801,11 +1807,11 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
 	
-	args::Group vcov_args(p, "Querying vcov files");
-		args::Flag query_vcov(vcov_args, "", "Query meta-analysis vcov data (file list from --sumstats). Can be used with --region.", {"query"});
-		args::ValueFlag<int> query_pos_arg(vcov_args, "pos", "Only get vcov data for specified variant (against all others in region).", {"pos"});
-		args::Flag query_u_vcov(vcov_args, "", "Just return uncentered vcov data from bin file (default: centered v-cov matrix).", {"just-bin"});
-		//args::Flag query_colnames(vcov_args, "", "Show SNP IDs as column names of the (default: centered v-cov matrix).", {"just-bin"});
+	// args::Group vcov_args(p, "Querying vcov files");
+		// args::Flag query_vcov(vcov_args, "", "Query meta-analysis vcov data (file list from --sumstats). Can be used with --region.", {"query"});
+		// args::ValueFlag<int> query_pos_arg(vcov_args, "pos", "Only get vcov data for specified variant (against all others in region).", {"pos"});
+		// args::Flag query_u_vcov(vcov_args, "", "Just return uncentered vcov data from bin file (default: centered v-cov matrix).", {"just-bin"});
+		// //args::Flag query_colnames(vcov_args, "", "Show SNP IDs as column names of the (default: centered v-cov matrix).", {"just-bin"});
 	
 	
 	// ----------------------------------
@@ -1814,11 +1820,30 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	
 	parseModeArgs(p, beginargs, endargs);
 	
+	
 	// ----------------------------------
 	// Process test options
 	// ----------------------------------
 	
-	use_ivw_1 = (bool) ivw_1;
+	std::string ivw_method_str = args::get(ivw_flag);
+	
+	for( char& ch : ivw_method_str ){
+		ch = std::tolower(static_cast<unsigned char>(ch));
+	}
+	ivw_method_str.erase(std::remove(ivw_method_str.begin(), ivw_method_str.end(), '-'), ivw_method_str.end());
+	ivw_method_str.erase(std::remove(ivw_method_str.begin(), ivw_method_str.end(), '_'), ivw_method_str.end());
+	
+	if( ivw_method_str == "" || ivw_method_str == "ivw0" || ivw_method_str == "0" ){
+		ivw_method = '0';
+	}else if( ivw_method_str == "ivw1"  || ivw_method_str == "1" ){
+		ivw_method = '1';
+	}else if( ivw_method_str == "n" || ivw_method_str == "samplesize" ){
+		ivw_method = 'n';
+	}else{
+		std::cerr << "ERROR: Unknown meta-analysis weight method.\n";
+		return 1;
+	}
+	
 	// stepwise_backward_step = (bool) backward_step;
 	
 	stepwise_backward_thresh = args::get(backward_arg);
@@ -1833,6 +1858,9 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	
 	if( tests == "" ){
 		tests = "hom,acat";
+	}else if( !het_meta ){
+		std::cerr << "ERROR: --tests [...] only supported in with flag --het.\n";
+		return 1;
 	}
 	for( char& c_i : tests){
 		c_i = tolower(c_i);
@@ -1845,15 +1873,34 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		}else if( test_i == "acat" ){
 			t_acat = true;
 		}else{
-			std::cerr << "Error: Unknown test '" << test_i << "'.\n";
+			std::cerr << "ERROR: Unknown test '" << test_i << "'.\n";
 			std::cerr << "Valid options are het,hom,acat (comma-separated combinations)\n";
-			abort();
+			return 1;
 		}
 	}
 	if( !t_hom && !t_het && !t_acat  ){
-		std::cerr << "Error: No valid test options specified.\n";
+		std::cerr << "ERROR: No valid test options specified.\n";
 		std::cerr << "Valid options are het,hom,acat (comma-separated combinations)\n";
-		abort();
+		return 1;
+	}
+	
+	// ----------------------------------
+	// Check for incompatible options
+	// ----------------------------------
+	
+	if( het_meta && !meta_stepwise ){
+		std::cerr << "ERROR: --het flag only supported in stepwise analysis.\n";
+		return 1;
+	}
+	
+	if( het_meta && ivw_method != '0' ){
+		std::cerr << "ERROR: only '--weights IVW-0' (default) supported with '--het --stepwise'.\n";
+		return 1;
+	}
+	
+	if( meta_stepwise && ivw_method == '1' ){
+		std::cerr << "ERROR: only '--weights IVW-0' (default) or '--weights N' supported for '--stepwise' analysis.\n";
+		return 1;
 	}
 	
 	// ----------------------------------
@@ -1886,7 +1933,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	
 	//string query_prefix = args::get(query_arg);
 	std::string meta_prefix = args::get(meta_arg);
-	int query_pos = args::get(query_pos_arg);
+	// int query_pos = args::get(query_pos_arg);
 	
 	rsq_buddy = args::get(buddy_arg);
 	
@@ -1917,7 +1964,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( prefix == "" ){
 		if( meta_svar || meta_stepwise ){
@@ -2104,7 +2151,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, use_ivw_1, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
 	
 	if( prefix == "" ){
 		restore_cursor();

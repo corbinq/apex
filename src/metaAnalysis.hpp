@@ -150,7 +150,6 @@ class cis_meta_data
 			merge(vc.si, vc.sflipped);
 		};
 		
-		void merge_intersection(const std::vector<std::vector<int>>&, const std::vector<std::vector<bool>>&);
 		void merge(const std::vector<std::vector<int>>&, const std::vector<std::vector<bool>>&);
 		void meta_analyze();
 		

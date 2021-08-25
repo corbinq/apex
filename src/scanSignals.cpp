@@ -32,27 +32,27 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 	std::vector<double> y_scale;
 	scale_and_center(Y, y_scale);
 
-	Eigen::MatrixXd U = get_half_hat_matrix(X);
+	Eigen::MatrixXd S = get_half_hat_matrix(X);
 	Eigen::VectorXd dV(g_data.var.size());
 	
 	if( !global_opts::low_mem ){
 		
 		std::cerr << "Calculating genotype-covariate covariance...\n";
 		
-		Eigen::MatrixXd UtG = U.transpose() * g_data.genotypes;
+		Eigen::MatrixXd StG = S.transpose() * g_data.genotypes;
 		std::cerr << "Calculating genotype residual variances ...";
-		//Eigen::VectorXd SD_vec(UtG.cols());
-		for( int i = 0; i < UtG.cols(); ++i)
+		//Eigen::VectorXd SD_vec(StG.cols());
+		for( int i = 0; i < StG.cols(); ++i)
 		{
 			
-			dV(i) = g_data.genotypes.col(i).squaredNorm() - UtG.col(i).squaredNorm();
+			dV(i) = g_data.genotypes.col(i).squaredNorm() - StG.col(i).squaredNorm();
 			//SD_vec[i] = std::sqrt(g_data.var[i]);
 		}
 		std::cerr << "Done.\n";
 	}
 	
 	std::cerr << "Calculating expression residuals...\n";
-	Eigen::MatrixXd Y_res = resid_from_half_hat(Y, U);
+	Eigen::MatrixXd Y_res = resid_from_half_hat(Y, S);
 	
 	std::cerr << "Scaling expression residuals ...\n";
 	scale_and_center(Y_res, e_data.stdev);
@@ -61,7 +61,7 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 		std::cerr << "Rank-normalizing expression residuals ...\n";
 		rank_normalize(Y_res);
 		std::cerr << "Re-residualizing transformed residuals ...\n";
-		Eigen::MatrixXd tmp = resid_from_half_hat(Y_res, U);
+		Eigen::MatrixXd tmp = resid_from_half_hat(Y_res, S);
 		Y_res = tmp;
 		scale_and_center(Y_res);
 	}
@@ -136,11 +136,11 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 				
 				Eigen::SparseMatrix<double>& G = g_data.genotypes;
 				
-				Eigen::VectorXd UtG_block_sqnm = (U.transpose() * G).colwise().squaredNorm().eval(); // G.middleCols(bm.bcf_s[i], n_g);
+				Eigen::VectorXd StG_block_sqnm = (S.transpose() * G).colwise().squaredNorm().eval(); // G.middleCols(bm.bcf_s[i], n_g);
 				
 				for( int si = bm.bcf_s[i], ii = 0; si < bm.bcf_s[i] + n_g; ++si, ++ii)
 				{
-					dV(si) = G.col(ii).squaredNorm() - UtG_block_sqnm(ii);
+					dV(si) = G.col(ii).squaredNorm() - StG_block_sqnm(ii);
 					//cout << g_data.var[i] << "\n";
 				}
 			}
@@ -159,9 +159,7 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 			
 			out_mat = (Y_res.middleRows(bm.bed_s[i], n_e)* G).transpose().eval();
 			
-			// std::cerr << "Get UtG\n";
-			
-			Eigen::MatrixXd UtG = U.transpose() * G;
+			Eigen::MatrixXd StG = S.transpose() * G;
 			
 			for( int jj = bm.bed_s[i], jm = 0; jj < bm.bed_s[i] + n_e; jj++, jm++){
 				
@@ -178,6 +176,7 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 				//   excess overlap from the SNP-gene "blocks".
 				//   Therefore they must be copied here ... 
 				// ----------------------------------
+	
 
 				const int& start_jj = e_data.start[jj];
 				const int& end_jj = e_data.end[jj];
@@ -186,14 +185,20 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 					
 					// if SNP is outside cis window, set score to 0.00 so never selected.  
 					if(  pos_i < e_data.start[jj] - global_opts::cis_window_bp ){
-						U(snp_i) = 0.00;
-						V(snp_i) = 0.00;
+						U(snp_i) = std::numeric_limits<double>::quiet_NaN();
+						V(snp_i) = std::numeric_limits<double>::quiet_NaN();
 					}else if( pos_i > e_data.end[jj] + global_opts::cis_window_bp ){
-						U(snp_i) = 0.00;
-						V(snp_i) = 0.00;
+						U(snp_i) = std::numeric_limits<double>::quiet_NaN();
+						V(snp_i) = std::numeric_limits<double>::quiet_NaN();
 					}
 				}
 				
+				// distance to TSS
+				double tss_pos = 0.5*(start_jj + end_jj);
+				std::vector<double> dtss(U.size());
+				for(int snp_i = 0; snp_i < U.size(); snp_i++){
+					dtss[snp_i] = ( tss_pos - (double) g_data.pos[bm.bcf_s[i] + snp_i] );
+				}
 				
                 //  ---------------------------------
 				
@@ -204,7 +209,7 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 				
 				// std::cerr << "Start vget\n";
 			
-				indiv_vcov_getter vget(G, UtG);
+				indiv_vcov_getter vget(G, StG);
 				
 				// std::cerr << G.rows() << "\t" << G.cols() << "\n";
 				// std::cerr << UtG.rows() << "\t" << UtG.cols() << "\n";
@@ -213,13 +218,13 @@ void scan_signals(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data, table& 
 				
 				// std::cerr << "Start forward\n";
 				
-				double SSR = e_data.stdev[jj] * e_data.stdev[jj] * (n_samples - 1);
-				double IVW =  (n_samples - n_covar)/SSR;
+				// double SSR = e_data.stdev[jj] * e_data.stdev[jj] * (n_samples - 1);
+				// double IVW =  (n_samples - n_covar)/SSR;
 				// double adj = e_data.stdev[jj] * IVW;
 				
 				double adj = std::sqrt(n_samples - n_covar)/std::sqrt(n_samples - 1);
 				
-				forward_lm flm(adj * U, V, n_samples, n_samples - n_covar, e_data.stdev[jj]/adj, vget, global_opts::LM_ALPHA);
+				forward_lm flm(adj * U, V, n_samples, n_samples - n_covar, e_data.stdev[jj]/adj, vget, global_opts::LM_ALPHA, dtss);
 				
 				// std::cerr << "End forward\n";
 				

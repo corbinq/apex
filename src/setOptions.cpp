@@ -86,7 +86,7 @@ namespace global_opts
 		bool write_v_anchors = false;
 		
 		// ANALYSIS MODE
-		bool IVW_H1_SIGMA = false;
+		char meta_weight_method = '0';
 		bool conditional_analysis = false;
 		bool trans_eqtl_mode = false;
 		double backward_thresh = 1.00;
@@ -129,7 +129,7 @@ namespace global_opts
 		});
 }
 
-bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const bool& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
+bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
 	out_prefix = pfx;
 	low_mem = low_memory;
 	cis_window_bp = window;
@@ -139,7 +139,7 @@ bool global_opts::process_global_opts( const std::string& pfx, const bool& low_m
 	LM_ALPHA = pthresh;
 	filter_genes = (tg.size() > 0);
 	target_genes = tg;
-	IVW_H1_SIGMA = ivw_mode;
+	meta_weight_method = ivw_mode;
 	use_dosages = use_ds;
 	trim_gene_ids = trim;
 	backward_thresh = backward;

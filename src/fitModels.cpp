@@ -750,7 +750,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				VARSC = V(i);
 			}
 			double VIF = calc_vif(V(i), VARSC);
-			if( (VARSC > 0 && (VARSC/V(i)) > 1 - global_opts::RSQ_PRUNE && V(i) > 0) || !check_filter ){
+			if( (VARSC > 0.0 && ((VARSC/V(i)) > (1.0 - global_opts::RSQ_PRUNE) && V(i) > 0.0)) || !check_filter ){
 				double beta = stdev * SCORE/VARSC;
 				
 				double se = stdev * std::sqrt(SSE_i - SCORE*SCORE/VARSC) / std::sqrt(df*VARSC);
@@ -1228,7 +1228,6 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		}else if( keep.size() >= global_opts::max_signals ){
 			break;
 		}
-		
 		total_steps++;
 		if( total_steps > global_opts::max_steps ){
 			std::cerr << "\n\nWARNING: Exceeded max steps. Convergence failed.\n\n";
