@@ -850,7 +850,7 @@ class meta_svar_sumstat
 			double MAX_P_VAR = -1.0, NUMER = 0.0, DENOM = 0.0, N_PVAL1 = 0.0;
 			
 			k = -1;
-			min_omni_p = -99; acat_omni_p = -99;
+			min_omni_p = 1.00; acat_omni_p = -99;
 			
 			for(int i = 0; i < ss_meta.U.size(); i++){
 				if( ss_meta.V(i) > 0 && ss_meta.V_0(i) > 0 ){
@@ -865,7 +865,7 @@ class meta_svar_sumstat
 						}else if( omn_p > 0 && !std::isnan(omn_p) ){
 							DENOM++;
 							NUMER += qcauchy(omn_p);
-							if( (omn_p < min_omni_p && omn_p > 0) || min_omni_p < 0 ){
+							if( omn_p < min_omni_p ){
 								min_omni_p = omn_p;
 								k = i;
 							}
