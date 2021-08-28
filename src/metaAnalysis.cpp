@@ -1138,7 +1138,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		double p_hom, p_het, p_aca, p_omn;
 		double p_hom_m, p_het_m, p_aca_m, p_omn_m;
 		ss_lm_single fm_i = meta_ss.final_model_triform_pval(i, p_hom, p_het, p_aca, p_omn);
-		ss_lm_single fm_i_m = meta_ss.marginal_triform_pval(i, p_hom_m, p_het_m, p_aca_m, p_omn_m);
+		// ss_lm_single fm_i_m = meta_ss.marginal_triform_pval(i, p_hom_m, p_het_m, p_aca_m, p_omn_m);
 		//double marginal_pval_i = meta_ss.ss_meta_0.single_snp_pval(i);
 		os << gene << "\t" << in_studies;
 		os << "\t" << i + 1 << ":" <<  top_snps.size() << "\t" << snp(top_snps[i]) << "\t" << fm_i.beta << "\t" << fm_i.se << "\t" << p_omn << "\t" << acat_stepwise_pvals[i] << "\t" << p_omn_m << ":" << p_hom_m << "," << p_het_m << "," << p_aca_m << "\t" << svar_stepwise_pvals[i] << "\n";

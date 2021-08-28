@@ -739,7 +739,8 @@ class meta_svar_sumstat
 				pval_omni = pcauchy(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
-				if( pval_omni > n_omni*min_pval ){
+				if( pval_omni > 10 * n_omni * min_pval ){
+					std::cerr << "WARNING: ACAT p-value set to Bonferroni; possible error.\n";
 					pval_omni = n_omni*min_pval;
 				}
 			}else{
@@ -833,7 +834,7 @@ class meta_svar_sumstat
 				pval_omni = pcauchy(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
-				if( pval_omni > n_omni*min_pval ){
+				if( pval_omni > 10 * n_omni*min_pval ){
 					std::cerr << "WARNING: ACAT p-value set to Bonferroni; possible error.\n";
 					pval_omni = n_omni*min_pval;
 				}
