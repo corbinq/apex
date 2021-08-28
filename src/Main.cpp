@@ -1893,13 +1893,13 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		return 1;
 	}
 	
-	if( het_meta && ivw_method != '0' ){
-		std::cerr << "ERROR: only '--weights IVW-0' (default) supported with '--het --stepwise'.\n";
-		return 1;
+	if( het_meta && ivw_method != '1' ){
+		std::cerr << "WARNING: '--het --stepwise' analysis requires '--weights IVW-1' (weighting method set to IVW-1).\n";
+		// return 1;
 	}
 	
-	if( meta_stepwise && ivw_method == '1' ){
-		std::cerr << "ERROR: only '--weights IVW-0' (default) or '--weights N' supported for '--stepwise' analysis.\n";
+	if( !het_meta && meta_stepwise && ivw_method == '1' ){
+		std::cerr << "ERROR: '--stepwise' analysis requires either '--weights IVW-0' (default) or '--weights N'.\n";
 		return 1;
 	}
 	
