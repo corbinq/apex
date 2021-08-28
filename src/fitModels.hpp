@@ -834,6 +834,7 @@ class meta_svar_sumstat
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > n_omni*min_pval ){
+					std::cerr << "WARNING: ACAT p-value set to Bonferroni; possible error.\n";
 					pval_omni = n_omni*min_pval;
 				}
 			}else{
@@ -1020,6 +1021,10 @@ class lm_output
 
 static const std::vector<double> vd0(0);
 
+struct step_record{
+	int n_total, n_part, add_drop, snp_id, size;
+};
+
 class forward_lm
 {
 	public:
@@ -1033,6 +1038,8 @@ class forward_lm
 		std::vector<double> pval_seq;
 		std::vector<double> pval_joint;
 		std::vector<double> pval_adj;
+		
+		std::vector<step_record> step_history;
 		
 		std::vector<std::vector<int>> buddy_list;
 		std::vector<std::vector<double>> corr_list; 

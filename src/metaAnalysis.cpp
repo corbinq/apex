@@ -876,7 +876,7 @@ void cis_meta_data::get_vcov_gene(const int& gene_index, const bool& centered)
 }
 
 
-void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os, std::ostream& os_b)
+void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os, std::ostream& os_log, std::ostream& os_b)
 {
 	
 	if( N_CIS[gene_index] <= 0 ){
@@ -943,6 +943,25 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 	
 	auto snp = [&](const int& i ){ int j = s_var + i; return vc.chr[j] + "_" + std::to_string(vc.pos[j]) + "_" + vc.ref[j] + "_" + vc.alt[j];};
 	
+	
+	for( const step_record& rec : out.step_history ){
+			// int n_total, n_part, add_drop, snp_id, size;
+		if( rec.add_drop == 1 ){
+			os_log << gene << "; " << "Step " << rec.n_total << ", part " << rec.n_part << "; Added " << snp(rec.snp_id) << "; Model size " << rec.size << "\n";
+		}else if( rec.add_drop == -1 ){
+			os_log << gene << "; " << "Step " << rec.n_total << ", part " << rec.n_part << "; Dropped " << snp(rec.snp_id) << "; Model size " << rec.size << "\n";
+		}else if( rec.add_drop == 0 ){
+			if( rec.snp_id == 0 ){
+				os_log << gene << "; " << "Step " << rec.n_total << "; Exiting, no p-values met add/drop thresholds; Model size " << rec.size << "\n";
+			}else if( rec.snp_id == 1 ){
+				os_log << gene << "; " << "Step " << rec.n_total << "; Exiting, maximum model size reached; Model size " << rec.size << "\n";
+			}else if( rec.snp_id == 2 ){
+				os_log << gene << "; " << "Step " << rec.n_total << "; Exiting, exceeded max steps (convergence failed); Model size " << rec.size << "\n";
+			}
+		}
+	}
+	
+	
 	if( out.beta.size() > 0 ){
 		
 		for(int i = 0; i < out.beta.size(); ++i)
@@ -975,7 +994,7 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 }
 
 
-void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream& os)
+void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream& os, std::ostream& os_log)
 {
 	
 	if( N_CIS[gene_index] <= 0 ){
@@ -1049,6 +1068,8 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 			meta_ss.condition_on_het(top_snp);
 			
 			n_steps++;
+			
+			os_log << gene << "; " << "Step " << total_steps << ", part " << n_steps << "; Added " << snp(top_snp) << "; Model size " << top_snps.size() << "\n";
 		}
 		
 		// -----------------------------------
@@ -1062,14 +1083,20 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 			for(int i = 0; i < top_snps.size() - 1; i++){
 				double p_hom, p_het, p_aca, p_omn;
 				ss_lm_single fm_i = meta_ss.final_model_triform_pval(i, p_hom, p_het, p_aca, p_omn);
-				if( p_omn > max_joint_pvalue || p_omn < 0 ){
-					max_joint_pvalue = fm_i.pval;
+				if( p_omn < 0 ){
+					// P not computable due to multicollinearity or non-positive variance
+					p_omn = 1.00;
+				}
+				if( p_omn >= max_joint_pvalue ){
+					max_joint_pvalue = p_omn;
 					w_rm = i;
 				}
 			}
 			// update max joint pvalue
 			
-			if( max_joint_pvalue > global_opts::backward_thresh || max_joint_pvalue < 0 ){
+			if( max_joint_pvalue > global_opts::backward_thresh ){
+				
+				int dropped_snp = top_snps[w_rm];
 				
 				meta_ss.drop_snp(w_rm);
 				
@@ -1078,16 +1105,21 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 				svar_stepwise_pvals.erase(svar_stepwise_pvals.begin() + w_rm);
 				
 				n_steps++;
+				
+				os_log << gene << "; " << "Step " << total_steps << ", part " << n_steps << "; Dropped " << snp(dropped_snp) << "; Model size " << top_snps.size() << "\n";
 			}
 		}
 		
 		if( n_steps == 0 ){
+			os_log << gene << "; " << "Step " << total_steps << "; Exiting, no p-values met add/drop thresholds; Model size " << top_snps.size() << "\n";
 			break;
 		}else if( top_snps.size() >= global_opts::max_signals ){
+			os_log << gene << "; " << "Step " << total_steps << "; Exiting, maximum model size reached; Model size " << top_snps.size() << "\n";
 			break;
 		}
 		total_steps++;
 		if( total_steps > global_opts::max_steps ){
+			os_log << gene << "; " << "Step " << total_steps << "; Exiting, exceeded max steps (convergence failed); Model size " << top_snps.size() << "\n";
 			std::cerr << "\n\nWARNING: Exceeded max steps. Convergence failed.\n\n";
 			break;
 		}
@@ -1121,6 +1153,9 @@ void cis_meta_data::conditional_analysis(){
 	std::string out_name = global_opts::out_prefix + ".cis_meta.stepwise.tsv";
 	std::ofstream os(out_name.c_str(), std::ofstream::out);
 	
+	std::string log_name = global_opts::out_prefix + ".cis_meta.stepwise.log";
+	std::ofstream os_log(log_name.c_str(), std::ofstream::out);
+	
 	std::vector<std::string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
 	
 	print_header(col_names, os);
@@ -1143,7 +1178,7 @@ void cis_meta_data::conditional_analysis(){
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	for(int i = 0; i < gene_id.size(); ++i){
 		int j = i;
-		conditional_analysis(j, os, os_b);
+		conditional_analysis(j, os, os_log, os_b);
 		j = i;
 		thinned_iter_cerr(j, i+1, iter_cerr_suffix, 1);
 	}
@@ -1153,6 +1188,7 @@ void cis_meta_data::conditional_analysis(){
 	
 	if( global_opts::RSQ_BUDDY < 1.00 ) os_b.close();
 	os.close();
+	os_log.close();
 }
 
 
@@ -1160,6 +1196,9 @@ void cis_meta_data::conditional_analysis_het(){
 
 	std::string out_name = global_opts::out_prefix + ".cis_meta.stepwise_het.tsv";
 	std::ofstream os(out_name.c_str(), std::ofstream::out);
+	
+	std::string log_name = global_opts::out_prefix + ".cis_meta.stepwise_het.log";
+	std::ofstream os_log(log_name.c_str(), std::ofstream::out);
 	
 	std::vector<std::string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
 	
@@ -1172,7 +1211,7 @@ void cis_meta_data::conditional_analysis_het(){
 	print_iter_cerr(1, 0, iter_cerr_suffix);
 	for(int i = 0; i < gene_id.size(); ++i){
 		int j = i;
-		conditional_analysis_het(j, os);
+		conditional_analysis_het(j, os, os_log);
 		j = i;
 		thinned_iter_cerr(j, i+1, iter_cerr_suffix, 1);
 	}
@@ -1181,6 +1220,7 @@ void cis_meta_data::conditional_analysis_het(){
 	std::cerr << "Completed heterogeneous stepwise meta-analysis of " << std::to_string(gene_id.size()) << " total genes.\n";
 	
 	os.close();
+	os_log.close();
 }
 
 

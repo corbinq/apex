@@ -953,6 +953,9 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			}
 			
 			steps_taken++;
+			
+			step_history.push_back(step_record{total_steps, steps_taken, 1, wk, keep.size() });
+			
 			//cout << "forward: " << nk << " SNPs. Added SNP " << wk << "\n";
 		}
 		
@@ -990,23 +993,32 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 				
 				// excl[keep[k_rm]] = false;
 				
+				int snp_dropped = keep[k_rm];
+				
 				keep.erase( keep.begin() + k_rm );
 				
 				nk--;
 				
 				// std::cout << "backward\n";
 				steps_taken++;
+				
+				step_history.push_back(step_record{total_steps, steps_taken, -1, snp_dropped, keep.size() });
 			}
 		}
 		// std::cout << steps_taken << "\n";
 		
 		if( steps_taken == 0 ){
+			step_history.push_back(step_record{total_steps, steps_taken, 0, 0, keep.size() });
+			
 			break;
 		}else if( keep.size() >= global_opts::max_signals ){
+			step_history.push_back(step_record{total_steps, steps_taken, 0, 1, keep.size() });
+			
 			break;
 		}
 		total_steps++;
 		if( total_steps > global_opts::max_steps ){
+			step_history.push_back(step_record{total_steps, steps_taken, 0, 2, keep.size() });
 			std::cerr << "\n\nWARNING: Exceeded max steps. Convergence failed.\n\n";
 			break;
 		}
