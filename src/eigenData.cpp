@@ -345,7 +345,9 @@ void read_sparse_GRM(const std::string& filename, Eigen::SparseMatrix<double>& G
 			update_blocks( ii, jj, cluster_ids, clusters);
 			
 			triplets.push_back(td(ii,jj,r_scale*val[i]));
-			triplets.push_back(td(jj,ii,r_scale*val[i]));
+			if( ii != jj ){
+				triplets.push_back(td(jj,ii,r_scale*val[i]));
+			}
 		}
 		
 	}

@@ -1435,13 +1435,11 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		Eigen::SparseMatrix<double> L;
 		Eigen::VectorXd L_lambda;
 		
-		printMeanDiag(GRM);
-		
 		GRM_decomp( GRM, relateds, L, L_lambda );
 		
 		write_eigen( prefix, L, L_lambda, intersected_samples);
 		
-		return 0;
+		eig_path = prefix + ".eigen.gz";
 	}
 	
 	if( fit_null ){
@@ -1462,14 +1460,13 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		}
 
 		fit_LMM_null_models(c_data, e_data, L, L_lambda, rknorm_y, rknorm_r);
-		std::cerr << "Analysis complete. Specify --null-params {theta-file} to re-use null model estimates.\n";
-		return 0;
+		std::cerr << "LMM analysis complete.\n";
 	}
 	
 	if ( write_anchors ) {
 		
 		if( grm_path == "" && eig_path == "" ){
-			std::cerr << "Error: GRM is required to fit null models.\n";
+			std::cerr << "Error: GRM is required.\n";
 			return 1;
 		}
 		
@@ -1487,16 +1484,6 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		save_V_anchor_points(sr, hdr, g_data, c_data, L, L_lambda);
 		
 	}
-	
-	// if( grm_path == "" ){
-		// run_trans_QTL_analysis(sr, hdr, g_data, c_data, e_data, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, cis_path, bed_region);
-	// }else{
-		// if( cis_path != "" ){
-			// std::cerr << "Error: Options --grm {grm} and --cis-file {file} and currently incompatible.\n";
-			// return 1;
-		// }
-		// run_trans_QTL_analysis_LMM(sr, hdr, g_data, c_data, e_data, GRM, relateds, rknorm_y, rknorm_r, make_sumstat, make_long, block_size, theta_path);
-	// }
 	
     return 0;
 };
