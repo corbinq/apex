@@ -26,6 +26,14 @@
 #include "mathStats.hpp"
 
 
+inline void printMeanDiag( const Eigen::SparseMatrix<double>& mat ){
+std::cout << "Mean diagonal element = " << mat.diagonal().mean() << "\n";
+}
+
+inline void printMeanDiag( const Eigen::MatrixXd& mat ){
+std::cout << "Mean diagonal element = " << mat.diagonal().mean() << "\n";
+}
+
 void appendInterceptColumn(Eigen::MatrixXd&);
 Eigen::MatrixXd get_half_hat_matrix(const Eigen::MatrixXd&);
 Eigen::MatrixXd resid_from_half_hat(const Eigen::MatrixXd&, const Eigen::MatrixXd&);

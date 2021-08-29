@@ -744,7 +744,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 		args::ValueFlag<std::string> out_arg(opt_args, "", "Prefix for output files.", {'o', "prefix", "out"});
 		args::ValueFlag<int> threads_arg(opt_args, "", "No. threads (not to exceed no. available cores).", {"threads"});
 		args::Flag low_mem(opt_args, "", "Lower memory usage.", {"low-mem"});
-		args::Flag sloppy(opt_args, "", "Use sloppy covariate adjustment (faster, but less powerful).", {"sloppy"});
+		args::Flag sloppy(opt_args, "", "Do not residualize genotypes (not recommended).", {"no-resid-geno"});
 		args::Flag write_anchors(opt_args, "", "Save var interpolation points.", {"write-var"});
 		args::ValueFlag<std::string> region_arg(opt_args, "", "Subset genotypes to specified genomic region.", {'r', "region"});
 		args::ValueFlag<std::string> bed_region_arg(opt_args, "", "Subset bed to specified genomic region.", {"bed-region"});
@@ -1105,9 +1105,8 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 
 	args::Group scale_args(p, "Scale and transform options");
 		args::Flag rknorm_y(scale_args, "", "Apply rank normal transform to trait values.", {"rankNormal"});
-		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (can be used with rankNormal).", {"rankNormal-resid"});
-		args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
-		args::Flag no_resid_geno(scale_args, "", "Do not residualize genotypes (not recommended).", { "no-resid-geno"});
+		args::Flag rknorm_r(scale_args, "", "Apply rank normal transform to residuals (not supported for LMM).", {"rankNormal-resid"});
+		// args::Flag no_scale_x(scale_args, "", "Do not scale and center covariates (otherwise done by default).", {"no-scale-cov"});
 	
 	args::Group input_args(p, "Input files");
 		args::ValueFlag<std::string> bcf_arg(input_args, "", "Genotype file path (vcf, vcf.gz, or bcf format).", {'v', "vcf", "bcf"});
@@ -1147,6 +1146,8 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	parseModeArgs(p, beginargs, endargs);
 	
+	bool no_scale_x = false;
+	
 	// ----------------------------------
 	// I/O File Paths
 	// ----------------------------------
@@ -1160,7 +1161,6 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	std::string c_path = args::get(cov_arg);
 	
 	global_opts::save_residuals( (bool) save_resid);
-	
 	
 	// ----------------------------------
 	// GRM paths and options
@@ -1332,7 +1332,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		intersected_samples = intersect_ids(intersect_ids(g_data.ids.file, c_data.cols.file), e_data.ids.file);
 	}
 	
-	// order of intersected samples should match genotype file
+	// order of intersected samples (internally) should match order in genotype file
 	
 	std::vector<std::string> intersected_samples_gto = g_data.ids.file;
 	
@@ -1434,6 +1434,8 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 		
 		Eigen::SparseMatrix<double> L;
 		Eigen::VectorXd L_lambda;
+		
+		printMeanDiag(GRM);
 		
 		GRM_decomp( GRM, relateds, L, L_lambda );
 		

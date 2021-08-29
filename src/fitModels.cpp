@@ -243,7 +243,6 @@ Eigen::VectorXd predV( const Eigen::MatrixXd& vv, const double& hsq ){
 	return vv * Beta;
 }
 
-
 void block_diag_eigendecomp( Eigen::SparseMatrix<double>& M, std::vector<int>& block_sizes, Eigen::SparseMatrix<double>& eig_vectors, Eigen::VectorXd& eig_values ){
 	
 	using td = Eigen::Triplet<double>;
@@ -305,7 +304,7 @@ void block_diag_eigendecomp( Eigen::SparseMatrix<double>& M, std::vector<int>& b
 	}
 	std::cerr << "Done\n.";
 	
-	
+	// Eigenvalues for unrelated block (identity matrix)
 	for(int ii = offset; ii < n; ii++){
 		eig_values.coeffRef(ii) = M.coeffRef(ii,ii);
 		triplets.push_back(td(ii, ii, 1.00 ));
@@ -428,6 +427,8 @@ void GRM_decomp( Eigen::SparseMatrix<double>& GRM, const std::vector<std::vector
 	L.makeCompressed();
 	
 	L = (Tr.transpose() * L).eval();
+	
+	L.makeCompressed();
 	
 	std::vector<int> kp;
 	for( int i = 0; i < L_lambda.size(); i++ ){
