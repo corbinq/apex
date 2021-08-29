@@ -468,6 +468,15 @@ class svar_sumstat
 		c.erase(c.begin() + i);
 	}
 	
+	ss_lm_single get_snp_ss(const int& ii){
+		
+		if( c.size() == 0 ){	
+			return ss_lm_single( U_0(ii), V_0(ii), DF_0, SSR_0 );
+		}
+		
+		return ss_lm_single(U(ii), V(ii), DF, SSR);
+	}
+	
 	ss_lm_single final_model(const int& c_i){
 		
 		if( c_i > c.size() ){
@@ -647,7 +656,7 @@ class meta_svar_sumstat
 			}
 			
 			// Calculate homogeneous-effect p-value.
-			pval_hom = ss_meta.single_snp_pval(k);
+			pval_hom = single_model(k).pval; //ss_meta.single_snp_pval_ivw(k);
 			
 			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
 			for( const auto& ss_i : ss ){
@@ -950,6 +959,14 @@ class meta_svar_sumstat
 			return ss_lm_single(lm_singles);
 		}
 		
+		ss_lm_single single_model(const int& ii){
+			std::vector<ss_lm_single> lm_singles;
+			for( svar_sumstat& ss_i : ss ){
+				lm_singles.push_back(ss_i.get_snp_ss(ii));
+			}
+			return ss_lm_single(lm_singles);
+		}
+		
 		ss_lm_single final_model_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
 			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
@@ -959,7 +976,7 @@ class meta_svar_sumstat
 			triform_pval(pval_hom, pval_het, pval_acat, pval_omni, lm_singles, lm_meta);
 			return lm_meta;
 		};
-				
+		
 		ss_lm_single marginal_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
 			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
