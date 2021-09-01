@@ -770,18 +770,22 @@ void cis_meta_data::meta_analyze()
 				ssr_meta += w_s * ssr_s;
 				
 				df_meta += df_s;
-				
 			}
 			if( v_meta > 0.00 ){
 				
 				beta = u_meta/v_meta;
-				se = std::sqrt(ssr_meta/v_meta - beta * beta )/std::sqrt(df_meta - 1.00);
+				
+				if( global_opts::meta_weight_method == '1' ){
+					se = std::sqrt(1/v_meta);
+				}else{
+					se = std::sqrt(ssr_meta/v_meta - beta * beta )/std::sqrt(df_meta - 1.00);
+				}
 			}
 			
 			if( se > 0.00  ){
 
-				double z = beta/se;
-				double pval = pf( z*z, 1.0, DF[i] - 1, true );
+				double tstat = beta/se;
+				double pval = pf( tstat*tstat, 1.0, DF[i] - 1, true );
 				
 				os << 
 					//score_perStudy[i][0](jj) << ", " << score_perStudy[i][1](jj) << "\t" <<
