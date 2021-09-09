@@ -292,9 +292,12 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 						double beta = U/V;
 						double beta_se = std::sqrt( ((n_samples - 1)/V- beta*beta)/(n_samples - n_covar_j - 1) );
 						
+
 						double pval_esnp = u_stat_pval(val, n_covar_j, n_samples);
 						
 						int ii = s_g + i;
+						if( g_data.flipped[ii] ) beta *= (-1.00); 
+
 						long_line << 
 							clean_chrom(g_data.chr[ii]) << "\t" <<
 							g_data.pos[ii] << "\t" <<
@@ -332,6 +335,8 @@ void run_trans_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& g_da
 		double U = val * std::sqrt(V);
 		double beta = U/V;
 		double beta_se = std::sqrt( ((n_samples - 1)/V- beta*beta)/(n_samples - n_covar - 1) );
+
+		if( g_data.flipped[ii] ) beta *= (-1.00);
 
 		std::stringstream gene_line;
 		gene_line << 
@@ -595,6 +600,9 @@ void run_trans_QTL_analysis_LMM(bcf_srs_t*& sr, bcf_hdr_t*& hdr, genotype_data& 
 						double pval_esnp = usq_stat_pval(val2, n_covar, n_samples);
 						
 						int ii = s_g + i;
+
+						if( g_data.flipped[ii] ) beta *= (-1.00);
+
 						long_line << 
 							clean_chrom(g_data.chr[ii]) << "\t" <<
 							g_data.pos[ii] << "\t" <<
