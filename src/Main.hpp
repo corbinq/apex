@@ -23,13 +23,15 @@
 #include <cstdlib>
 #include <csignal>
 
+#if defined(_OPENMP)
 #include <omp.h>
+#endif
 
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "args/args.hxx"
+#include "args.hxx"
 
 #include "setOptions.hpp"
 

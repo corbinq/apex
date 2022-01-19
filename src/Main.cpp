@@ -144,8 +144,11 @@ int main(int argc, char* argv[])
     signal(SIGABRT, lam_kill);
     signal(SIGTERM, lam_kill);
     // signal(SIGTSTP, lam_wait);
-	
+
+#ifndef __APPLE__
+  // This function is not implemented in OS X's stdlib.
 	at_quick_exit (restore_cursor);
+#endif
 	atexit (restore_cursor);
 	
 
@@ -418,8 +421,10 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
-		omp_set_num_threads(nthreads);
-		Eigen::setNbThreads(nthreads);
+#if defined(_OPENMP)
+    omp_set_num_threads(nthreads);
+    Eigen::setNbThreads(nthreads);
+#endif
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
@@ -855,8 +860,10 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
-		omp_set_num_threads(nthreads);
-		Eigen::setNbThreads(nthreads);
+#if defined(_OPENMP)
+    omp_set_num_threads(nthreads);
+    Eigen::setNbThreads(nthreads);
+#endif
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
@@ -1240,8 +1247,10 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
-		omp_set_num_threads(nthreads);
-		Eigen::setNbThreads(nthreads);
+#if defined(_OPENMP)
+    omp_set_num_threads(nthreads);
+    Eigen::setNbThreads(nthreads);
+#endif
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
@@ -1579,8 +1588,10 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
-		omp_set_num_threads(nthreads);
-		Eigen::setNbThreads(nthreads);
+#if defined(_OPENMP)
+    omp_set_num_threads(nthreads);
+    Eigen::setNbThreads(nthreads);
+#endif
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
@@ -1948,8 +1959,10 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
-		omp_set_num_threads(nthreads);
-		Eigen::setNbThreads(nthreads);
+#if defined(_OPENMP)
+    omp_set_num_threads(nthreads);
+    Eigen::setNbThreads(nthreads);
+#endif
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
@@ -2135,8 +2148,10 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	
 	int nthreads = args::get(threads_arg);
 	if( nthreads >= 1 ){
-		omp_set_num_threads(nthreads);
-		Eigen::setNbThreads(nthreads);
+#if defined(_OPENMP)
+    omp_set_num_threads(nthreads);
+    Eigen::setNbThreads(nthreads);
+#endif
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
