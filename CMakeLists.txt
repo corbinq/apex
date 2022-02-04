@@ -31,6 +31,8 @@ set(SOURCE_FILES
   src/cisMapping.cpp
   src/cisMapping.hpp
   src/dataParser.hpp
+  src/eigenData.cpp
+  src/eigenData.hpp
   src/fitModels.cpp
   src/fitModels.hpp
   src/fitUtils.cpp
