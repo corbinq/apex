@@ -1040,7 +1040,8 @@ class lm_output
 static const std::vector<double> vd0(0);
 
 struct step_record{
-	int n_total, n_part, add_drop, snp_id, size;
+	int n_total, n_part, add_drop, snp_id;
+  unsigned long size;
 };
 
 class forward_lm
