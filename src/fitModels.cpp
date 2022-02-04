@@ -739,7 +739,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 		if( exclude.size() > 0 ) skip = exclude[i];
 		if( skip && check_filter ){
 			// std::cerr << "\nskip\n\n";
-			out.push_back(-99, -99, -99);
+			out.push_back(-99, -99, -99, NAN);
 		}else{
 			double SCORE, VARSC, SSE_i;
 			SSE_i = SSE_0;
@@ -756,20 +756,20 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				
 				double se = stdev * std::sqrt(SSE_i - SCORE*SCORE/VARSC) / std::sqrt(df*VARSC);
 				double pval = -99;
-				
+        double log_pval = NAN;
+
 				double PVAR = SCORE*SCORE/VARSC;
 				double STAT = df*PVAR/(SSE_i - PVAR);
 				
 				if( SSE_i - PVAR > 0 && STAT > 0 && PVAR > 0 ){
-					pval = pf( STAT, 1.0, df, true );
+					log_pval = rmath::pf(STAT, 1.0, df, false, true); // calculate p-value with rmath pf in log scale
+          pval = exp(log_pval);
 				}
-				
-				
-				
-				out.push_back(beta, se, pval, VIF);
+
+				out.push_back(beta, se, pval, log_pval, VIF);
 			}else{
 				// std::cerr << "\nWARNING: RSQ_VIF = " << (VARSC/V(i)) << ", VARSC = "<< VARSC << "\n\n";
-				out.push_back(-99, -99, -99, VIF);
+				out.push_back(-99, -99, -99, NAN, VIF);
 			}
 		}
 	}
@@ -795,10 +795,10 @@ int which_min( const std::vector<double>& p, bool gt0 ){
 }
 
 
-void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& largest_pvalue, const Eigen::VectorXd& U, const Eigen::VectorXd& V, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const double& n, const double& m){
+void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& largest_log_pvalue, const Eigen::VectorXd& U, const Eigen::VectorXd& V, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const double& n, const double& m){
 	
 	index_of_largest_pvalue = -1;
-	largest_pvalue = 0;
+  largest_log_pvalue = 0;
 	
 	int k_i = 0;
 	std::vector<int> kept_snps = seq_int(keep.size());
@@ -806,7 +806,7 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 		std::vector<int> kept_snps_not_k = kept_snps;
 		kept_snps_not_k.erase( kept_snps_not_k.begin() + k_i );
 	
-		double current_pvalue;
+		double current_log_pvalue;
 
 		Eigen::VectorXd U_k = U(std::vector<int>(1,k));
 		Eigen::VectorXd V_k = V(std::vector<int>(1,k));
@@ -816,11 +816,11 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 		Eigen::MatrixXd Cov_k = J_0(std::vector<int>(1,k_i), kept_snps_not_k);
 		
 		lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, 1.00, U_0k, J_0k, Cov_k, false);
-		
-		current_pvalue = reg_k.pval[0];
 
-		if( current_pvalue > largest_pvalue || current_pvalue < 0 ){
-			largest_pvalue = current_pvalue;
+    current_log_pvalue = reg_k.log_pval[0];
+
+		if(current_log_pvalue > largest_log_pvalue || isnan(current_log_pvalue)){
+      largest_log_pvalue = current_log_pvalue;
 			index_of_largest_pvalue = k_i;
 		}
 		
@@ -828,7 +828,7 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 	}
 }
 
-
+// Used by conditional_analysis()
 forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& m, const double& stdev, vcov_getter& vget, double pval_thresh, const std::vector<double>& weights )
 {
 
@@ -854,6 +854,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 	lm_output reg0;
 	
 	double alpha_thresh = global_opts::LM_ALPHA;
+  double log_alpha = log(alpha_thresh);
 	
 	int total_steps = 0;
 	
@@ -869,25 +870,26 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			reg0 = reg;
 		}
 
-		int wk = which_min(reg.pval, true);
+		int wk = which_min(reg.log_pval, false); // disable gt0 because log p-values are always < 0
 		double adj_pval = ACAT_non_missing(reg.pval, weights);
-		
+    double log_adj_pval = log(adj_pval);
+
 		//cout << nk << ":" << wk << "\t" << reg0.beta[wk]  << "\t" << reg0.se[wk]  << "\t" << reg.pval[wk]  << "\t" << adj_pval << "\n";
 		
-		double pval_check = -99;
+		double log_pval_check = NAN;
 		
 		if( wk >= 0 ){
 			if( global_opts::step_marginal ){
-				pval_check = reg.pval[wk];
+        log_pval_check = reg.log_pval[wk];
 			}else{
-				pval_check = adj_pval;
+        log_pval_check = log_adj_pval;
 			}
 		}
 		
 		// -----------------------------------
 		// Forward step. 
 		// -----------------------------------
-		if(  (pval_check >= 0 && pval_check < alpha_thresh) || (keep.size() == 0 && wk >= 0 )  )
+		if(  (!isnan(log_pval_check) && log_pval_check < log_alpha) || (keep.size() == 0 && wk >= 0 )  )
 		{
 			keep.push_back(wk);
 			// excl[wk] = true;
@@ -915,7 +917,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 
 			U_0(nk-1) = U(wk);
 			
-			if( pval_check <= alpha_thresh || keep.size() < 2 ){
+			if( log_pval_check <= log_alpha || keep.size() < 2 ){
 				// Eigen::VectorXd new_cov; 
 				// get_cov(wk, new_cov);
 				Eigen::VectorXd new_cov = vget.Covar(wk);
@@ -964,14 +966,14 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		// Backward step. 
 		// -----------------------------------
 		if( global_opts::backward_thresh < 1.00 && nk > 1 ){
-
-			double max_joint_pvalue = 0; 
+      double log_backthresh = log(global_opts::backward_thresh);
+			double max_log_joint_pvalue = 0;
 			int k_rm = -1;
 			
-			check_joint_pvalues(k_rm, max_joint_pvalue, U, V, U_0, J_0, n, m);
+			check_joint_pvalues(k_rm, max_log_joint_pvalue, U, V, U_0, J_0, n, m);
 			//cout << max_joint_pvalue << "\n";
 			
-			if( (max_joint_pvalue > global_opts::backward_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
+			if( (max_log_joint_pvalue > log_backthresh || isnan(max_log_joint_pvalue) ) && k_rm < nk - 1 && k_rm >= 0 ){
 				
 				std::vector<int> kept_snps_not_k_rm = seq_int(nk);
 				kept_snps_not_k_rm.erase( kept_snps_not_k_rm.begin() + k_rm );

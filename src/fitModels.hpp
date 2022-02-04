@@ -35,6 +35,7 @@
 #include "metaAnalysis.hpp"
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
+#include "rmathWrappers.hpp"
 
 static const double phi_upper = 10000;
 
@@ -1004,24 +1005,27 @@ class lm_output
 		std::vector<double> beta;
 		std::vector<double> se;
 		std::vector<double> pval;
+    std::vector<double> log_pval;
 		std::vector<double> vif;
 		
 		double df;
 		std::string name;
 		std::string info;
 		
-		void push_back(const double& b, const double& s, const double& p)
+		void push_back(const double& b, const double& s, const double& p, const double& log_p)
 		{
 			beta.push_back(b);
 			se.push_back(s);
 			pval.push_back(p);
+      log_pval.push_back(log_p);
 		};
 
-		void push_back(const double& b, const double& s, const double& p, const double& v)
+		void push_back(const double& b, const double& s, const double& p, const double& log_p, const double& v)
 		{
 			beta.push_back(b);
 			se.push_back(s);
 			pval.push_back(p);
+      log_pval.push_back(log_p);
 			vif.push_back(v);
 		};
 
