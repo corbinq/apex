@@ -188,6 +188,85 @@ void global_opts::set_global_region(const std::string& reg){
 	return;
 }
 
+void global_opts::reset() {
+  // GENERAL OPTIONS
+  out_prefix = "";
+  low_mem = false;
+
+  // INPUT OPTIONS
+  std::string global_region = "";
+
+  // GENOTYPE OPTIONS
+  exclude_missing = 0;
+  dosage_thresh = 0.01;
+  minimum_maf = 0;
+  minimum_mac = 1;
+  use_dosages = false;
+
+  // COVARIATE OPTIONS
+  filter_covariates = false;
+
+  // SAMPLE SUBSETTING
+  filter_iids = false;
+
+  trim_gene_ids = false;
+
+  // ANALYSIS OPTIONS
+  n_fa_iter = 3;
+  fa_p = 0.001;
+  fa_tau = 1.00;
+
+  write_resid_mat = false;
+
+  // stepwise options
+  exp_weight_val = 5e-6;
+  max_signals = 10;
+  max_steps = 100;
+
+  // "Sloppy" covariate adjustment
+  sloppy_covar = false;
+
+  RSQ_PRUNE = 0.80;
+  RSQ_BUDDY = 1.00;
+
+  // TESTING OPTIONS
+  het_use_hom = true;
+  het_use_het = true;
+  het_use_acat = true;
+
+  step_marginal = false;
+
+  // VARIANT MERGE OPTIONS
+  biallelic_only = true;
+
+  // LMM OPTIONS
+  use_grm = false;
+  ml_not_reml = false;
+  write_v_anchors = false;
+
+  // ANALYSIS MODE
+  meta_weight_method = '0';
+  conditional_analysis = false;
+  trans_eqtl_mode = false;
+  backward_thresh = 1.00;
+
+  // CIS-QTL OPTIONS
+  LM_ALPHA = 0.05;
+  cis_window_bp = 1000000;
+  cis_window_gene_body = false;
+
+  // LD OPTIONS
+  ld_window_bp = 1000000;
+
+  // VARIANT MATCHING OPTIONS
+  freq_tol = 0.05;
+  try_match_ambiguous_snv = true;
+
+  // GENE SUBSETTING OPTIONS
+  filter_genes = false;
+  target_genes.clear();
+}
+
 
 
 
