@@ -5,6 +5,12 @@ include(CTest)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 14)
 
+if(NOT APPLE)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  set(BUILD_SHARED_LIBS OFF)
+  set(CMAKE_EXE_LINKER_FLAGS "-static")
+endif()
+
 if(CGET_PREFIX)
   include_directories(${CGET_PREFIX}/include)
   include_directories(${CGET_PREFIX}/include/eigen3)
@@ -92,7 +98,7 @@ add_executable(apex-bin
   src/Main.cpp
   src/Main.hpp
 )
-target_link_libraries(apex-bin apex)
+target_link_libraries(apex-bin PUBLIC apex)
 set_target_properties(apex-bin PROPERTIES OUTPUT_NAME apex)
 
 if(BUILD_TESTING)

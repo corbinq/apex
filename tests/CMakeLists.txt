@@ -14,7 +14,7 @@ add_executable(
     test_rmath.cpp
 )
 
-target_include_directories(tests INTERFACE ${APEX_INCLUDES})
+target_include_directories(tests PUBLIC ${APEX_INCLUDES})
 
 target_link_libraries(
     tests
