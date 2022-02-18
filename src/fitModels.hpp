@@ -1061,6 +1061,10 @@ class forward_lm
 		std::vector<double> pval_seq;
 		std::vector<double> pval_joint;
 		std::vector<double> pval_adj;
+    std::vector<double> log_pval_0;
+    std::vector<double> log_pval_seq;
+    std::vector<double> log_pval_joint;
+    std::vector<double> log_pval_adj;
 		
 		std::vector<step_record> step_history;
 		

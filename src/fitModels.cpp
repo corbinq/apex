@@ -899,6 +899,9 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			pval_0.push_back(reg0.pval[wk]);
 			pval_seq.push_back(reg.pval[wk]);
 			pval_adj.push_back(adj_pval);
+      log_pval_0.push_back(reg0.log_pval[wk]);
+      log_pval_seq.push_back(reg0.log_pval[wk]);
+      log_pval_adj.push_back(log_adj_pval);
 			
 			nk++;
 			
@@ -984,10 +987,15 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 					
 				beta_0.erase( beta_0.begin() + k_rm );
 				se_0.erase( se_0.begin() + k_rm );
+
 				pval_0.erase( pval_0.begin() + k_rm );
-				
 				pval_seq.erase( pval_seq.begin() + k_rm );
 				pval_adj.erase( pval_adj.begin() + k_rm );
+
+        log_pval_0.erase( log_pval_0.begin() + k_rm );
+        log_pval_seq.erase( log_pval_seq.begin() + k_rm );
+        log_pval_adj.erase( log_pval_adj.begin() + k_rm );
+
 				
 				if( global_opts::RSQ_BUDDY < 1.00 ){
 					buddy_list.erase(buddy_list.begin() + k_rm);
@@ -1040,6 +1048,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			beta.push_back(reg0.beta[k]);
 			se.push_back(reg0.se[k]);
 			pval_joint.push_back(reg0.pval[k]);
+      log_pval_joint.push_back(reg0.log_pval[k]);
 
 		}else{
 			
@@ -1055,6 +1064,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			beta.push_back(reg_k.beta[0]);
 			se.push_back(reg_k.se[0]);
 			pval_joint.push_back(reg_k.pval[0]);
+      log_pval_joint.push_back(reg_k.log_pval[0]);
 		}
 
 		conditioned.push_back(kept_snps);
