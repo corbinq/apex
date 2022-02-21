@@ -777,8 +777,9 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 	return out;
 }
 
-int which_min( const std::vector<double>& p, bool gt0 ){
-	double mp = p[0];
+template <typename T>
+int which_min( const std::vector<T>& p, bool gt0 ){
+	T mp = p[0];
 	int wm = -1;
 	for(int i = 0; i < p.size(); ++i){
 		if( gt0 && mp < 0 ){
