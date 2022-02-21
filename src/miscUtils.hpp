@@ -22,9 +22,31 @@
 #include <vector>
 #include <algorithm>
 #include <unordered_set>
+#include <string>
 
 #include "setOptions.hpp"
 
+template<typename ... Args>
+std::string string_format(const std::string& format, Args ... args) {
+  int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1;
+  if (size_s <= 0) {
+    throw std::runtime_error("Error during formatting.");
+  }
+
+  auto size = static_cast<size_t>(size_s);
+  auto buf = std::make_unique<char[]>(size);
+  std::snprintf(buf.get(), size, format.c_str(), args ...);
+  return {buf.get(), buf.get() + size - 1};
+}
+
+template <typename float_type> std::string log_to_string(float_type& value) {
+  float_type v = value / M_LN10;
+  int exp = floor(v);
+  float_type r = v - exp;
+  float_type base = pow(10, r);
+  std::string text = string_format("%fe%i", base, exp);
+  return text;
+}
 
 static const int print_every_default = 1000;
 static std::vector<int> null_vec = std::vector<int>(0);
