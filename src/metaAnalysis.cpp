@@ -970,12 +970,17 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 		
 		for(int i = 0; i < out.beta.size(); ++i)
 		{
-			// os.precision(4);
+      std::string str_pval_joint = log_to_string(out.log_pval_joint[i]);
+      std::string str_pval_adj = log_to_string(out.log_pval_adj[i]);
+      std::string str_pval_0 = log_to_string(out.log_pval_0[i]);
+      std::string str_pval_seq = log_to_string(out.log_pval_seq[i]);
+
+      // os.precision(4);
 			os << gene << "\t" << in_studies;
 			os << "\t" << i+1 << ":" << out.beta.size() << "\t" << snp(out.keep[i]) << "\t" << 
-			out.beta[i] << "\t" << out.se[i] << "\t" << out.pval_joint[i]  << "\t" << out.pval_adj[i] << "\t";
+			out.beta[i] << "\t" << out.se[i] << "\t" << str_pval_joint  << "\t" << str_pval_adj << "\t";
 			// os.precision(2);
-			os << out.pval_0[i] << "\t" << out.pval_seq[i] << "\n";
+			os << str_pval_0 << "\t" << str_pval_seq << "\n";
 		}
 		// os.precision(5);
 		
