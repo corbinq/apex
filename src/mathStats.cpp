@@ -193,6 +193,16 @@ double ACAT_non_missing( const std::vector<double>& pvals, const std::vector<dou
 	}
 }
 
+/**
+ * Temporary patch to allow function to work with long double p-values.
+ * TODO: remove when rest of program can be patched to either completely use log p-values, or at least long double
+ */
+double ACAT_non_missing( const std::vector<long double>& pvals, const std::vector<double>& dist ) {
+  // Convert long double p-values down to double precision.
+  std::vector<double> pval_double(pvals.begin(), pvals.end());
+  return ACAT_non_missing(pval_double, dist);
+}
+
 
 std::vector<int> rank_vector(const std::vector<double>& v)
 {

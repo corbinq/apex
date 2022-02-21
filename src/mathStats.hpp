@@ -62,6 +62,7 @@ static const std::vector<double> v0(0);
 
 std::vector<double> filter_lt( const std::vector<double>&, double);
 double ACAT_non_missing( const std::vector<double>& pvals, const std::vector<double>& dist = v0);
+double ACAT_non_missing( const std::vector<long double>& pvals, const std::vector<double>& dist = v0);
 
 std::vector<int> rank_vector(const std::vector<double>&);
 

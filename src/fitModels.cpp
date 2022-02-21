@@ -755,7 +755,7 @@ lm_output lm_from_sumstats( const Eigen::VectorXd& U, const Eigen::VectorXd& V, 
 				double beta = stdev * SCORE/VARSC;
 				
 				double se = stdev * std::sqrt(SSE_i - SCORE*SCORE/VARSC) / std::sqrt(df*VARSC);
-				double pval = -99;
+				long double pval = -99;
         double log_pval = NAN;
 
 				double PVAR = SCORE*SCORE/VARSC;
@@ -1122,7 +1122,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		
 		//cout << nk << ":" << wk << "\t" << reg0.beta[wk]  << "\t" << reg0.se[wk]  << "\t" << reg.pval[wk]  << "\t" << adj_pval << "\n";
 		
-		double pval_check = -99;
+		long double pval_check = -99;
 		
 		if( wk >= 0 ){
 			if( global_opts::step_marginal ){
