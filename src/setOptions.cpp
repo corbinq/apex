@@ -27,7 +27,8 @@ namespace global_opts
 	// GENERAL OPTIONS
 		std::string out_prefix = "";
 		bool low_mem = false;
-	
+	  bool write_logp = false;
+
 	// INPUT OPTIONS 
 	
 		std::string global_region = "";
@@ -129,7 +130,7 @@ namespace global_opts
 		});
 }
 
-bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
+bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg, const bool& print_logp ){
 	out_prefix = pfx;
 	low_mem = low_memory;
 	cis_window_bp = window;
@@ -147,7 +148,7 @@ bool global_opts::process_global_opts( const std::string& pfx, const bool& low_m
 	het_use_het = h_het;
 	het_use_acat = h_acat;
 	step_marginal = step_marg;
-	
+	write_logp = print_logp;
 	return true;
 };
 

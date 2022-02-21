@@ -31,6 +31,7 @@ namespace global_opts
 	// GENERAL OPTIONS
 		extern std::string out_prefix;
 		extern bool low_mem;
+    extern bool write_logp;
 
 	// INPUT OPTIONS
 
@@ -120,7 +121,7 @@ namespace global_opts
 
 	// PROCESS OPTIONS
 
-		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg);
+		bool process_global_opts(const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg, const bool& print_logp);
 
 		bool set_lmm_options(const bool& wap);
 

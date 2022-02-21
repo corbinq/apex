@@ -428,7 +428,7 @@ int cis(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, (bool) use_marginal_pval);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, (bool) use_marginal_pval, false);
 	
 	if( prefix == "" )
 	{
@@ -867,7 +867,7 @@ int trans(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh, false);
 	
 	if( sloppy ){
 		global_opts::use_sloppy_covar();
@@ -1254,7 +1254,7 @@ int lmm(const std::string &progname, std::vector<std::string>::const_iterator be
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh, false);
 	
 	// if( sloppy ){
 		// global_opts::use_sloppy_covar();
@@ -1595,7 +1595,7 @@ int factor(const std::string &progname, std::vector<std::string>::const_iterator
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, true, 0.8, 0.8, 0.8, 1000000, std::vector<std::string>(0), true, false, trim_gene_ids, 0.8, true, true, true, 0.8);
+	global_opts::process_global_opts(prefix, true, 0.8, 0.8, 0.8, 1000000, std::vector<std::string>(0), true, false, trim_gene_ids, 0.8, true, true, true, 0.8, false);
 	
 	if( prefix == "" )
 	{
@@ -1806,6 +1806,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		args::ValueFlag<std::string> gene_arg(opt_args, "", "Restrict analysis to specified genes (gene name or comma-separated list).", {"gene"});
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
+    args::Flag output_log_pvals(opt_args, "", "Write p-values in output in log scale.", {"print-log-pvals"});
 	
 	// args::Group vcov_args(p, "Querying vcov files");
 		// args::Flag query_vcov(vcov_args, "", "Query meta-analysis vcov data (file list from --sumstats). Can be used with --region.", {"query"});
@@ -1966,7 +1967,7 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh, output_log_pvals);
 	
 	if( prefix == "" ){
 		if( meta_svar || meta_stepwise ){
@@ -2155,7 +2156,7 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 	}
 	std::cerr << "Using " << Eigen::nbThreads() << " threads.\n";
 	
-	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh);
+	global_opts::process_global_opts(prefix, use_low_mem, rsq_buddy, rsq_prune, pval_thresh, window_size, target_genes, ivw_method, use_ds, trim_gene_ids, stepwise_backward_thresh, t_hom, t_het, t_acat, stepwise_marginal_thresh, false);
 	
 	if( prefix == "" ){
 		restore_cursor();
