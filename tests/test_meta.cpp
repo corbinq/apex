@@ -13,7 +13,7 @@ TEST(MetaTest, ConditionalTest) {
   global_opts::set_exp_weight(0);
   global_opts::set_max_signals(10);
   global_opts::process_global_opts(
-    "scratch/test.meta",           // prefix
+    "data/test_output.pval0",           // prefix
     false,        // use low mem
     2,            // rsq_buddy
     0.8,          // rsq_prune
@@ -27,15 +27,16 @@ TEST(MetaTest, ConditionalTest) {
     true,         // t_hom
     false,        // t_het
     true,         // t_acat
-    true          // stepwise_marginal_thresh
+    true,          // stepwise_marginal_thresh
+    true           // write out log p-values
   );
 
   // TODO: need actual files for this test case, currently using dummy data
-  vector<string> meta_prefixes = {"scratch/test.qt", "scratch/test.qt"};
+  vector<string> meta_prefixes = {"data/pval0"};
   string region = "";
   cis_meta_data meta_dt(meta_prefixes, region);
   meta_dt.conditional_analysis();
-  auto reader_truth = StepwiseReader("scratch/ok.meta.cis_meta.stepwise.tsv"); // wrong file but just scratch testing for now
-  auto reader_test = StepwiseReader("scratch/test.meta.cis_meta.stepwise.tsv");
+  auto reader_truth = StepwiseReader("data/pval0.cis_meta.stepwise.tsv"); // wrong file but just scratch testing for now
+  auto reader_test = StepwiseReader("data/test_output.pval0.cis_meta.stepwise.tsv");
   ASSERT_TRUE(reader_truth == reader_test);
 }
