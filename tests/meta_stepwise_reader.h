@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 
+const long double PVALUE_MAX_REL_DIFF = 1E-5L;
+
 struct StepwiseRecord {
   std::string gene;
   std::vector<std::string> studies;

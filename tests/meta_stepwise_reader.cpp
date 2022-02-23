@@ -100,13 +100,13 @@ bool StepwiseReader::operator==(const StepwiseReader& other) {
       return false;
     if (!approx_equal(rec_a->se, rec_b->se))
       return false;
-    if (!approx_equal(rec_a->pval_joint, rec_b->pval_joint))
+    if (!approx_equal(rec_a->pval_joint, rec_b->pval_joint, PVALUE_MAX_REL_DIFF))
       return false;
-    if (!approx_equal(rec_a->pval_signal, rec_b->pval_signal))
+    if (!approx_equal(rec_a->pval_signal, rec_b->pval_signal, PVALUE_MAX_REL_DIFF))
       return false;
-    if (!approx_equal(rec_a->pval_marginal, rec_b->pval_marginal))
+    if (!approx_equal(rec_a->pval_marginal, rec_b->pval_marginal, PVALUE_MAX_REL_DIFF))
       return false;
-    if (!approx_equal(rec_a->pval_stepwise, rec_b->pval_stepwise))
+    if (!approx_equal(rec_a->pval_stepwise, rec_b->pval_stepwise, PVALUE_MAX_REL_DIFF))
       return false;
   }
 
