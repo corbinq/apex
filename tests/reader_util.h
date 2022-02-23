@@ -59,7 +59,8 @@ template <typename T> bool approx_equal(T x, T y, T max_rel_diff = std::numeric_
   x = fabs(x);
   y = fabs(y);
   T largest = (y > x) ? y : x;
-  if (diff <= largest * max_rel_diff) return true;
+  T max_diff = largest * max_rel_diff;
+  if (diff <= max_diff) return true;
   return false;
 }
 
