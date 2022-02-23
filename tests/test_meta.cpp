@@ -6,8 +6,10 @@
 #include "meta_stepwise_reader.h"
 using namespace std;
 
-// Demonstrate some basic assertions.
-TEST(MetaTest, ConditionalTest) {
+/**
+ * "Very small" meaning it requires long double precision or handling in log-scale.
+ */
+TEST(MetaTest, StepwiseConditionalWithVerySmallPvalue) {
   global_opts::reset();
   global_opts::set_global_region("");
   global_opts::set_exp_weight(0);
@@ -31,12 +33,11 @@ TEST(MetaTest, ConditionalTest) {
     true           // write out log p-values
   );
 
-  // TODO: need actual files for this test case, currently using dummy data
   vector<string> meta_prefixes = {"data/pval0"};
   string region = "";
   cis_meta_data meta_dt(meta_prefixes, region);
   meta_dt.conditional_analysis();
-  auto reader_truth = StepwiseReader("data/pval0.cis_meta.stepwise.tsv"); // wrong file but just scratch testing for now
+  auto reader_truth = StepwiseReader("data/pval0.cis_meta.stepwise.tsv");
   auto reader_test = StepwiseReader("data/test_output.pval0.cis_meta.stepwise.tsv");
   ASSERT_TRUE(reader_truth == reader_test);
 }
