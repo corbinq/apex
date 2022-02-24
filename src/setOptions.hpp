@@ -32,6 +32,7 @@ namespace global_opts
 		extern std::string out_prefix;
 		extern bool low_mem;
     extern bool write_logp;
+    extern bool legacy_vcov;
 
 	// INPUT OPTIONS
 
@@ -136,7 +137,7 @@ namespace global_opts
 		void set_factor_par(const int&, const double&, const double&);
 
 		void set_global_region(const std::string& );
-
+    void set_legacy_vcov(const bool& b);
     void reset();
 }
 # endif

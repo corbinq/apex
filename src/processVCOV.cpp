@@ -19,7 +19,12 @@ static const int mac_dec = 6;
 static const double mac_tol = 2.00 * std::pow(0.1, (double) mac_dec);
 
 bool treat_as_int(const double& m){
-	return ( std::abs(m - round(m)) < mac_tol );	
+  if (global_opts::legacy_vcov) {
+    return true;
+  }
+  else {
+    return (std::abs(m - round(m)) < mac_tol);
+  }
 }
 
 std::string double_to_string(const double& x, const int& n){

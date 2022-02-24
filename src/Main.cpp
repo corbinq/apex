@@ -167,8 +167,10 @@ int main(int argc, char* argv[])
 	
 	// Argument parsing using https://github.com/Taywee/args
 	args::ArgumentParser p0("apex: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
-    args::HelpFlag help0(p0, "help", "Display this help menu", {'h', "help"});
-	
+  args::Group apex_group(p0, "Options that affect all apex commands");
+  args::Flag legacy_vcov(apex_group, "legacy_vcov", "Use legacy format for vcov files.", {"legacy-vcov"});
+  args::HelpFlag help0(p0, "help", "Display this help menu", {'h', "help"});
+
 	p0.Prog(argv[0]);
 	
 	std::string mode_summary = "\ncis: cis-xQTL analysis.\n\ntrans: trans-xQTL analysis.\nmeta: xQTL meta-analysis.\n\nstore: store xQTL vcov (LD) data.\n\n";
@@ -177,30 +179,28 @@ int main(int argc, char* argv[])
 	mode.KickOut(true);
 	
 	const std::vector<std::string> args(argv + 1, argv + argc);
-	
-	try
-    {
-        auto next = p0.ParseArgs(args);
-        if (mode)
-        {
-			return args::get(mode)(argv[0], next, std::end(args));
-        } else
-        {
-            std::cout << help_string;
-        }
+
+  try {
+    auto next = p0.ParseArgs(args);
+    bool use_legacy_vcov = args::get(legacy_vcov);
+    global_opts::set_legacy_vcov(use_legacy_vcov);
+
+    if (mode) {
+      return args::get(mode)(argv[0], next, std::end(args));
+    } else {
+      std::cout << help_string;
     }
-    catch (args::Help)
-    {
-        std::cout << help_string;
-        return 0;
-    }
-    catch (args::Error e)
-    {
-        std::cerr << "\nUnknown command line argument(s).\nPrinting help menu:\n" << std::endl;
-        std::cerr << help_string;
-        return 1;
-    }
+  }
+  catch (args::Help) {
+    std::cout << help_string;
     return 0;
+  }
+  catch (args::Error e) {
+    std::cerr << "\nUnknown command line argument(s).\nPrinting help menu:\n" << std::endl;
+    std::cerr << help_string;
+    return 1;
+  }
+  return 0;
 }
 
 

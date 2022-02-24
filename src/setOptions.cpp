@@ -28,6 +28,7 @@ namespace global_opts
 		std::string out_prefix = "";
 		bool low_mem = false;
 	  bool write_logp = false;
+    bool legacy_vcov = false;
 
 	// INPUT OPTIONS 
 	
@@ -187,6 +188,10 @@ void global_opts::save_residuals(const bool& wb){
 void global_opts::set_global_region(const std::string& reg){
 	global_region = reg;
 	return;
+}
+
+void global_opts::set_legacy_vcov(const bool& b) {
+  legacy_vcov = b;
 }
 
 void global_opts::reset() {
