@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <unordered_set>
 #include <string>
-
+#include <memory>
 #include "setOptions.hpp"
 
 template<typename ... Args>
