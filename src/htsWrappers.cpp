@@ -135,7 +135,7 @@ std::vector<std::string> get_chroms(std::string file_name, std::vector<int>& n_v
 	std::vector<std::string> chroms;
 	
 	const char **seq;
-    int nseq, stats;
+    int nseq;
     tbx_t *tbx = NULL;
     hts_idx_t *idx = NULL;
 
@@ -163,7 +163,7 @@ std::vector<std::string> get_chroms(std::string file_name, std::vector<int>& n_v
     {
         uint64_t records, v;
         hts_idx_get_stat(tbx ? tbx->idx : idx, i, &records, &v);
-        if (stats&2 || !records) continue;
+        if (!records) continue;
         chroms.push_back(std::string(seq[i]));
 		n_variants.push_back( (int) records );
     }
@@ -174,5 +174,5 @@ std::vector<std::string> get_chroms(std::string file_name, std::vector<int>& n_v
     if (tbx) tbx_destroy(tbx);
     if (idx) hts_idx_destroy(idx);
 	
-    return chroms;
+  return chroms;
 }
