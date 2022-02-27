@@ -34,6 +34,7 @@ find_package(OpenMP)
 
 set(APEX_HEADERS
     src/apexLMM.hpp
+    src/cli.hpp
     src/cisMapping.hpp
     src/dataParser.hpp
     src/eigenData.hpp
@@ -58,6 +59,7 @@ set(APEX_HEADERS
 
 set(APEX_SOURCE
   src/apexLMM.cpp
+  src/cli.cpp
   src/cisMapping.cpp
   src/eigenData.cpp
   src/fitModels.cpp
