@@ -2,6 +2,7 @@ enable_testing()
 
 find_library(LIB_GTEST gtest HINT ${CGET_PREFIX}/lib)
 find_library(LIB_GTEST_MAIN gtest_main HINT ${CGET_PREFIX}/lib)
+find_library(LIB_BOOST_IOSTREAMS boost_iostreams HINT ${CGET_PREFIX}/lib)
 
 get_target_property(APEX_INCLUDES apex INCLUDE_DIRECTORIES)
 
@@ -21,4 +22,5 @@ target_link_libraries(
     apex
     ${LIB_GTEST}
     ${LIB_GTEST_MAIN}
+    ${LIB_BOOST_IOSTREAMS}
 )
