@@ -52,3 +52,46 @@ TEST(MetaTest, SimpleCisMappingTest) {
   ASSERT_TRUE(reader_gene_table_truth == reader_gene_table_test);
   ASSERT_TRUE(reader_long_table_truth == reader_long_table_test);
 }
+
+/**
+ * This test verifies that `apex cis` operates correctly in the presence of very small p-values.
+ */
+TEST(MetaTest, CisMappingVerySmallPvalueTest) {
+  global_opts::reset();
+
+  string output_prefix = "data/test_output.pval0";
+
+  global_opts::set_global_region("");
+  global_opts::set_exp_weight(0);
+  global_opts::set_max_signals(10);
+  global_opts::process_global_opts(
+    output_prefix,           // prefix
+    false,        // use low mem
+    2,            // rsq_buddy
+    0.8,          // rsq_prune
+    0.05,         // p-value threshold
+    1000000,      // window size
+    {},           // target genes
+    '0',          // ivw method
+    false,        // use_ds (dosage)
+    false,        // trim gene ids
+    0.05,         // stepwise_backward_thresh
+    true,         // t_hom
+    false,        // t_het
+    true,         // t_acat
+    true,         // stepwise_marginal_thresh
+    false         // write out log p-values
+  );
+
+  vector<string> args = {"--bed", "data/pval0.bed.gz", "--vcf", "data/pval0.vcf.gz", "--field", "DS", "--out", output_prefix, "--window", "1000000", "--long"};
+  cis("tests", args.begin(), args.end());
+
+  auto reader_gene_table_truth = CisGeneTableReader("data/pval0.cis_gene_table.txt.gz");
+  auto reader_long_table_truth = CisLongTableReader("data/pval0.cis_long_table.txt.gz");
+
+  auto reader_gene_table_test = CisGeneTableReader("data/test_output.pval0.cis_gene_table.txt.gz");
+  auto reader_long_table_test = CisLongTableReader("data/test_output.pval0.cis_long_table.txt.gz");
+
+  ASSERT_TRUE(reader_gene_table_truth == reader_gene_table_test);
+  ASSERT_TRUE(reader_long_table_truth == reader_long_table_test);
+}
