@@ -11,8 +11,13 @@ add_executable(
     reader_util.h
     meta_stepwise_reader.h
     meta_stepwise_reader.cpp
+    cis_gene_table_reader.h
+    cis_gene_table_reader.cpp
+    cis_long_table_reader.h
+    cis_long_table_reader.cpp
     test_meta.cpp
     test_rmath.cpp
+    test_cis.cpp
 )
 
 target_include_directories(tests PUBLIC ${APEX_INCLUDES})
