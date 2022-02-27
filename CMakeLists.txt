@@ -25,10 +25,10 @@ find_library(LIB_RMATH Rmath HINT ${CGET_PREFIX}/lib)
 
 find_package(BZip2)
 find_package(OpenMP)
+find_package(Boost REQUIRED)
 
 #set(BOOST_INCLUDEDIR ${CGET_PREFIX}/include)
 #set(BOOST_LIBRARYDIR ${CGET_PREFIX}/lib)
-#find_package(Boost REQUIRED)
 
 #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
