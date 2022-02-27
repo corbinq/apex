@@ -8,6 +8,7 @@ get_target_property(APEX_INCLUDES apex INCLUDE_DIRECTORIES)
 
 add_executable(
     tests
+    main.cpp
     reader_util.h
     meta_stepwise_reader.h
     meta_stepwise_reader.cpp
@@ -26,6 +27,5 @@ target_link_libraries(
     tests
     apex
     ${LIB_GTEST}
-    ${LIB_GTEST_MAIN}
     ${LIB_BOOST_IOSTREAMS}
 )
