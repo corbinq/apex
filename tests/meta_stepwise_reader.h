@@ -5,8 +5,7 @@
 #include <map>
 #include <vector>
 #include <memory>
-
-const long double PVALUE_MAX_REL_DIFF = 1E-5L;
+#include "reader_util.h"
 
 struct StepwiseRecord {
   std::string gene;

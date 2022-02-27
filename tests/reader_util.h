@@ -8,6 +8,8 @@
 #include <fstream>
 #include <limits>
 
+const long double PVALUE_MAX_REL_DIFF = 1E-5L;
+
 /**
  * Check if a filepath exists.
  * @param name Path to file.
