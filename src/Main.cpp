@@ -86,8 +86,6 @@ int main(int argc, char* argv[])
 
   // Argument parsing using https://github.com/Taywee/args
   args::ArgumentParser p0("apex: GWAS/QTL Toolkit.", "Contact: corbinq@gmail.com.\n");
-  args::Group apex_group(p0, "Options that affect all apex commands");
-  args::Flag legacy_vcov(apex_group, "legacy_vcov", "Use legacy format for vcov files.", {"legacy-vcov"});
   args::HelpFlag help0(p0, "help", "Display this help menu", {'h', "help"});
 
   p0.Prog(argv[0]);
@@ -101,9 +99,6 @@ int main(int argc, char* argv[])
 
   try {
     auto next = p0.ParseArgs(args);
-    bool use_legacy_vcov = args::get(legacy_vcov);
-    global_opts::set_legacy_vcov(use_legacy_vcov);
-
     if (mode) {
       return args::get(mode)(argv[0], next, std::end(args));
     } else {

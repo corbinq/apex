@@ -1684,8 +1684,9 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
     args::Flag output_log_pvals(opt_args, "", "Write p-values in output in log scale.", {"print-log-pvals"});
-	
-	// args::Group vcov_args(p, "Querying vcov files");
+    args::Flag legacy_vcov(opt_args, "legacy_vcov", "Use legacy format for vcov files.", {"legacy-vcov"});
+
+  // args::Group vcov_args(p, "Querying vcov files");
 		// args::Flag query_vcov(vcov_args, "", "Query meta-analysis vcov data (file list from --sumstats). Can be used with --region.", {"query"});
 		// args::ValueFlag<int> query_pos_arg(vcov_args, "pos", "Only get vcov data for specified variant (against all others in region).", {"pos"});
 		// args::Flag query_u_vcov(vcov_args, "", "Just return uncentered vcov data from bin file (default: centered v-cov matrix).", {"just-bin"});
@@ -1697,8 +1698,10 @@ int meta(const std::string &progname, std::vector<std::string>::const_iterator b
 	// ----------------------------------
 	
 	parseModeArgs(p, beginargs, endargs);
-	
-	
+
+  // Use legacy vcov?
+  global_opts::set_legacy_vcov(legacy_vcov);
+
 	// ----------------------------------
 	// Process test options
 	// ----------------------------------
@@ -1944,14 +1947,18 @@ int store(const std::string &progname, std::vector<std::string>::const_iterator 
 		// args::ValueFlag<std::string> ld_window_arg(opt_args, "1000000", "Window size in base pairs for LD files.", {'w', "window"});
 		args::ValueFlag<int> blocks_arg(opt_args, "100", "Number of variants per trans-xQTL block.", {"block-size"});
 		args::Flag trim_ids(opt_args, "", "Trim version numbers from Ensembl gene IDs.", {"trim-ids"});
-	
-	// ----------------------------------
+    args::Flag legacy_vcov(opt_args, "legacy_vcov", "Use legacy format for vcov files.", {"legacy-vcov"});
+
+  // ----------------------------------
 	// Parse command line arguments 
 	// ----------------------------------
 	
 	parseModeArgs(p, beginargs, endargs);
-	
-	// ----------------------------------
+
+  // Use legacy vcov?
+  global_opts::set_legacy_vcov(legacy_vcov);
+
+  // ----------------------------------
 	// I/O File Paths
 	// ----------------------------------
 	
