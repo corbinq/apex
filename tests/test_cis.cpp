@@ -11,7 +11,7 @@ using namespace std;
 /**
  * This test verifies that `apex cis` operates under normal circumstances (no extreme p-values.)
  */
-TEST(MetaTest, SimpleCisMappingTest) {
+TEST(CisTest, SimpleCisMappingTest) {
   global_opts::reset();
 
   string output_prefix = "data/test_output.simple_pvalue";
@@ -56,7 +56,7 @@ TEST(MetaTest, SimpleCisMappingTest) {
 /**
  * This test verifies that `apex cis` operates correctly in the presence of very small p-values.
  */
-TEST(MetaTest, CisMappingVerySmallPvalueTest) {
+TEST(CisTest, CisMappingVerySmallPvalueTest) {
   global_opts::reset();
 
   string output_prefix = "data/test_output.pval0";
