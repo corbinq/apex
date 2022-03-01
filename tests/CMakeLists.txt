@@ -19,6 +19,7 @@ add_executable(
     test_meta.cpp
     test_rmath.cpp
     test_cis.cpp
+    test_store.cpp
 )
 
 target_include_directories(tests PUBLIC ${APEX_INCLUDES})
