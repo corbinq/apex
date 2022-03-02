@@ -30,3 +30,5 @@ target_link_libraries(
     ${LIB_GTEST}
     ${LIB_BOOST_IOSTREAMS}
 )
+
+add_dependencies(tests apex-bin)
