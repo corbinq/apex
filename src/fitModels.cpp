@@ -901,7 +901,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			pval_seq.push_back(reg.pval[wk]);
 			pval_adj.push_back(adj_pval);
       log_pval_0.push_back(reg0.log_pval[wk]);
-      log_pval_seq.push_back(reg0.log_pval[wk]);
+      log_pval_seq.push_back(reg.log_pval[wk]);
       log_pval_adj.push_back(log_adj_pval);
 			
 			nk++;
