@@ -46,8 +46,9 @@ void StepwiseReader::load(const string &file) {
       rec->beta = extract_fp<double>(tokens.at(4));
       rec->se = extract_fp<double>(tokens.at(5));
       rec->pval_joint = extract_fp<long double>(tokens.at(6));
-      rec->pval_marginal = extract_fp<long double>(tokens.at(7));
-      rec->pval_stepwise = extract_fp<long double>(tokens.at(8));
+      rec->pval_signal = extract_fp<long double>(tokens.at(7));
+      rec->pval_marginal = extract_fp<long double>(tokens.at(8));
+      rec->pval_stepwise = extract_fp<long double>(tokens.at(9));
 
       // Keys
 //      string chrpos = rec->chrom + ":" + to_string(rec->pos);
