@@ -124,10 +124,11 @@ class cis_meta_data
 		
 		std::vector<double> egene_pval;
 
+    // Statistics below indexed by gene
 		std::vector<double> N;
 		std::vector<double> DF;
 		std::vector<double> SD;
-		std::vector<double> ADJ;
+		std::vector<double> ADJ; // never used?
 		
 		std::vector<int> S_CIS;
 		std::vector<int> N_CIS;

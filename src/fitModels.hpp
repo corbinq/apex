@@ -631,6 +631,7 @@ class svar_sumstat
 class meta_svar_sumstat
 {
 	private:
+    // Vector of summary statistics per study
 		std::vector<svar_sumstat> ss;
 		
 		vcov_getter& vg;
@@ -647,7 +648,14 @@ class meta_svar_sumstat
 		svar_sumstat ss_meta;
 		svar_sumstat ss_meta_0;
 	
-		// void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const std::vector<svar_sumstat>& vss = ss, const svar_sumstat& mss = ss_meta){
+    /**
+     *
+     * @param k Particular variant indexed by k
+     * @param pval_hom
+     * @param pval_het
+     * @param pval_acat
+     * @param pval_omni
+     */
 		void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
 			
 			if( ss_meta.V(k) <= 0 || ss_meta.V_0(k) <= 0 || ss_meta.V(k)/ss_meta.V_0(k) < 1.0 - global_opts::RSQ_PRUNE ){
@@ -657,10 +665,12 @@ class meta_svar_sumstat
 			}
 			
 			// Calculate homogeneous-effect p-value.
+      // This calculates a simple inverse-variance weighted meta-analysis for this variant k, adjusting for all
+      // previously added conditional variants.
 			pval_hom = single_model(k).pval; //ss_meta.single_snp_pval_ivw(k);
 			
 			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
-			for( const auto& ss_i : ss ){
+			for( const auto& ss_i : ss ){ // loop over each study's set of summary statistics
 				
 				// Skip study if the variant is monomorphic.
 				if( ss_i.V_0(k) > 0  ){
@@ -671,7 +681,24 @@ class meta_svar_sumstat
 						pval_acat = -99; pval_omni = -99;
 						return;
 					}
-				
+
+          /*
+           * This is an F-test within this single study for adding the variant k to the model.
+           * U*U/V ends up being the increase in the SSR due to adding variant k, and SSR - (U^2/V) is the new SSR
+           * after including the variant.
+           *
+                     ⎛U  ⋅ U ⎞
+                     ⎜ k    k⎟
+          (DF - 1) ⋅ ⎜───────⎟
+                     ⎜  V    ⎟
+                     ⎝   k   ⎠
+          ────────────────────
+                    U  ⋅ U
+                     k    k
+              SSR - ───────
+                      V
+                       k
+          */
 					double U2_V_i = ss_i.U(k) * ss_i.U(k) / ss_i.V(k);
 					double fstat = (ss_i.DF - 1)*U2_V_i/(ss_i.SSR - U2_V_i);
 					
@@ -693,6 +720,35 @@ class meta_svar_sumstat
 			}
 
 			// Calculate heterogeneous-effect p-value.
+      /* Numerator is:
+             ns
+            _____
+            ╲      2
+             ╲    U
+              ╲    s
+              ╱   ──
+             ╱    V
+            ╱      s
+            ‾‾‾‾‾
+              s
+            ────────
+               ns
+
+        Denominator is:
+
+                       _____
+                       ╲      2
+                        ╲    U
+            ___          ╲    s
+            ╲   SSR  -   ╱   ──
+            ╱      s    ╱    V
+            ‾‾‾        ╱      s
+             s         ‾‾‾‾‾
+                         s
+            ───────────────────
+                DF    - ns
+                  tot
+      */
 			denom_het -= numer_het;
 			numer_het /= ns;
 			denom_het /= (df_tot - ns);

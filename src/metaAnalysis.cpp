@@ -558,7 +558,9 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 		std::vector<double> ivw_0(n_studies);
 		
 		for( const int& s : studies_with_gene ){
-			
+
+      // ss stores cis summary stat data, each row corresponding to a gene
+      // SD is calculated per gene; is stdev(gene residuals under null model)
 			SD_perStudy_0[s] = ss[s].SD[jj[s]];
 			DF_perStudy_0[s] = ss[s].NS[jj[s]] - ss[s].NC[jj[s]];
 			
