@@ -14,6 +14,7 @@ bin/docker_build_image.sh
 
 # Copy executable out of docker container
 docker run --rm apex:latest cat /home/apex/build/apex > _apex
+chmod 750 _apex
 
 # Create directory for distribution
 RELEASE_DIR="apex-${APEX_VERSION}-x86_64-unknown-linux-gnu"
