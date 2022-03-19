@@ -921,7 +921,7 @@ class meta_svar_sumstat
 		
 		void omni_min_pval(int& k, long double& min_omni_p, long double& acat_omni_p){
 			
-			double MAX_P_VAR = -1.0, NUMER = 0.0, DENOM = 0.0, N_PVAL1 = 0.0;
+			long double MAX_P_VAR = -1.0, NUMER = 0.0, DENOM = 0.0, N_PVAL1 = 0.0;
 			
 			k = -1;
 			min_omni_p = 1.00; acat_omni_p = -99;
@@ -938,7 +938,7 @@ class meta_svar_sumstat
 							N_PVAL1++;
 						}else if( omn_p > 0 && !std::isnan(omn_p) ){
 							DENOM++;
-							NUMER += qcauchy(omn_p);
+							NUMER += rmath::qcauchyl(omn_p);
 							if( omn_p < min_omni_p ){
 								min_omni_p = omn_p;
 								k = i;
