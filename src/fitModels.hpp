@@ -282,7 +282,8 @@ class ss_lm_single
 		double beta;
 		double se;
 		double df;
-		double pval;
+		long double pval;
+    double log_pval;
 		
 		ss_lm_single () {};
 		
@@ -296,10 +297,13 @@ class ss_lm_single
 			beta *= scale_;
 			se *= scale_;
 			pval = -99;
+      log_pval = NAN;
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 && df > 2 ){
 					pval = pf( tstat*tstat, 1, df - 1, true );
+          log_pval = rmath::pf(tstat*tstat, 1.0, df - 1, false, true);
+          pval = expl(log_pval);
 				}
 			}
 		};
@@ -308,6 +312,7 @@ class ss_lm_single
 			beta = 0; se = 0; df = 0; 
 			U = 0; V = 0; SSR = 0;
 			pval = 1.0;
+      log_pval = 0.0;
 			double denom = 0.0, denom_beta = 0.0;
 			for( const ss_lm_single& i : ss_per_study ){
 				if( i.se > 0 && !std::isnan(i.beta) ){
@@ -329,10 +334,12 @@ class ss_lm_single
 			V /= denom;
 			SSR /= denom;
 			pval = -99;
+      log_pval = NAN;
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 ){
-					pval = pf( tstat*tstat, 1, df, true );
+          log_pval = rmath::pf(tstat*tstat, 1.0, df, false, true );
+          pval = expl(log_pval);
 				}
 			}
 		}
@@ -656,7 +663,7 @@ class meta_svar_sumstat
      * @param pval_acat
      * @param pval_omni
      */
-		void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
+		void triform_pval(const int& k, long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni){
 			
 			if( ss_meta.V(k) <= 0 || ss_meta.V_0(k) <= 0 || ss_meta.V(k)/ss_meta.V_0(k) < 1.0 - global_opts::RSQ_PRUNE ){
 				pval_hom = -99; pval_het = -99;
@@ -668,8 +675,9 @@ class meta_svar_sumstat
       // This calculates a simple inverse-variance weighted meta-analysis for this variant k, adjusting for all
       // previously added conditional variants.
 			pval_hom = single_model(k).pval; //ss_meta.single_snp_pval_ivw(k);
-			
-			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
+
+      long double q_acat = 0.0L;
+			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, ns = 0.0;
 			for( const auto& ss_i : ss ){ // loop over each study's set of summary statistics
 				
 				// Skip study if the variant is monomorphic.
@@ -708,7 +716,7 @@ class meta_svar_sumstat
 						denom_het += ss_i.SSR;
 						df_tot += ss_i.DF;
 						
-						q_acat += qcauchy(pf(fstat, 1.0, ss_i.DF - 1, true));
+						q_acat += rmath::qcauchyl(expl(rmath::pf(fstat, 1.0, ss_i.DF - 1, false, true)));
 						
 						ns++;
 					}else{
@@ -755,7 +763,7 @@ class meta_svar_sumstat
 			
 			double fstat_het = numer_het/denom_het;
 			if( !std::isnan(fstat_het) && fstat_het > 0 && df_tot - ns > 2 && ns > 0 ){
-				pval_het = pf( fstat_het, ns, df_tot - ns, true );
+        pval_het = expl(rmath::pf(fstat_het, ns, df_tot - ns, false, true));
 			}else{
 				pval_het = -99;
 			}
@@ -763,20 +771,20 @@ class meta_svar_sumstat
 			// Calculate ACAT p-value.
 			if ( ns > 0 ){
 				q_acat /= ns;
-				pval_acat = pcauchy(q_acat);
+				pval_acat = rmath::pcauchyl(q_acat);
 			}else{
 				pval_acat = -99;
 			}
 			
 			// Calculate omnibus p-value
-			double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
-			
+			long double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
+
 			if( global_opts::het_use_hom ){
 				if( pval_hom >= 0 ){
 					if( pval_hom < min_pval ){
 						min_pval = pval_hom;
 					}
-					stat_omni += qcauchy(pval_hom);
+					stat_omni += rmath::qcauchyl(pval_hom);
 					n_omni++;
 				}
 			}
@@ -786,7 +794,7 @@ class meta_svar_sumstat
 					if( pval_het < min_pval ){
 						min_pval = pval_het;
 					}
-					stat_omni += qcauchy(pval_het);
+					stat_omni += rmath::qcauchyl(pval_het);
 					n_omni++;
 				}
 			}
@@ -796,13 +804,13 @@ class meta_svar_sumstat
 					if( pval_acat < min_pval ){
 						min_pval = pval_acat;
 					}
-					stat_omni += qcauchy(pval_acat);
+					stat_omni += rmath::qcauchyl(pval_acat);
 					n_omni++;
 				}
 			}
 			
 			if( n_omni > 0 ){
-				pval_omni = pcauchy(stat_omni/n_omni);
+				pval_omni = rmath::pcauchyl(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > 10 * n_omni * min_pval ){
@@ -816,12 +824,12 @@ class meta_svar_sumstat
 			return;
 		};
 		
-		void triform_pval(double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const std::vector<ss_lm_single>& vss, const ss_lm_single& mss){
+		void triform_pval(long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni, const std::vector<ss_lm_single>& vss, const ss_lm_single& mss){
 			
 			// Calculate homogeneous-effect p-value.
 			pval_hom = mss.pval;
 			
-			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
+			long double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
 			for( const auto& ss_i : vss ){
 				
 				double U2_V_i = ss_i.U * ss_i.U / ss_i.V;
@@ -833,7 +841,7 @@ class meta_svar_sumstat
 					denom_het += ss_i.SSR;
 					df_tot += ss_i.df;
 					
-					q_acat += qcauchy(pf(fstat, 1.0, ss_i.df - 1, true));
+					q_acat += rmath::qcauchyl(expl(rmath::pf(fstat, 1.0, ss_i.df - 1, false, true)));
 					
 					ns++;
 				}else{
@@ -850,7 +858,7 @@ class meta_svar_sumstat
 			
 			double fstat_het = numer_het/denom_het;
 			if( fstat_het > 0 && df_tot - ns > 2 && ns > 0 ){
-				pval_het = pf( fstat_het, ns, df_tot - ns, true );
+				pval_het = expl(rmath::pf(fstat_het, ns, df_tot - ns, false, true));
 			}else{
 				pval_het = -99;
 			}
@@ -858,20 +866,20 @@ class meta_svar_sumstat
 			// Calculate ACAT p-value.
 			if ( ns > 0 ){
 				q_acat /= ns;
-				pval_acat = pcauchy(q_acat);
+				pval_acat = rmath::pcauchyl(q_acat);
 			}else{
 				pval_acat = -99;
 			}
 			
 			// Calculate omnibus p-value
-			double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
+			long double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
 			
 			if( global_opts::het_use_hom ){
 				if( pval_hom >= 0 ){
 					if( pval_hom < min_pval ){
 						min_pval = pval_hom;
 					}
-					stat_omni += qcauchy(pval_hom);
+					stat_omni += rmath::qcauchyl(pval_hom);
 					n_omni++;
 				}
 			}
@@ -881,7 +889,7 @@ class meta_svar_sumstat
 					if( pval_het < min_pval ){
 						min_pval = pval_het;
 					}
-					stat_omni += qcauchy(pval_het);
+					stat_omni += rmath::qcauchyl(pval_het);
 					n_omni++;
 				}
 			}
@@ -891,13 +899,13 @@ class meta_svar_sumstat
 					if( pval_acat < min_pval ){
 						min_pval = pval_acat;
 					}
-					stat_omni += qcauchy(pval_acat);
+					stat_omni += rmath::qcauchyl(pval_acat);
 					n_omni++;
 				}
 			}
 			
 			if( n_omni > 0 ){
-				pval_omni = pcauchy(stat_omni/n_omni);
+				pval_omni = rmath::pcauchyl(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > 10 * n_omni*min_pval ){
@@ -911,7 +919,7 @@ class meta_svar_sumstat
 			return;
 		};
 		
-		void omni_min_pval(int& k, double& min_omni_p, double& acat_omni_p){
+		void omni_min_pval(int& k, long double& min_omni_p, long double& acat_omni_p){
 			
 			double MAX_P_VAR = -1.0, NUMER = 0.0, DENOM = 0.0, N_PVAL1 = 0.0;
 			
@@ -922,7 +930,7 @@ class meta_svar_sumstat
 				if( ss_meta.V(i) > 0 && ss_meta.V_0(i) > 0 ){
 					if( ss_meta.V(i)/ss_meta.V_0(i) > 1.0 - global_opts::RSQ_PRUNE ){
 						
-						double hom_p, het_p, aca_p, omn_p;
+						long double hom_p, het_p, aca_p, omn_p;
 						triform_pval(i, hom_p, het_p, aca_p, omn_p);
 						
 						if( omn_p >= 1){
@@ -944,8 +952,8 @@ class meta_svar_sumstat
 				k = -1; min_omni_p = -99; acat_omni_p = -99;
 			}else{
 				double NUDGED_PVAL1 = DENOM >= 4 ? DENOM/(DENOM + 1) : 0.80;
-				NUMER += N_PVAL1 * qcauchy( NUDGED_PVAL1 );
-				acat_omni_p = pcauchy(NUMER/DENOM);
+				NUMER += N_PVAL1 * rmath::qcauchyl( NUDGED_PVAL1 );
+				acat_omni_p = rmath::pcauchyl(NUMER/DENOM);
 			}
 			
 			return;
@@ -1024,7 +1032,7 @@ class meta_svar_sumstat
 			return ss_lm_single(lm_singles);
 		}
 		
-		ss_lm_single final_model_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
+		ss_lm_single final_model_triform_pval(const int& k, long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni){
 			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.final_model(k));
@@ -1034,7 +1042,7 @@ class meta_svar_sumstat
 			return lm_meta;
 		};
 		
-		ss_lm_single marginal_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
+		ss_lm_single marginal_triform_pval(const int& k, long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni){
 			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.marginal_model(k));

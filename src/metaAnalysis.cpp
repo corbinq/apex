@@ -1053,8 +1053,8 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 	// p-value stop threshold is global_opts::LM_ALPHA
 	
 	std::vector<int> top_snps;
-	std::vector<double> acat_stepwise_pvals;
-	std::vector<double> svar_stepwise_pvals;
+	std::vector<long double> acat_stepwise_pvals;
+	std::vector<long double> svar_stepwise_pvals;
 	
 	meta_ss.update_meta_ss();
 	
@@ -1064,7 +1064,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		int n_steps = 0;
 		
 		int top_snp;
-		double svar_stepwise_pval, acat_stepwise_pval;
+		long double svar_stepwise_pval, acat_stepwise_pval;
 		
 		// std::cout << "BEGIN" << "\t" << gene << "\t";
 		// meta_ss.ss_meta.acat_min_pval(top_snp, svar_stepwise_pval, acat_stepwise_pval);
@@ -1096,11 +1096,11 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		// -----------------------------------		
 		if( global_opts::backward_thresh < 1.00 & top_snps.size() > 1 ){
 			
-			double max_joint_pvalue = 0;
+			long double max_joint_pvalue = 0;
 			int w_rm = -1;
 					
 			for(int i = 0; i < top_snps.size() - 1; i++){
-				double p_hom, p_het, p_aca, p_omn;
+				long double p_hom, p_het, p_aca, p_omn;
 				ss_lm_single fm_i = meta_ss.final_model_triform_pval(i, p_hom, p_het, p_aca, p_omn);
 				if( p_omn < 0 ){
 					// P not computable due to multicollinearity or non-positive variance
@@ -1154,8 +1154,8 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 	// std::cout << "\n\nSTARTING OUTPUT:\n";
 	
 	for(int i = 0; i < top_snps.size(); i++){
-		double p_hom, p_het, p_aca, p_omn;
-		double p_hom_m, p_het_m, p_aca_m, p_omn_m;
+		long double p_hom, p_het, p_aca, p_omn;
+		long double p_hom_m, p_het_m, p_aca_m, p_omn_m;
 		ss_lm_single fm_i = meta_ss.final_model_triform_pval(i, p_hom, p_het, p_aca, p_omn);
 		ss_lm_single fm_i_m = meta_ss.marginal_triform_pval(i, p_hom_m, p_het_m, p_aca_m, p_omn_m);
 		//double marginal_pval_i = meta_ss.ss_meta_0.single_snp_pval(i);

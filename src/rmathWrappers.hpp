@@ -18,6 +18,9 @@
 
 namespace rmath {
   double pf(double x, double df1, double df2, int lower_tail, int log_p);
+  double qcauchy(double p, double location, double scale, int lower_tail, int log_p);
+  long double qcauchyl(long double p, long double location = 0, long double scale = 1, int lower_tail = 1, int log_p = 0);
+  long double pcauchyl(long double x, double location = 0, double scale = 1, int lower_tail = 1, int log_p = 0);
 }
 
 #endif //APEX_RMATHWRAPPERS_HPP
