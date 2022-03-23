@@ -301,7 +301,6 @@ class ss_lm_single
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 && df > 2 ){
-					pval = pf( tstat*tstat, 1, df - 1, true );
           log_pval = rmath::pf(tstat*tstat, 1.0, df - 1, false, true);
           pval = expl(log_pval);
 				}
