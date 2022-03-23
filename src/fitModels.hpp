@@ -37,6 +37,11 @@
 #include "mathStats.hpp"
 #include "rmathWrappers.hpp"
 
+using rmath::bounded_stdqcauchy;
+using rmath::bounded_stdpcauchy;
+using rmath::bounded_log_pf;
+using rmath::bounded_expl;
+
 static const double phi_upper = 10000;
 
 // double get_neg_logLik_REML(const double& delta, Eigen::MatrixXd& X_tilde, Eigen::VectorXd& y_tilde, Eigen::VectorXd& lambda );
@@ -301,8 +306,8 @@ class ss_lm_single
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 && df > 2 ){
-          log_pval = rmath::pf(tstat*tstat, 1.0, df - 1, false, true);
-          pval = expl(log_pval);
+          log_pval = bounded_log_pf(tstat*tstat, 1.0, df - 1);
+          pval = bounded_expl(log_pval);
 				}
 			}
 		};
@@ -337,8 +342,8 @@ class ss_lm_single
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 ){
-          log_pval = rmath::pf(tstat*tstat, 1.0, df, false, true );
-          pval = expl(log_pval);
+          log_pval = bounded_log_pf(tstat*tstat, 1.0, df);
+          pval = bounded_expl(log_pval);
 				}
 			}
 		}
@@ -714,9 +719,9 @@ class meta_svar_sumstat
 						numer_het += U2_V_i;
 						denom_het += ss_i.SSR;
 						df_tot += ss_i.DF;
-						
-						q_acat += rmath::qcauchyl(expl(rmath::pf(fstat, 1.0, ss_i.DF - 1, false, true)));
-						
+
+            q_acat += bounded_stdqcauchy(bounded_expl(bounded_log_pf(fstat, 1.0, ss_i.DF - 1)));
+
 						ns++;
 					}else{
 						pval_hom = -99; pval_het = -99;
@@ -762,7 +767,7 @@ class meta_svar_sumstat
 			
 			double fstat_het = numer_het/denom_het;
 			if( !std::isnan(fstat_het) && fstat_het > 0 && df_tot - ns > 2 && ns > 0 ){
-        pval_het = expl(rmath::pf(fstat_het, ns, df_tot - ns, false, true));
+        pval_het = bounded_expl(bounded_log_pf(fstat_het, ns, df_tot - ns));
 			}else{
 				pval_het = -99;
 			}
@@ -770,7 +775,7 @@ class meta_svar_sumstat
 			// Calculate ACAT p-value.
 			if ( ns > 0 ){
 				q_acat /= ns;
-				pval_acat = rmath::pcauchyl(q_acat);
+				pval_acat = bounded_stdpcauchy(q_acat);
 			}else{
 				pval_acat = -99;
 			}
@@ -783,7 +788,7 @@ class meta_svar_sumstat
 					if( pval_hom < min_pval ){
 						min_pval = pval_hom;
 					}
-					stat_omni += rmath::qcauchyl(pval_hom);
+					stat_omni += bounded_stdqcauchy(pval_hom);
 					n_omni++;
 				}
 			}
@@ -793,7 +798,7 @@ class meta_svar_sumstat
 					if( pval_het < min_pval ){
 						min_pval = pval_het;
 					}
-					stat_omni += rmath::qcauchyl(pval_het);
+					stat_omni += bounded_stdqcauchy(pval_het);
 					n_omni++;
 				}
 			}
@@ -803,13 +808,21 @@ class meta_svar_sumstat
 					if( pval_acat < min_pval ){
 						min_pval = pval_acat;
 					}
-					stat_omni += rmath::qcauchyl(pval_acat);
+					stat_omni += bounded_stdqcauchy(pval_acat);
 					n_omni++;
 				}
 			}
+
+      // If the min pval is 0, it will guarantee the bonferroni correction is triggered below,
+      // but this will also have the effect of setting pval_omni to 0, and therefore omitting a very significant variant
+      // from the final results. The code above tries to protect against pval_hom, pval_het, pval_acat underflowing to 0,
+      // so hopefully this will never trigger.
+      if (min_pval == 0.0) {
+        throw std::range_error("Error: minimum p-value of 0 when attempting to calculate omnibus(hom, het, acat)");
+      }
 			
 			if( n_omni > 0 ){
-				pval_omni = rmath::pcauchyl(stat_omni/n_omni);
+				pval_omni = bounded_stdpcauchy(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > 10 * n_omni * min_pval ){
@@ -839,9 +852,9 @@ class meta_svar_sumstat
 					numer_het += U2_V_i;
 					denom_het += ss_i.SSR;
 					df_tot += ss_i.df;
-					
-					q_acat += rmath::qcauchyl(expl(rmath::pf(fstat, 1.0, ss_i.df - 1, false, true)));
-					
+
+          q_acat += bounded_stdqcauchy(bounded_expl(bounded_log_pf(fstat, 1.0, ss_i.df - 1)));
+
 					ns++;
 				}else{
 					pval_hom = -99; pval_het = -99;
@@ -857,7 +870,7 @@ class meta_svar_sumstat
 			
 			double fstat_het = numer_het/denom_het;
 			if( fstat_het > 0 && df_tot - ns > 2 && ns > 0 ){
-				pval_het = expl(rmath::pf(fstat_het, ns, df_tot - ns, false, true));
+				pval_het = bounded_expl(bounded_log_pf(fstat_het, ns, df_tot - ns));
 			}else{
 				pval_het = -99;
 			}
@@ -865,7 +878,7 @@ class meta_svar_sumstat
 			// Calculate ACAT p-value.
 			if ( ns > 0 ){
 				q_acat /= ns;
-				pval_acat = rmath::pcauchyl(q_acat);
+				pval_acat = bounded_stdpcauchy(q_acat);
 			}else{
 				pval_acat = -99;
 			}
@@ -878,7 +891,7 @@ class meta_svar_sumstat
 					if( pval_hom < min_pval ){
 						min_pval = pval_hom;
 					}
-					stat_omni += rmath::qcauchyl(pval_hom);
+					stat_omni += bounded_stdqcauchy(pval_hom);
 					n_omni++;
 				}
 			}
@@ -888,7 +901,7 @@ class meta_svar_sumstat
 					if( pval_het < min_pval ){
 						min_pval = pval_het;
 					}
-					stat_omni += rmath::qcauchyl(pval_het);
+					stat_omni += bounded_stdqcauchy(pval_het);
 					n_omni++;
 				}
 			}
@@ -898,13 +911,17 @@ class meta_svar_sumstat
 					if( pval_acat < min_pval ){
 						min_pval = pval_acat;
 					}
-					stat_omni += rmath::qcauchyl(pval_acat);
+					stat_omni += bounded_stdqcauchy(pval_acat);
 					n_omni++;
 				}
 			}
+
+      if (min_pval == 0.0) {
+        throw std::range_error("Error: minimum p-value of 0 when attempting to calculate omnibus(hom, het, acat)");
+      }
 			
 			if( n_omni > 0 ){
-				pval_omni = rmath::pcauchyl(stat_omni/n_omni);
+				pval_omni = bounded_stdpcauchy(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > 10 * n_omni*min_pval ){
@@ -937,7 +954,7 @@ class meta_svar_sumstat
 							N_PVAL1++;
 						}else if( omn_p > 0 && !std::isnan(omn_p) ){
 							DENOM++;
-							NUMER += rmath::qcauchyl(omn_p);
+							NUMER += bounded_stdqcauchy(omn_p);
 							if( omn_p < min_omni_p ){
 								min_omni_p = omn_p;
 								k = i;
@@ -951,8 +968,8 @@ class meta_svar_sumstat
 				k = -1; min_omni_p = -99; acat_omni_p = -99;
 			}else{
 				double NUDGED_PVAL1 = DENOM >= 4 ? DENOM/(DENOM + 1) : 0.80;
-				NUMER += N_PVAL1 * rmath::qcauchyl( NUDGED_PVAL1 );
-				acat_omni_p = rmath::pcauchyl(NUMER/DENOM);
+				NUMER += N_PVAL1 * bounded_stdqcauchy( NUDGED_PVAL1 );
+				acat_omni_p = bounded_stdpcauchy(NUMER/DENOM);
 			}
 			
 			return;

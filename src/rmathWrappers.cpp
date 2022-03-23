@@ -13,10 +13,7 @@
     be included in all copies or substantial portions of APEX.
 */
 
-#include "Rmath.h"
-#include <limits>
-
-const long double LD_PI = acosl(-1.0L);
+#include "rmathWrappers.hpp"
 
 #define R_DT_0	(lower_tail ? R_D__0 : R_D__1)
 #define R_DT_1	(lower_tail ? R_D__1 : R_D__0)
@@ -34,7 +31,7 @@ namespace rmath {
     return ::qcauchy(p, location, scale, lower_tail, log_p);
   }
 
-  long double qcauchyl(long double p, long double location = 0, long double scale = 1, int lower_tail = 0, int log_p = 0) {
+  long double qcauchyl(long double p, long double location, long double scale, int lower_tail, int log_p) {
     if (isnan(p) || isnan(location) || isnan(scale)) {
       return p + location + scale;
     }
@@ -69,6 +66,41 @@ namespace rmath {
 
     return location + (lower_tail ? -scale : scale) / tanl(LD_PI * p);
     /*	-1/tan(pi * p) = -cot(pi * p) = tan(pi * (p - 1/2))  */
+  }
+
+  long double bounded_stdqcauchy(long double p) {
+    long double q = qcauchyl(p, 0, 1, 1, 0);
+    if (q == DBL_NEGINF) {
+      return -9.4675e+4930L;
+    }
+    return q;
+  }
+
+  long double bounded_stdpcauchy(long double q) {
+    long double value = pcauchyl(q, 0, 1, 1, 0);
+    if (value == 0.0L) {
+      return std::numeric_limits<long double>::min();
+    }
+    return value;
+  }
+
+  double bounded_log_pf(double x, double df1, double df2) {
+    double log_pf = ::pf(x, df1, df2, 0, 1);
+    if (log_pf == DBL_NEGINF) {
+      // If the value of x grows too large, in log space, pf() will return -inf.
+      // Here we catch that and return log(minimum long double value) to represent the smallest
+      // p-value possible.
+      return LOG_MIN_DBL;
+    }
+    return log_pf;
+  }
+
+  long double bounded_expl(long double x) {
+    long double value = expl(x);
+    if (value == 0.0L) {
+      return std::numeric_limits<long double>::min();
+    }
+    return value;
   }
 
   long double pcauchyl(long double x, double location, double scale, int lower_tail, int log_p) {
