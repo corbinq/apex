@@ -1073,7 +1073,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		
 		// std::cout << top_snp << "\t" << svar_stepwise_pval << "\t" << acat_stepwise_pval << "\n";
 		
-		double pval_check = global_opts::step_marginal ? svar_stepwise_pval : acat_stepwise_pval;
+		long double pval_check = global_opts::step_marginal ? svar_stepwise_pval : acat_stepwise_pval;
 		
 		// -----------------------------------
 		// Forward step. 
