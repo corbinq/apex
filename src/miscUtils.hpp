@@ -40,6 +40,18 @@ std::string string_format(const std::string& format, Args ... args) {
 }
 
 template <typename float_type> std::string log_to_string(float_type& value) {
+  if (isnan(value)) {
+    return "nan";
+  }
+  else if (isinf(value)) {
+    if (signbit(value)) {
+      return "-inf";
+    }
+    else {
+      return "inf";
+    }
+  }
+
   float_type v = value / M_LN10;
   int exp = floor(v);
   float_type r = v - exp;

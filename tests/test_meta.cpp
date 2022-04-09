@@ -154,3 +154,23 @@ TEST(MetaTest, StepwiseConditionalHetRegressionTest) {
   auto reader_test = StepwiseReader("data/test_output.simple_pvalue.cis_meta.stepwise_het.tsv");
   ASSERT_TRUE(reader_truth == reader_test);
 }
+
+TEST(MetaTest, LogToString) {
+  // Easy case
+  double val1 = -16.8112428;
+  string result1 = log_to_string(val1);
+  ASSERT_EQ(result1, "5.000000e-8");
+
+  // NaN
+  double val2 = NAN;
+  string result2 = log_to_string(val2);
+  ASSERT_EQ(result2, "nan");
+
+  // Infs
+  double pos_inf = numeric_limits<double>::infinity();
+  double neg_inf = -numeric_limits<double>::infinity();
+  string result_posinf = log_to_string(pos_inf);
+  string result_neginf = log_to_string(neg_inf);
+  ASSERT_EQ(result_posinf, "inf");
+  ASSERT_EQ(result_neginf, "-inf");
+}
