@@ -1162,7 +1162,7 @@ class forward_lm
 		
 		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, indiv_vcov_getter& vget, double pval_thresh,  const std::vector<double>& weights = vd0);
 		
-		void check_joint_pvalues(int&, double&, const Eigen::VectorXd&, const Eigen::VectorXd&,const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const double&);
+		void check_joint_pvalues(int&, double&, const Eigen::VectorXd&, const Eigen::VectorXd&,const Eigen::VectorXd&, const Eigen::MatrixXd&, const Eigen::MatrixXd&, const double&, const double&);
 		
 		void push_back(double,double,double);
 		void print_coefs();

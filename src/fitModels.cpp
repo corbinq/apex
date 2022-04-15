@@ -796,7 +796,7 @@ int which_min( const std::vector<T>& p, bool gt0 ){
 }
 
 
-void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& largest_log_pvalue, const Eigen::VectorXd& U, const Eigen::VectorXd& V, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const double& n, const double& m){
+void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& largest_log_pvalue, const Eigen::VectorXd& U, const Eigen::VectorXd& V, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const Eigen::MatrixXd& Cov, const double& n, const double& m){
 	
 	index_of_largest_pvalue = -1;
   largest_log_pvalue = 0;
@@ -813,9 +813,9 @@ void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& large
 		Eigen::VectorXd V_k = V(std::vector<int>(1,k));
 			
 		Eigen::VectorXd U_0k = U_0(kept_snps_not_k); 
-		Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k); 
-		Eigen::MatrixXd Cov_k = J_0(std::vector<int>(1,k_i), kept_snps_not_k);
-		
+		Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k);
+    Eigen::MatrixXd Cov_k = Cov(std::vector<int>(1,k), kept_snps_not_k);
+
 		lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, 1.00, U_0k, J_0k, Cov_k, false);
 
     current_log_pvalue = reg_k.log_pval[0];
@@ -974,7 +974,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			double max_log_joint_pvalue = 0;
 			int k_rm = -1;
 			
-			check_joint_pvalues(k_rm, max_log_joint_pvalue, U, V, U_0, J_0, n, m);
+			check_joint_pvalues(k_rm, max_log_joint_pvalue, U, V, U_0, J_0, Cov, n, m);
 			//cout << max_joint_pvalue << "\n";
 			
 			if( (max_log_joint_pvalue > log_backthresh || isnan(max_log_joint_pvalue) ) && k_rm < nk - 1 && k_rm >= 0 ){
@@ -1065,7 +1065,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 				
 			Eigen::VectorXd U_0k = U_0(kept_snps_not_k); 
 			Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k); 
-			Eigen::MatrixXd Cov_k = J_0(std::vector<int>(1,k_i), kept_snps_not_k);
+			Eigen::MatrixXd Cov_k = Cov(std::vector<int>(1,k), kept_snps_not_k);
 			
 			lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, stdev, U_0k, J_0k, Cov_k, false);
 			
@@ -1220,7 +1220,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			double max_joint_pvalue = 0; 
 			int k_rm = -1;
 			
-			check_joint_pvalues(k_rm, max_joint_pvalue, U, V, U_0, J_0, n, m);
+			check_joint_pvalues(k_rm, max_joint_pvalue, U, V, U_0, J_0, Cov, n, m);
 			//cout << max_joint_pvalue << "\n";
 			
 			if( (max_joint_pvalue > global_opts::backward_thresh || max_joint_pvalue < 0 ) && k_rm < nk - 1 && k_rm >= 0 ){
@@ -1288,9 +1288,9 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			Eigen::VectorXd V_k = V(std::vector<int>(1,k));
 				
 			Eigen::VectorXd U_0k = U_0(kept_snps_not_k); 
-			Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k); 
-			Eigen::MatrixXd Cov_k = J_0(std::vector<int>(1,k_i), kept_snps_not_k);
-			
+			Eigen::MatrixXd J_0k = J_0(kept_snps_not_k, kept_snps_not_k);
+      Eigen::MatrixXd Cov_k = Cov(std::vector<int>(1,k), kept_snps_not_k);
+
 			lm_output reg_k = lm_from_sumstats(U_k, V_k, n, m, stdev, U_0k, J_0k, Cov_k, false);
 			
 			beta.push_back(reg_k.beta[0]);
