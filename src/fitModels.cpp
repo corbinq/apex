@@ -1052,7 +1052,14 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
       log_pval_joint.push_back(reg0.log_pval[k]);
 
 		}else{
-			
+
+      /**
+       * U_k is vector of length 1, containing score stat of variant k
+       * V_k ^                    , containing variance of score stat of variant k
+       * U_0k is vector of length nk, score statistics for all variants except k
+       * J_0k is matrix of (nk-1) x (nk-1), covariance for all variants in model except k
+       * Cov_k is matrix of 1 x (nk-1), covariance between variant k and all other variants
+       */
 			Eigen::VectorXd U_k = U(std::vector<int>(1,k));
 			Eigen::VectorXd V_k = V(std::vector<int>(1,k));
 				

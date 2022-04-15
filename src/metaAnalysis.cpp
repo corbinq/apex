@@ -389,7 +389,7 @@ void cis_sumstat_data::open(const std::string& pf, const std::string& reg)
 	dp.add_field(NS,5);
 	dp.add_field(NC,6);
 	dp.add_field(SD,7);
-	dp.add_field(N_CIS,8);
+	dp.add_field(N_CIS,8);       // This is "n_cis_variants" as read from the gene_table file
 	
 	// dp.parse_file(gene_file, region);
 	
@@ -562,7 +562,7 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
       // ss stores cis summary stat data, each row corresponding to a gene
       // SD is calculated per gene; is stdev(gene residuals under null model)
 			SD_perStudy_0[s] = ss[s].SD[jj[s]];
-			DF_perStudy_0[s] = ss[s].NS[jj[s]] - ss[s].NC[jj[s]];
+			DF_perStudy_0[s] = ss[s].NS[jj[s]] - ss[s].NC[jj[s]]; // NS = number of samples, NC = number of covariates (null model)
 			
 			SSR_perStudy_0[s] = (ss[s].NS[jj[s]] - 1)*SD_perStudy_0[s]*SD_perStudy_0[s];
 			
