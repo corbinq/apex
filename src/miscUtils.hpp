@@ -40,11 +40,11 @@ std::string string_format(const std::string& format, Args ... args) {
 }
 
 template <typename float_type> std::string log_to_string(float_type& value) {
-  if (isnan(value)) {
+  if (std::isnan(value)) {
     return "nan";
   }
-  else if (isinf(value)) {
-    if (signbit(value)) {
+  else if (std::isinf(value)) {
+    if (std::signbit(value)) {
       return "-inf";
     }
     else {
