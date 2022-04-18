@@ -10,6 +10,8 @@ add_executable(
     tests
     main.cpp
     reader_util.h
+    meta_svar_reader.h
+    meta_svar_reader.cpp
     meta_stepwise_reader.h
     meta_stepwise_reader.cpp
     cis_gene_table_reader.h
