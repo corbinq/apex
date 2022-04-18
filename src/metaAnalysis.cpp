@@ -731,6 +731,9 @@ void cis_meta_data::meta_analyze()
 	std::ofstream os(out_name.c_str(), std::ofstream::out);
 
 	std::vector<std::string> col_names{"#chr", "pos", "ref", "alt", "gene", "studies", "beta", "se", "pval"};
+  if (global_opts::write_logp) {
+    col_names.push_back("log_pval");
+  }
 	
 	print_header(col_names, os);
 	
@@ -787,8 +790,8 @@ void cis_meta_data::meta_analyze()
 			if( se > 0.00  ){
 
 				double tstat = beta/se;
-				double pval = pf( tstat*tstat, 1.0, DF[i] - 1, true );
-				
+				double log_pval = rmath::pf(tstat*tstat, 1.0, DF[i] - 1, false, true);
+
 				os << 
 					//score_perStudy[i][0](jj) << ", " << score_perStudy[i][1](jj) << "\t" <<
 					//SD[i] << " " << dv << " " << (DF[i] - 1) << "\t" <<
@@ -802,7 +805,13 @@ void cis_meta_data::meta_analyze()
 	//				SD[i]*se << "\t" << 
 					beta << "\t" << 
 					se << "\t" << 
-					pval << "\n";
+					log_to_string(log_pval);
+
+        if (global_opts::write_logp) {
+          os << "\t" << log_pval;
+        }
+
+        os << "\n";
 			}
 		}
 	}
