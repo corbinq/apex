@@ -21,6 +21,7 @@
 #include <math.h>
 #include <vector>
 #include <functional>
+#include <limits>
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>

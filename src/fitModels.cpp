@@ -799,7 +799,7 @@ int which_min( const std::vector<T>& p, bool gt0 ){
 void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& largest_log_pvalue, const Eigen::VectorXd& U, const Eigen::VectorXd& V, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const Eigen::MatrixXd& Cov, const double& n, const double& m){
 	
 	index_of_largest_pvalue = -1;
-  largest_log_pvalue = 0;
+  largest_log_pvalue = -std::numeric_limits<double>::infinity();
 	
 	int k_i = 0;
 	std::vector<int> kept_snps = seq_int(keep.size());
@@ -971,7 +971,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 		// -----------------------------------
 		if( global_opts::backward_thresh < 1.00 && nk > 1 ){
       double log_backthresh = log(global_opts::backward_thresh);
-			double max_log_joint_pvalue = 0;
+			double max_log_joint_pvalue = -std::numeric_limits<double>::infinity();
 			int k_rm = -1;
 			
 			check_joint_pvalues(k_rm, max_log_joint_pvalue, U, V, U_0, J_0, Cov, n, m);
