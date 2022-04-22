@@ -216,6 +216,43 @@ TEST(MetaTest, RegressionStepwiseCovFlip) {
   ASSERT_TRUE(reader_truth == reader_test);
 }
 
+/**
+ * Test case that covers the backward selection code in meta --stepwise.
+ */
+TEST(MetaTest, StepwiseBackward) {
+  global_opts::reset();
+  global_opts::set_global_region("");
+  global_opts::set_exp_weight(0);
+  global_opts::set_max_signals(10);
+  global_opts::process_global_opts(
+    "data/test_output.bkward",           // prefix
+    false,        // use low mem
+    2,            // rsq_buddy
+    0.8,          // rsq_prune
+    0.05,         // p-value threshold
+    1000000,      // window size
+    {},           // target genes
+    '0',          // ivw method
+    true,        // use_ds (dosage)
+    false,        // trim gene ids
+    0.05,         // stepwise_backward_thresh
+    true,         // t_hom
+    false,        // t_het
+    true,         // t_acat
+    true,         // stepwise_marginal_thresh
+    false         // write out log p-values
+  );
+
+  vector<string> meta_prefixes = {"data/bkward"};
+  string region = "";
+  cis_meta_data meta_dt(meta_prefixes, region);
+  meta_dt.conditional_analysis();
+
+  auto reader_truth = StepwiseReader("data/bkward.cis_meta.stepwise.tsv");
+  auto reader_test = StepwiseReader("data/test_output.bkward.cis_meta.stepwise.tsv");
+  ASSERT_TRUE(reader_truth == reader_test);
+}
+
 TEST(MetaTest, SingleVarMetaVerySmallPvalue) {
   global_opts::reset();
   global_opts::set_global_region("");
