@@ -795,6 +795,21 @@ int which_min( const std::vector<T>& p, bool gt0 ){
 	return wm;
 }
 
+template <typename T>
+int which_min(const std::vector<T>& v){
+  T mp = std::numeric_limits<T>::max();
+  int wm = -1;
+  for(int i = 0; i < v.size(); ++i) {
+    const T& val = v[i];
+    if (std::isfinite(val)) {
+      if (val < mp) {
+        mp = val;
+        wm = i;
+      }
+    }
+  }
+  return wm;
+}
 
 void forward_lm::check_joint_pvalues(int& index_of_largest_pvalue, double& largest_log_pvalue, const Eigen::VectorXd& U, const Eigen::VectorXd& V, const Eigen::VectorXd& U_0, const Eigen::MatrixXd& J_0, const Eigen::MatrixXd& Cov, const double& n, const double& m){
 	
@@ -871,7 +886,7 @@ forward_lm::forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const
 			reg0 = reg;
 		}
 
-		int wk = which_min(reg.log_pval, false); // disable gt0 because log p-values are always < 0
+		int wk = which_min(reg.log_pval);
 		double adj_pval = ACAT_non_missing(reg.pval, weights);
     double log_adj_pval = log(adj_pval);
 
