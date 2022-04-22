@@ -433,8 +433,12 @@ Eigen::MatrixXd vcov_data::getV(const std::vector<int>& v_i, const std::vector<i
 							out(i,j) = var[ii];
 						}else if( jj < vals.size() ){
 							// out(i,j) = (((double) v) * 2.0 * mac_k)/VBIN_T_MAX;
-							out(i,j) = unpack_dp((double) vals[jv], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
-							out(j,i) = out(i,j);
+              double val = unpack_dp((double) vals[jv], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
+              if (flipped[ii] != flipped[ii+jj]) {
+                val = -1.0 * val;
+              }
+							out(i,j) = val;
+							out(j,i) = val;
 						}else{
 							break;
 						}
@@ -466,8 +470,12 @@ Eigen::MatrixXd vcov_data::getV(const std::vector<int>& v_i, const std::vector<i
 								out(i,j) = var[ii];
 							}else if( jj < vals.size() ){
 								// out(i,j) = (((double) v) * 2.0 * mac_k)/VBIN_T_MAX;
-								out(i,j) = unpack_dp((double) vals[jj], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
-								out(j,i) = out(i,j);
+                double val = unpack_dp((double) vals[jj], mac_ii, mac[jj+ii]) - GtU.row(ii).dot(GtU.row(ii+jj));
+                if (flipped[ii] != flipped[ii+jj]) {
+                  val = -1.0 * val;
+                }
+								out(i,j) = val;
+								out(j,i) = val;
 							}else{
 								break;
 							}
