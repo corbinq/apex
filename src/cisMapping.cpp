@@ -146,7 +146,7 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 				
 				std::stringstream block_line;
 				
-				std::vector<double> pvals;
+				std::vector<long double> pvals;
 				std::vector<double> dist;
 				double gene_tss = 0.5*(e_data.start[jj] + e_data.end[jj]);
 		
@@ -173,17 +173,20 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 						
 						if( !just_long ) block_line << "\t" << g_yres_crossprod;
 						
-						double beta, beta_se, zscore, pval_esnp;
-						
+						double beta, beta_se, zscore, log_pval_esnp;
+						long double pval_esnp;
+
 						if( g_data.var[ii] > 0 ){
 							beta = g_yres_crossprod/g_data.var[ii];
 							beta_se = std::sqrt( (n_samples - 1)/g_data.var[ii] - beta*beta)/std::sqrt(n_samples - n_covar - 1);
 							zscore = beta/beta_se;
-							pval_esnp = pf( zscore*zscore, 1.0, n_samples - n_covar - 1, true );
+							log_pval_esnp = rmath::pf( zscore*zscore, 1.0, n_samples - n_covar - 1, false, true );
+              pval_esnp = exp(log_pval_esnp);
 						}else{
 							beta = 0;
 							beta_se = 0;
 							zscore = 0;
+              log_pval_esnp = 1;
 							pval_esnp = -1;
 						}
 
@@ -191,6 +194,7 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 						pvals.push_back(pval_esnp);
 
 						if( write_long ){
+              std::string str_pval_esnp = log_to_string(log_pval_esnp);
 
 							long_line << 
 								clean_chrom(g_data.chr[ii]) << "\t" <<
@@ -200,7 +204,7 @@ void run_cis_QTL_analysis(bcf_srs_t*& sr, bcf_hdr_t*& hdr,genotype_data& g_data,
 								e_data.gene_id[jj] << "\t" <<
 								y_scale[jj] * e_data.stdev[jj] * beta << "\t" <<
 								y_scale[jj] * e_data.stdev[jj] * beta_se  << "\t" <<
-								pval_esnp << "\n";
+                str_pval_esnp << "\n";
 						}
 					}
 					if( write_long ) write_to_bgzf(long_line.str().c_str(), long_file);

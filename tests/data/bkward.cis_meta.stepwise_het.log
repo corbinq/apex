@@ -1,0 +1,12 @@
+JBKY2; Step 0, part 1; Added 1_75_G_A; Model size 1
+JBKY2; Step 1, part 1; Added 1_8_A_C; Model size 2
+JBKY2; Step 2, part 1; Added 1_9_G_T; Model size 3
+JBKY2; Step 3, part 1; Added 1_64_C_A; Model size 4
+JBKY2; Step 4, part 1; Added 1_43_C_T; Model size 5
+JBKY2; Step 5, part 1; Added 1_33_C_T; Model size 6
+JBKY2; Step 6, part 1; Added 1_51_A_G; Model size 7
+JBKY2; Step 7, part 1; Added 1_39_C_T; Model size 8
+JBKY2; Step 8, part 1; Added 1_2_C_G; Model size 9
+JBKY2; Step 8, part 2; Dropped 1_33_C_T; Model size 8
+JBKY2; Step 9, part 1; Added 1_73_G_T; Model size 9
+JBKY2; Step 10; Exiting, no p-values met add/drop thresholds; Model size 9

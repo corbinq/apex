@@ -1,0 +1,6 @@
+cget
+cmake-build-debug
+cmake-build-release
+dist
+scratch
+tests/data/test_output*

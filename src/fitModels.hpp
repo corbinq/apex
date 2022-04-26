@@ -21,6 +21,7 @@
 #include <math.h>
 #include <vector>
 #include <functional>
+#include <limits>
 
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -35,6 +36,12 @@
 #include "metaAnalysis.hpp"
 #include "miscUtils.hpp"
 #include "mathStats.hpp"
+#include "rmathWrappers.hpp"
+
+using rmath::bounded_stdqcauchy;
+using rmath::bounded_stdpcauchy;
+using rmath::bounded_log_pf;
+using rmath::bounded_expl;
 
 static const double phi_upper = 10000;
 
@@ -281,7 +288,8 @@ class ss_lm_single
 		double beta;
 		double se;
 		double df;
-		double pval;
+		long double pval;
+    double log_pval;
 		
 		ss_lm_single () {};
 		
@@ -295,10 +303,12 @@ class ss_lm_single
 			beta *= scale_;
 			se *= scale_;
 			pval = -99;
+      log_pval = NAN;
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 && df > 2 ){
-					pval = pf( tstat*tstat, 1, df - 1, true );
+          log_pval = bounded_log_pf(tstat*tstat, 1.0, df - 1);
+          pval = bounded_expl(log_pval);
 				}
 			}
 		};
@@ -307,6 +317,7 @@ class ss_lm_single
 			beta = 0; se = 0; df = 0; 
 			U = 0; V = 0; SSR = 0;
 			pval = 1.0;
+      log_pval = 0.0;
 			double denom = 0.0, denom_beta = 0.0;
 			for( const ss_lm_single& i : ss_per_study ){
 				if( i.se > 0 && !std::isnan(i.beta) ){
@@ -328,10 +339,12 @@ class ss_lm_single
 			V /= denom;
 			SSR /= denom;
 			pval = -99;
+      log_pval = NAN;
 			if( se > 0 ){
 				double tstat = beta/se;
 				if( !std::isnan(tstat) && tstat*tstat > 0 ){
-					pval = pf( tstat*tstat, 1, df, true );
+          log_pval = bounded_log_pf(tstat*tstat, 1.0, df);
+          pval = bounded_expl(log_pval);
 				}
 			}
 		}
@@ -630,6 +643,7 @@ class svar_sumstat
 class meta_svar_sumstat
 {
 	private:
+    // Vector of summary statistics per study
 		std::vector<svar_sumstat> ss;
 		
 		vcov_getter& vg;
@@ -646,8 +660,15 @@ class meta_svar_sumstat
 		svar_sumstat ss_meta;
 		svar_sumstat ss_meta_0;
 	
-		// void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const std::vector<svar_sumstat>& vss = ss, const svar_sumstat& mss = ss_meta){
-		void triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
+    /**
+     *
+     * @param k Particular variant indexed by k
+     * @param pval_hom
+     * @param pval_het
+     * @param pval_acat
+     * @param pval_omni
+     */
+		void triform_pval(const int& k, long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni){
 			
 			if( ss_meta.V(k) <= 0 || ss_meta.V_0(k) <= 0 || ss_meta.V(k)/ss_meta.V_0(k) < 1.0 - global_opts::RSQ_PRUNE ){
 				pval_hom = -99; pval_het = -99;
@@ -656,10 +677,13 @@ class meta_svar_sumstat
 			}
 			
 			// Calculate homogeneous-effect p-value.
+      // This calculates a simple inverse-variance weighted meta-analysis for this variant k, adjusting for all
+      // previously added conditional variants.
 			pval_hom = single_model(k).pval; //ss_meta.single_snp_pval_ivw(k);
-			
-			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
-			for( const auto& ss_i : ss ){
+
+      long double q_acat = 0.0L;
+			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, ns = 0.0;
+			for( const auto& ss_i : ss ){ // loop over each study's set of summary statistics
 				
 				// Skip study if the variant is monomorphic.
 				if( ss_i.V_0(k) > 0  ){
@@ -670,7 +694,24 @@ class meta_svar_sumstat
 						pval_acat = -99; pval_omni = -99;
 						return;
 					}
-				
+
+          /*
+           * This is an F-test within this single study for adding the variant k to the model.
+           * U*U/V ends up being the increase in the SSR due to adding variant k, and SSR - (U^2/V) is the new SSR
+           * after including the variant.
+           *
+                     ⎛U  ⋅ U ⎞
+                     ⎜ k    k⎟
+          (DF - 1) ⋅ ⎜───────⎟
+                     ⎜  V    ⎟
+                     ⎝   k   ⎠
+          ────────────────────
+                    U  ⋅ U
+                     k    k
+              SSR - ───────
+                      V
+                       k
+          */
 					double U2_V_i = ss_i.U(k) * ss_i.U(k) / ss_i.V(k);
 					double fstat = (ss_i.DF - 1)*U2_V_i/(ss_i.SSR - U2_V_i);
 					
@@ -679,9 +720,9 @@ class meta_svar_sumstat
 						numer_het += U2_V_i;
 						denom_het += ss_i.SSR;
 						df_tot += ss_i.DF;
-						
-						q_acat += qcauchy(pf(fstat, 1.0, ss_i.DF - 1, true));
-						
+
+            q_acat += bounded_stdqcauchy(bounded_expl(bounded_log_pf(fstat, 1.0, ss_i.DF - 1)));
+
 						ns++;
 					}else{
 						pval_hom = -99; pval_het = -99;
@@ -692,13 +733,42 @@ class meta_svar_sumstat
 			}
 
 			// Calculate heterogeneous-effect p-value.
+      /* Numerator is:
+             ns
+            _____
+            ╲      2
+             ╲    U
+              ╲    s
+              ╱   ──
+             ╱    V
+            ╱      s
+            ‾‾‾‾‾
+              s
+            ────────
+               ns
+
+        Denominator is:
+
+                       _____
+                       ╲      2
+                        ╲    U
+            ___          ╲    s
+            ╲   SSR  -   ╱   ──
+            ╱      s    ╱    V
+            ‾‾‾        ╱      s
+             s         ‾‾‾‾‾
+                         s
+            ───────────────────
+                DF    - ns
+                  tot
+      */
 			denom_het -= numer_het;
 			numer_het /= ns;
 			denom_het /= (df_tot - ns);
 			
 			double fstat_het = numer_het/denom_het;
 			if( !std::isnan(fstat_het) && fstat_het > 0 && df_tot - ns > 2 && ns > 0 ){
-				pval_het = pf( fstat_het, ns, df_tot - ns, true );
+        pval_het = bounded_expl(bounded_log_pf(fstat_het, ns, df_tot - ns));
 			}else{
 				pval_het = -99;
 			}
@@ -706,20 +776,20 @@ class meta_svar_sumstat
 			// Calculate ACAT p-value.
 			if ( ns > 0 ){
 				q_acat /= ns;
-				pval_acat = pcauchy(q_acat);
+				pval_acat = bounded_stdpcauchy(q_acat);
 			}else{
 				pval_acat = -99;
 			}
 			
 			// Calculate omnibus p-value
-			double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
-			
+			long double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
+
 			if( global_opts::het_use_hom ){
 				if( pval_hom >= 0 ){
 					if( pval_hom < min_pval ){
 						min_pval = pval_hom;
 					}
-					stat_omni += qcauchy(pval_hom);
+					stat_omni += bounded_stdqcauchy(pval_hom);
 					n_omni++;
 				}
 			}
@@ -729,7 +799,7 @@ class meta_svar_sumstat
 					if( pval_het < min_pval ){
 						min_pval = pval_het;
 					}
-					stat_omni += qcauchy(pval_het);
+					stat_omni += bounded_stdqcauchy(pval_het);
 					n_omni++;
 				}
 			}
@@ -739,13 +809,21 @@ class meta_svar_sumstat
 					if( pval_acat < min_pval ){
 						min_pval = pval_acat;
 					}
-					stat_omni += qcauchy(pval_acat);
+					stat_omni += bounded_stdqcauchy(pval_acat);
 					n_omni++;
 				}
 			}
+
+      // If the min pval is 0, it will guarantee the bonferroni correction is triggered below,
+      // but this will also have the effect of setting pval_omni to 0, and therefore omitting a very significant variant
+      // from the final results. The code above tries to protect against pval_hom, pval_het, pval_acat underflowing to 0,
+      // so hopefully this will never trigger.
+      if (min_pval == 0.0) {
+        throw std::range_error("Error: minimum p-value of 0 when attempting to calculate omnibus(hom, het, acat)");
+      }
 			
 			if( n_omni > 0 ){
-				pval_omni = pcauchy(stat_omni/n_omni);
+				pval_omni = bounded_stdpcauchy(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > 10 * n_omni * min_pval ){
@@ -759,12 +837,12 @@ class meta_svar_sumstat
 			return;
 		};
 		
-		void triform_pval(double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni, const std::vector<ss_lm_single>& vss, const ss_lm_single& mss){
+		void triform_pval(long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni, const std::vector<ss_lm_single>& vss, const ss_lm_single& mss){
 			
 			// Calculate homogeneous-effect p-value.
 			pval_hom = mss.pval;
 			
-			double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
+			long double numer_het = 0.0, denom_het = 0.0, df_tot = 0.0, q_acat = 0.0, ns = 0.0;
 			for( const auto& ss_i : vss ){
 				
 				double U2_V_i = ss_i.U * ss_i.U / ss_i.V;
@@ -775,9 +853,9 @@ class meta_svar_sumstat
 					numer_het += U2_V_i;
 					denom_het += ss_i.SSR;
 					df_tot += ss_i.df;
-					
-					q_acat += qcauchy(pf(fstat, 1.0, ss_i.df - 1, true));
-					
+
+          q_acat += bounded_stdqcauchy(bounded_expl(bounded_log_pf(fstat, 1.0, ss_i.df - 1)));
+
 					ns++;
 				}else{
 					pval_hom = -99; pval_het = -99;
@@ -793,7 +871,7 @@ class meta_svar_sumstat
 			
 			double fstat_het = numer_het/denom_het;
 			if( fstat_het > 0 && df_tot - ns > 2 && ns > 0 ){
-				pval_het = pf( fstat_het, ns, df_tot - ns, true );
+				pval_het = bounded_expl(bounded_log_pf(fstat_het, ns, df_tot - ns));
 			}else{
 				pval_het = -99;
 			}
@@ -801,20 +879,20 @@ class meta_svar_sumstat
 			// Calculate ACAT p-value.
 			if ( ns > 0 ){
 				q_acat /= ns;
-				pval_acat = pcauchy(q_acat);
+				pval_acat = bounded_stdpcauchy(q_acat);
 			}else{
 				pval_acat = -99;
 			}
 			
 			// Calculate omnibus p-value
-			double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
+			long double n_omni = 0.0, stat_omni = 0.0, min_pval = 1.0;
 			
 			if( global_opts::het_use_hom ){
 				if( pval_hom >= 0 ){
 					if( pval_hom < min_pval ){
 						min_pval = pval_hom;
 					}
-					stat_omni += qcauchy(pval_hom);
+					stat_omni += bounded_stdqcauchy(pval_hom);
 					n_omni++;
 				}
 			}
@@ -824,7 +902,7 @@ class meta_svar_sumstat
 					if( pval_het < min_pval ){
 						min_pval = pval_het;
 					}
-					stat_omni += qcauchy(pval_het);
+					stat_omni += bounded_stdqcauchy(pval_het);
 					n_omni++;
 				}
 			}
@@ -834,13 +912,17 @@ class meta_svar_sumstat
 					if( pval_acat < min_pval ){
 						min_pval = pval_acat;
 					}
-					stat_omni += qcauchy(pval_acat);
+					stat_omni += bounded_stdqcauchy(pval_acat);
 					n_omni++;
 				}
 			}
+
+      if (min_pval == 0.0) {
+        throw std::range_error("Error: minimum p-value of 0 when attempting to calculate omnibus(hom, het, acat)");
+      }
 			
 			if( n_omni > 0 ){
-				pval_omni = pcauchy(stat_omni/n_omni);
+				pval_omni = bounded_stdpcauchy(stat_omni/n_omni);
 				
 				// Switch to Bonferroni if something went wrong
 				if( pval_omni > 10 * n_omni*min_pval ){
@@ -854,9 +936,9 @@ class meta_svar_sumstat
 			return;
 		};
 		
-		void omni_min_pval(int& k, double& min_omni_p, double& acat_omni_p){
+		void omni_min_pval(int& k, long double& min_omni_p, long double& acat_omni_p){
 			
-			double MAX_P_VAR = -1.0, NUMER = 0.0, DENOM = 0.0, N_PVAL1 = 0.0;
+			long double MAX_P_VAR = -1.0, NUMER = 0.0, DENOM = 0.0, N_PVAL1 = 0.0;
 			
 			k = -1;
 			min_omni_p = 1.00; acat_omni_p = -99;
@@ -865,7 +947,7 @@ class meta_svar_sumstat
 				if( ss_meta.V(i) > 0 && ss_meta.V_0(i) > 0 ){
 					if( ss_meta.V(i)/ss_meta.V_0(i) > 1.0 - global_opts::RSQ_PRUNE ){
 						
-						double hom_p, het_p, aca_p, omn_p;
+						long double hom_p, het_p, aca_p, omn_p;
 						triform_pval(i, hom_p, het_p, aca_p, omn_p);
 						
 						if( omn_p >= 1){
@@ -873,7 +955,7 @@ class meta_svar_sumstat
 							N_PVAL1++;
 						}else if( omn_p > 0 && !std::isnan(omn_p) ){
 							DENOM++;
-							NUMER += qcauchy(omn_p);
+							NUMER += bounded_stdqcauchy(omn_p);
 							if( omn_p < min_omni_p ){
 								min_omni_p = omn_p;
 								k = i;
@@ -887,8 +969,8 @@ class meta_svar_sumstat
 				k = -1; min_omni_p = -99; acat_omni_p = -99;
 			}else{
 				double NUDGED_PVAL1 = DENOM >= 4 ? DENOM/(DENOM + 1) : 0.80;
-				NUMER += N_PVAL1 * qcauchy( NUDGED_PVAL1 );
-				acat_omni_p = pcauchy(NUMER/DENOM);
+				NUMER += N_PVAL1 * bounded_stdqcauchy( NUDGED_PVAL1 );
+				acat_omni_p = bounded_stdpcauchy(NUMER/DENOM);
 			}
 			
 			return;
@@ -967,7 +1049,7 @@ class meta_svar_sumstat
 			return ss_lm_single(lm_singles);
 		}
 		
-		ss_lm_single final_model_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
+		ss_lm_single final_model_triform_pval(const int& k, long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni){
 			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.final_model(k));
@@ -977,7 +1059,7 @@ class meta_svar_sumstat
 			return lm_meta;
 		};
 		
-		ss_lm_single marginal_triform_pval(const int& k, double& pval_hom, double& pval_het, double& pval_acat, double& pval_omni){
+		ss_lm_single marginal_triform_pval(const int& k, long double& pval_hom, long double& pval_het, long double& pval_acat, long double& pval_omni){
 			std::vector<ss_lm_single> lm_singles;
 			for( svar_sumstat& ss_i : ss ){
 				lm_singles.push_back(ss_i.marginal_model(k));
@@ -1003,25 +1085,28 @@ class lm_output
 		
 		std::vector<double> beta;
 		std::vector<double> se;
-		std::vector<double> pval;
+		std::vector<long double> pval;
+    std::vector<double> log_pval;
 		std::vector<double> vif;
 		
 		double df;
 		std::string name;
 		std::string info;
 		
-		void push_back(const double& b, const double& s, const double& p)
+		void push_back(const double& b, const double& s, const long double& p, const double& log_p)
 		{
 			beta.push_back(b);
 			se.push_back(s);
 			pval.push_back(p);
+      log_pval.push_back(log_p);
 		};
 
-		void push_back(const double& b, const double& s, const double& p, const double& v)
+		void push_back(const double& b, const double& s, const long double& p, const double& log_p, const double& v)
 		{
 			beta.push_back(b);
 			se.push_back(s);
 			pval.push_back(p);
+      log_pval.push_back(log_p);
 			vif.push_back(v);
 		};
 
@@ -1040,7 +1125,8 @@ class lm_output
 static const std::vector<double> vd0(0);
 
 struct step_record{
-	int n_total, n_part, add_drop, snp_id, size;
+	int n_total, n_part, add_drop, snp_id;
+  unsigned long size;
 };
 
 class forward_lm
@@ -1052,10 +1138,14 @@ class forward_lm
 		std::vector<double> se;
 		std::vector<double> beta_0;
 		std::vector<double> se_0;
-		std::vector<double> pval_0;
-		std::vector<double> pval_seq;
-		std::vector<double> pval_joint;
-		std::vector<double> pval_adj;
+		std::vector<long double> pval_0;
+		std::vector<long double> pval_seq;
+		std::vector<long double> pval_joint;
+		std::vector<long double> pval_adj;
+    std::vector<double> log_pval_0;
+    std::vector<double> log_pval_seq;
+    std::vector<double> log_pval_joint;
+    std::vector<double> log_pval_adj;
 		
 		std::vector<step_record> step_history;
 		
@@ -1073,7 +1163,7 @@ class forward_lm
 		
 		forward_lm(const Eigen::VectorXd& U, const Eigen::VectorXd& V, const double& n, const double& df_0, const double& stdev, indiv_vcov_getter& vget, double pval_thresh,  const std::vector<double>& weights = vd0);
 		
-		void check_joint_pvalues(int&, double&, const Eigen::VectorXd&, const Eigen::VectorXd&,const Eigen::VectorXd&, const Eigen::MatrixXd&, const double&, const double&);
+		void check_joint_pvalues(int&, double&, const Eigen::VectorXd&, const Eigen::VectorXd&,const Eigen::VectorXd&, const Eigen::MatrixXd&, const Eigen::MatrixXd&, const double&, const double&);
 		
 		void push_back(double,double,double);
 		void print_coefs();

@@ -27,7 +27,9 @@ namespace global_opts
 	// GENERAL OPTIONS
 		std::string out_prefix = "";
 		bool low_mem = false;
-	
+	  bool write_logp = false;
+    bool legacy_vcov = false;
+
 	// INPUT OPTIONS 
 	
 		std::string global_region = "";
@@ -129,7 +131,7 @@ namespace global_opts
 		});
 }
 
-bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg ){
+bool global_opts::process_global_opts( const std::string& pfx, const bool& low_memory, const double& rsq_buddy, const double& rsq, const double& pthresh, const int& window, const std::vector<std::string>& tg, const char& ivw_mode, const bool& use_ds, const bool& trim, const double& backward, const bool& h_hom, const bool& h_het, const bool& h_acat, const bool& step_marg, const bool& print_logp ){
 	out_prefix = pfx;
 	low_mem = low_memory;
 	cis_window_bp = window;
@@ -147,7 +149,7 @@ bool global_opts::process_global_opts( const std::string& pfx, const bool& low_m
 	het_use_het = h_het;
 	het_use_acat = h_acat;
 	step_marginal = step_marg;
-	
+	write_logp = print_logp;
 	return true;
 };
 
@@ -186,6 +188,89 @@ void global_opts::save_residuals(const bool& wb){
 void global_opts::set_global_region(const std::string& reg){
 	global_region = reg;
 	return;
+}
+
+void global_opts::set_legacy_vcov(const bool& b) {
+  legacy_vcov = b;
+}
+
+void global_opts::reset() {
+  // GENERAL OPTIONS
+  out_prefix = "";
+  low_mem = false;
+
+  // INPUT OPTIONS
+  std::string global_region = "";
+
+  // GENOTYPE OPTIONS
+  exclude_missing = 0;
+  dosage_thresh = 0.01;
+  minimum_maf = 0;
+  minimum_mac = 1;
+  use_dosages = false;
+
+  // COVARIATE OPTIONS
+  filter_covariates = false;
+
+  // SAMPLE SUBSETTING
+  filter_iids = false;
+
+  trim_gene_ids = false;
+
+  // ANALYSIS OPTIONS
+  n_fa_iter = 3;
+  fa_p = 0.001;
+  fa_tau = 1.00;
+
+  write_resid_mat = false;
+
+  // stepwise options
+  exp_weight_val = 5e-6;
+  max_signals = 10;
+  max_steps = 100;
+
+  // "Sloppy" covariate adjustment
+  sloppy_covar = false;
+
+  RSQ_PRUNE = 0.80;
+  RSQ_BUDDY = 1.00;
+
+  // TESTING OPTIONS
+  het_use_hom = true;
+  het_use_het = true;
+  het_use_acat = true;
+
+  step_marginal = false;
+
+  // VARIANT MERGE OPTIONS
+  biallelic_only = true;
+
+  // LMM OPTIONS
+  use_grm = false;
+  ml_not_reml = false;
+  write_v_anchors = false;
+
+  // ANALYSIS MODE
+  meta_weight_method = '0';
+  conditional_analysis = false;
+  trans_eqtl_mode = false;
+  backward_thresh = 1.00;
+
+  // CIS-QTL OPTIONS
+  LM_ALPHA = 0.05;
+  cis_window_bp = 1000000;
+  cis_window_gene_body = false;
+
+  // LD OPTIONS
+  ld_window_bp = 1000000;
+
+  // VARIANT MATCHING OPTIONS
+  freq_tol = 0.05;
+  try_match_ambiguous_snv = true;
+
+  // GENE SUBSETTING OPTIONS
+  filter_genes = false;
+  target_genes.clear();
 }
 
 

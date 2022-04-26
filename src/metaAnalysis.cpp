@@ -389,7 +389,7 @@ void cis_sumstat_data::open(const std::string& pf, const std::string& reg)
 	dp.add_field(NS,5);
 	dp.add_field(NC,6);
 	dp.add_field(SD,7);
-	dp.add_field(N_CIS,8);
+	dp.add_field(N_CIS,8);       // This is "n_cis_variants" as read from the gene_table file
 	
 	// dp.parse_file(gene_file, region);
 	
@@ -558,9 +558,11 @@ void cis_meta_data::merge(const std::vector<std::vector<int>>& si, const std::ve
 		std::vector<double> ivw_0(n_studies);
 		
 		for( const int& s : studies_with_gene ){
-			
+
+      // ss stores cis summary stat data, each row corresponding to a gene
+      // SD is calculated per gene; is stdev(gene residuals under null model)
 			SD_perStudy_0[s] = ss[s].SD[jj[s]];
-			DF_perStudy_0[s] = ss[s].NS[jj[s]] - ss[s].NC[jj[s]];
+			DF_perStudy_0[s] = ss[s].NS[jj[s]] - ss[s].NC[jj[s]]; // NS = number of samples, NC = number of covariates (null model)
 			
 			SSR_perStudy_0[s] = (ss[s].NS[jj[s]] - 1)*SD_perStudy_0[s]*SD_perStudy_0[s];
 			
@@ -729,6 +731,9 @@ void cis_meta_data::meta_analyze()
 	std::ofstream os(out_name.c_str(), std::ofstream::out);
 
 	std::vector<std::string> col_names{"#chr", "pos", "ref", "alt", "gene", "studies", "beta", "se", "pval"};
+  if (global_opts::write_logp) {
+    col_names.push_back("log_pval");
+  }
 	
 	print_header(col_names, os);
 	
@@ -785,8 +790,8 @@ void cis_meta_data::meta_analyze()
 			if( se > 0.00  ){
 
 				double tstat = beta/se;
-				double pval = pf( tstat*tstat, 1.0, DF[i] - 1, true );
-				
+				double log_pval = rmath::pf(tstat*tstat, 1.0, DF[i] - 1, false, true);
+
 				os << 
 					//score_perStudy[i][0](jj) << ", " << score_perStudy[i][1](jj) << "\t" <<
 					//SD[i] << " " << dv << " " << (DF[i] - 1) << "\t" <<
@@ -800,7 +805,13 @@ void cis_meta_data::meta_analyze()
 	//				SD[i]*se << "\t" << 
 					beta << "\t" << 
 					se << "\t" << 
-					pval << "\n";
+					log_to_string(log_pval);
+
+        if (global_opts::write_logp) {
+          os << "\t" << log_pval;
+        }
+
+        os << "\n";
 			}
 		}
 	}
@@ -970,12 +981,25 @@ void cis_meta_data::conditional_analysis(const int& gene_index, std::ostream& os
 		
 		for(int i = 0; i < out.beta.size(); ++i)
 		{
-			// os.precision(4);
-			os << gene << "\t" << in_studies;
-			os << "\t" << i+1 << ":" << out.beta.size() << "\t" << snp(out.keep[i]) << "\t" << 
-			out.beta[i] << "\t" << out.se[i] << "\t" << out.pval_joint[i]  << "\t" << out.pval_adj[i] << "\t";
-			// os.precision(2);
-			os << out.pval_0[i] << "\t" << out.pval_seq[i] << "\n";
+      if (!global_opts::write_logp) {
+        std::string str_pval_joint = log_to_string(out.log_pval_joint[i]);
+        std::string str_pval_adj = log_to_string(out.log_pval_adj[i]);
+        std::string str_pval_0 = log_to_string(out.log_pval_0[i]);
+        std::string str_pval_seq = log_to_string(out.log_pval_seq[i]);
+
+        // os.precision(4);
+        os << gene << "\t" << in_studies;
+        os << "\t" << i+1 << ":" << out.beta.size() << "\t" << snp(out.keep[i]) << "\t" <<
+           out.beta[i] << "\t" << out.se[i] << "\t" << str_pval_joint  << "\t" << str_pval_adj << "\t";
+        // os.precision(2);
+        os << str_pval_0 << "\t" << str_pval_seq << "\n";
+      }
+      else {
+        os << gene << "\t" << in_studies;
+        os << "\t" << i+1 << ":" << out.beta.size() << "\t" << snp(out.keep[i]) << "\t" <<
+           out.beta[i] << "\t" << out.se[i] << "\t" << out.log_pval_joint[i]  << "\t" << out.log_pval_adj[i] << "\t";
+        os << out.log_pval_0[i] << "\t" << out.log_pval_seq[i] << "\n";
+      }
 		}
 		// os.precision(5);
 		
@@ -1038,8 +1062,8 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 	// p-value stop threshold is global_opts::LM_ALPHA
 	
 	std::vector<int> top_snps;
-	std::vector<double> acat_stepwise_pvals;
-	std::vector<double> svar_stepwise_pvals;
+	std::vector<long double> acat_stepwise_pvals;
+	std::vector<long double> svar_stepwise_pvals;
 	
 	meta_ss.update_meta_ss();
 	
@@ -1049,7 +1073,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		int n_steps = 0;
 		
 		int top_snp;
-		double svar_stepwise_pval, acat_stepwise_pval;
+		long double svar_stepwise_pval, acat_stepwise_pval;
 		
 		// std::cout << "BEGIN" << "\t" << gene << "\t";
 		// meta_ss.ss_meta.acat_min_pval(top_snp, svar_stepwise_pval, acat_stepwise_pval);
@@ -1058,7 +1082,7 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		
 		// std::cout << top_snp << "\t" << svar_stepwise_pval << "\t" << acat_stepwise_pval << "\n";
 		
-		double pval_check = global_opts::step_marginal ? svar_stepwise_pval : acat_stepwise_pval;
+		long double pval_check = global_opts::step_marginal ? svar_stepwise_pval : acat_stepwise_pval;
 		
 		// -----------------------------------
 		// Forward step. 
@@ -1081,11 +1105,11 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 		// -----------------------------------		
 		if( global_opts::backward_thresh < 1.00 & top_snps.size() > 1 ){
 			
-			double max_joint_pvalue = 0;
+			long double max_joint_pvalue = 0;
 			int w_rm = -1;
 					
 			for(int i = 0; i < top_snps.size() - 1; i++){
-				double p_hom, p_het, p_aca, p_omn;
+				long double p_hom, p_het, p_aca, p_omn;
 				ss_lm_single fm_i = meta_ss.final_model_triform_pval(i, p_hom, p_het, p_aca, p_omn);
 				if( p_omn < 0 ){
 					// P not computable due to multicollinearity or non-positive variance
@@ -1139,8 +1163,8 @@ void cis_meta_data::conditional_analysis_het(const int& gene_index, std::ostream
 	// std::cout << "\n\nSTARTING OUTPUT:\n";
 	
 	for(int i = 0; i < top_snps.size(); i++){
-		double p_hom, p_het, p_aca, p_omn;
-		double p_hom_m, p_het_m, p_aca_m, p_omn_m;
+		long double p_hom, p_het, p_aca, p_omn;
+		long double p_hom_m, p_het_m, p_aca_m, p_omn_m;
 		ss_lm_single fm_i = meta_ss.final_model_triform_pval(i, p_hom, p_het, p_aca, p_omn);
 		ss_lm_single fm_i_m = meta_ss.marginal_triform_pval(i, p_hom_m, p_het_m, p_aca_m, p_omn_m);
 		//double marginal_pval_i = meta_ss.ss_meta_0.single_snp_pval(i);
@@ -1159,9 +1183,15 @@ void cis_meta_data::conditional_analysis(){
 	
 	std::string log_name = global_opts::out_prefix + ".cis_meta.stepwise.log";
 	std::ofstream os_log(log_name.c_str(), std::ofstream::out);
-	
-	std::vector<std::string> col_names{"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
-	
+
+	std::vector<std::string> col_names;
+  if (global_opts::write_logp) {
+    col_names = {"#gene", "studies", "signal", "variant", "beta", "se", "log_pval_joint", "log_pval_signal", "log_pval_marginal", "log_pval_stepwise"};
+  }
+  else {
+    col_names =   {"#gene", "studies", "signal", "variant", "beta", "se", "pval_joint", "pval_signal", "pval_marginal", "pval_stepwise"};
+  }
+
 	print_header(col_names, os);
 	
 	// ld buddy output.
@@ -1180,7 +1210,13 @@ void cis_meta_data::conditional_analysis(){
 	std::string iter_cerr_suffix = " genes out of " + std::to_string(gene_id.size()) + " ...";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
-	for(int i = 0; i < gene_id.size(); ++i){
+  auto& gene_list = global_opts::target_genes;
+  for(int i = 0; i < gene_id.size(); ++i){
+    if (!gene_list.empty()) {
+      if (std::find(gene_list.begin(), gene_list.end(), gene_id[i]) == gene_list.end()) {
+        continue;
+      }
+    }
 		int j = i;
 		conditional_analysis(j, os, os_log, os_b);
 		j = i;
@@ -1213,7 +1249,13 @@ void cis_meta_data::conditional_analysis_het(){
 	std::string iter_cerr_suffix = " genes out of " + std::to_string(gene_id.size()) + " ...";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
+  auto& gene_list = global_opts::target_genes;
 	for(int i = 0; i < gene_id.size(); ++i){
+    if (!gene_list.empty()) {
+      if (std::find(gene_list.begin(), gene_list.end(), gene_id[i]) == gene_list.end()) {
+        continue;
+      }
+    }
 		int j = i;
 		conditional_analysis_het(j, os, os_log);
 		j = i;

@@ -1,0 +1,8 @@
+jonathonl/shrinkwrap@v1.2.0
+htslib,https://github.com/samtools/htslib/releases/download/1.12/htslib-1.12.tar.bz2 -DCMAKE_VERBOSE_MAKEFILE=1 --cmake htslib.cmake
+eigen,https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+boost,http://downloads.sourceforge.net/project/boost/boost/1.67.0/boost_1_67_0.tar.bz2 --cmake boost.cmake -DBOOST_WITH_IOSTREAMS=1 -DBOOST_WITH_PYTHON=1 -DBOOST_WITH_SYSTEM=1 -DCMAKE_C_FLAGS=-fPIC -DCMAKE_CXX_FLAGS=-fPIC
+yixuan/spectra@0.9.x
+Taywee/args@ae22269df734a2b0957a9ab4e37be41f61866dbe
+atks/Rmath@1a438f2f363e1f8fcf6b2804bd2cd0136d300230 --cmake rmath.cmake
+gtest,https://github.com/google/googletest/archive/refs/tags/release-1.11.0.tar.gz

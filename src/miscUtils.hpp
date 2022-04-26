@@ -22,9 +22,75 @@
 #include <vector>
 #include <algorithm>
 #include <unordered_set>
-
+#include <string>
+#include <memory>
 #include "setOptions.hpp"
+#include <regex>
 
+template<typename ... Args>
+std::string string_format(const std::string& format, Args ... args) {
+  int size_s = std::snprintf(nullptr, 0, format.c_str(), args ...) + 1;
+  if (size_s <= 0) {
+    throw std::runtime_error("Error during formatting.");
+  }
+
+  auto size = static_cast<size_t>(size_s);
+  auto buf = std::make_unique<char[]>(size);
+  std::snprintf(buf.get(), size, format.c_str(), args ...);
+  return {buf.get(), buf.get() + size - 1};
+}
+
+template <typename float_type> std::string log_to_string(float_type& value) {
+  if (std::isnan(value)) {
+    return "nan";
+  }
+  else if (std::isinf(value)) {
+    if (std::signbit(value)) {
+      return "-inf";
+    }
+    else {
+      return "inf";
+    }
+  }
+
+  float_type v = value / M_LN10;
+  int exp = floor(v);
+  float_type r = v - exp;
+  float_type base = pow(10, r);
+  std::string text = string_format("%fe%i", base, exp);
+  return text;
+}
+
+inline double string_to_log(std::string& value) {
+  static std::regex sci_regex(R"(([\d\.\-]+)([\sxeE]*)([0-9\-]*))", std::regex_constants::ECMAScript);
+
+  if (value.empty()) {
+    return NAN;
+  }
+
+  double base = 0;
+  double exponent = 0;
+  std::smatch match;
+  if (std::regex_match(value, match, sci_regex)) {
+    int i = 0;
+    for (const auto& m : match) {
+      auto iv = m.str();
+      if (i == 1) {
+        base = stod(iv);
+      }
+      else if (i == 3) {
+        if (!iv.empty()) {
+          exponent = stod(iv);
+        }
+      }
+      i++;
+    }
+  }
+
+  double lv_log10 = log10(base) + exponent;
+  double lv_ln = lv_log10 / M_LOG10E;
+  return lv_ln;
+}
 
 static const int print_every_default = 1000;
 static std::vector<int> null_vec = std::vector<int>(0);

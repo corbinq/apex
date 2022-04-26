@@ -51,7 +51,8 @@ class bed_data
 		
 		std::vector<int> v_s;
 		std::vector<int> v_e;
-		
+
+    // Vector of standard deviations for each gene
 		std::vector<double> stdev;
 		
 		std::vector<double> n_var;
