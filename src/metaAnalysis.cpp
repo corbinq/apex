@@ -1210,7 +1210,13 @@ void cis_meta_data::conditional_analysis(){
 	std::string iter_cerr_suffix = " genes out of " + std::to_string(gene_id.size()) + " ...";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
-	for(int i = 0; i < gene_id.size(); ++i){
+  auto& gene_list = global_opts::target_genes;
+  for(int i = 0; i < gene_id.size(); ++i){
+    if (!gene_list.empty()) {
+      if (std::find(gene_list.begin(), gene_list.end(), gene_id[i]) == gene_list.end()) {
+        continue;
+      }
+    }
 		int j = i;
 		conditional_analysis(j, os, os_log, os_b);
 		j = i;
@@ -1243,7 +1249,13 @@ void cis_meta_data::conditional_analysis_het(){
 	std::string iter_cerr_suffix = " genes out of " + std::to_string(gene_id.size()) + " ...";
 	
 	print_iter_cerr(1, 0, iter_cerr_suffix);
+  auto& gene_list = global_opts::target_genes;
 	for(int i = 0; i < gene_id.size(); ++i){
+    if (!gene_list.empty()) {
+      if (std::find(gene_list.begin(), gene_list.end(), gene_id[i]) == gene_list.end()) {
+        continue;
+      }
+    }
 		int j = i;
 		conditional_analysis_het(j, os, os_log);
 		j = i;
