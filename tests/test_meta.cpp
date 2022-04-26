@@ -176,6 +176,28 @@ TEST(MetaTest, LogToString) {
   ASSERT_EQ(result_neginf, "-inf");
 }
 
+TEST(MetaTest, StringToLog) {
+  // Easy case
+  std::string test1 = "3.12e-3";
+  double result1 = string_to_log(test1);
+  ASSERT_NEAR(result1, log(3.12e-3), 1e-6);
+
+  // Empty string
+  std::string test2 = "";
+  double result2 = string_to_log(test2);
+  ASSERT_TRUE(std::isnan(result2));
+
+  // Simple number
+  std::string test3 = "0.02397462";
+  double result3 = string_to_log(test3);
+  ASSERT_NEAR(result3, log(0.02397462), 1e-6);
+
+  // No decimal
+  std::string test4 = "4e-10";
+  double result4 = string_to_log(test4);
+  ASSERT_NEAR(result4, log(4e-10), 1e-6);
+}
+
 /**
  * Regression test to check for nan pvalue caused by wrong covariance matrix used in stepwise procedure
  */

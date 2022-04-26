@@ -25,6 +25,7 @@
 #include <string>
 #include <memory>
 #include "setOptions.hpp"
+#include <regex>
 
 template<typename ... Args>
 std::string string_format(const std::string& format, Args ... args) {
@@ -58,6 +59,37 @@ template <typename float_type> std::string log_to_string(float_type& value) {
   float_type base = pow(10, r);
   std::string text = string_format("%fe%i", base, exp);
   return text;
+}
+
+inline double string_to_log(std::string& value) {
+  static std::regex sci_regex(R"(([\d\.\-]+)([\sxeE]*)([0-9\-]*))", std::regex_constants::ECMAScript);
+
+  if (value.empty()) {
+    return NAN;
+  }
+
+  double base = 0;
+  double exponent = 0;
+  std::smatch match;
+  if (std::regex_match(value, match, sci_regex)) {
+    int i = 0;
+    for (const auto& m : match) {
+      auto iv = m.str();
+      if (i == 1) {
+        base = stod(iv);
+      }
+      else if (i == 3) {
+        if (!iv.empty()) {
+          exponent = stod(iv);
+        }
+      }
+      i++;
+    }
+  }
+
+  double lv_log10 = log10(base) + exponent;
+  double lv_ln = lv_log10 / M_LOG10E;
+  return lv_ln;
 }
 
 static const int print_every_default = 1000;
