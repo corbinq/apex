@@ -9,6 +9,7 @@
 #include <limits>
 
 const long double PVALUE_MAX_REL_DIFF = 1E-5L;
+const double LOG_PVALUE_MAX_REL_DIFF = 0.001;
 
 /**
  * Check if a filepath exists.

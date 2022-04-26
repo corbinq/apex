@@ -45,10 +45,19 @@ void StepwiseReader::load(const string &file) {
       rec->variant = tokens.at(3);
       rec->beta = extract_fp<double>(tokens.at(4));
       rec->se = extract_fp<double>(tokens.at(5));
-      rec->pval_joint = extract_fp<long double>(tokens.at(6));
-      rec->pval_signal = extract_fp<long double>(tokens.at(7));
-      rec->pval_marginal = extract_fp<long double>(tokens.at(8));
-      rec->pval_stepwise = extract_fp<long double>(tokens.at(9));
+
+      if (use_log) {
+        rec->log_pval_joint = string_to_log(tokens.at(6));
+        rec->log_pval_signal = string_to_log(tokens.at(7));
+        rec->log_pval_marginal = string_to_log(split_string(tokens.at(8), ':')[0]);
+        rec->log_pval_stepwise = string_to_log(tokens.at(9));
+      }
+      else {
+        rec->pval_joint = extract_fp<long double>(tokens.at(6));
+        rec->pval_signal = extract_fp<long double>(tokens.at(7));
+        rec->pval_marginal = extract_fp<long double>(split_string(tokens.at(8), ':')[0]);
+        rec->pval_stepwise = extract_fp<long double>(tokens.at(9));
+      }
 
       // Keys
 //      string chrpos = rec->chrom + ":" + to_string(rec->pos);
@@ -66,7 +75,8 @@ void StepwiseReader::load(const string &file) {
   }
 }
 
-StepwiseReader::StepwiseReader(const string &file) {
+StepwiseReader::StepwiseReader(const string &file, bool use_log) {
+  this->use_log = use_log;
   load(file);
 }
 
@@ -101,14 +111,27 @@ bool StepwiseReader::operator==(const StepwiseReader& other) {
       return false;
     if (!approx_equal(rec_a->se, rec_b->se))
       return false;
-    if (!approx_equal(rec_a->pval_joint, rec_b->pval_joint, PVALUE_MAX_REL_DIFF))
-      return false;
-    if (!approx_equal(rec_a->pval_signal, rec_b->pval_signal, PVALUE_MAX_REL_DIFF))
-      return false;
-    if (!approx_equal(rec_a->pval_marginal, rec_b->pval_marginal, PVALUE_MAX_REL_DIFF))
-      return false;
-    if (!approx_equal(rec_a->pval_stepwise, rec_b->pval_stepwise, PVALUE_MAX_REL_DIFF))
-      return false;
+
+    if (use_log) {
+      if (!approx_equal(rec_a->log_pval_joint, rec_b->log_pval_joint, LOG_PVALUE_MAX_REL_DIFF))
+        return false;
+      if (!approx_equal(rec_a->log_pval_signal, rec_b->log_pval_signal, LOG_PVALUE_MAX_REL_DIFF))
+        return false;
+      if (!approx_equal(rec_a->log_pval_marginal, rec_b->log_pval_marginal, LOG_PVALUE_MAX_REL_DIFF))
+        return false;
+      if (!approx_equal(rec_a->log_pval_stepwise, rec_b->log_pval_stepwise, LOG_PVALUE_MAX_REL_DIFF))
+        return false;
+    }
+    else {
+      if (!approx_equal(rec_a->pval_joint, rec_b->pval_joint, PVALUE_MAX_REL_DIFF))
+        return false;
+      if (!approx_equal(rec_a->pval_signal, rec_b->pval_signal, PVALUE_MAX_REL_DIFF))
+        return false;
+      if (!approx_equal(rec_a->pval_marginal, rec_b->pval_marginal, PVALUE_MAX_REL_DIFF))
+        return false;
+      if (!approx_equal(rec_a->pval_stepwise, rec_b->pval_stepwise, PVALUE_MAX_REL_DIFF))
+        return false;
+    }
   }
 
   return true;

@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include "reader_util.h"
+#include "miscUtils.hpp"
 
 struct StepwiseRecord {
   std::string gene;
@@ -18,6 +19,10 @@ struct StepwiseRecord {
   long double pval_signal;
   long double pval_marginal;
   long double pval_stepwise;
+  double log_pval_joint;
+  double log_pval_signal;
+  double log_pval_marginal;
+  double log_pval_stepwise;
 };
 
 /**
@@ -27,8 +32,11 @@ class StepwiseReader {
 protected:
   std::vector<std::shared_ptr<StepwiseRecord>> records;
   std::map<std::string, std::shared_ptr<StepwiseRecord>> index;
+
+  /** Compare p-values using log scale values only **/
+  bool use_log;
 public:
-  StepwiseReader(const std::string &file);
+  StepwiseReader(const std::string &file, bool use_log = false);
   void load(const std::string &file);
   std::shared_ptr<StepwiseRecord> get_record(const std::string &i);
 
