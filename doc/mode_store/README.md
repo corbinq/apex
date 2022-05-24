@@ -21,7 +21,7 @@ Note that APEX vcov files capture covariated-adjusted LD (the covariance of geno
 **Example command:** <br />
  `./apex store --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name}` <br />
 
- **Output files.** The above command generates 3 output files, `{out-name}.vcov.bin`, `{out-name}.vcov.idx.gz`, `{out-name}.cis_long_table.tsv.gz`.  These files store LD data, LD index and covariate adjustment terms, and tabix index respectively. In general, these files are not intended to be human-readable, but can be queried and used for multiple-variant analysis using `apex meta` and `apexR`. <br />
+ **Output files.** The above command generates 3 output files, `{out-name}.vcov.bin`, `{out-name}.vcov.idx.gz`, `{out-name}.vcov.idx.gz.csi`.  These files store LD data, LD index and covariate adjustment terms, and tabix index respectively. In general, these files are not intended to be human-readable, but can be queried and used for multiple-variant analysis using `apex meta` and `apexR`. <br />
 
 ## Command line arguments
 A partial list of options is given below.  Please run `./apex store --help` to see a complete list of command line flags and options. 

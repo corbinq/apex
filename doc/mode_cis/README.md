@@ -18,7 +18,7 @@ cis-xQTL analysis in APEX uses either a) ordinary least squares (OLS) or b) a li
 **Example command:** <br />
  `./apex cis --vcf {vcf} --bed {trait-file} --cov {covariate-file} --prefix {out-name} --long` <br />
 
- **Output files.** The above command generates 3 output files, `{out-name}.cis_sumstats.tsv.gz`, `{out-name}.cis_gene_table.tsv.gz`, `{out-name}.cis_long_table.tsv.gz`.  The `cis_sumstats` output file contains association score statistics in a condensed format, which can be used for downstream analysis with the command `./apex meta`.  Human-readable output files are described below: <br />
+ **Output files.** The above command generates 5 output files, `{out-name}.cis_sumstats.txt.gz`, `{out-name}.cis_sumstats.txt.gz.csi`, `{out-name}.cis_gene_table.txt.gz`, `{out-name}.cis_gene_table.txt.gz.csi`, `{out-name}.cis_long_table.txt.gz`.  The `cis_sumstats` output file contains association score statistics in a condensed format, which can be used for downstream analysis with the command `./apex meta`.  Human-readable output files are described below: <br />
  
 `*.cis_long_table.tsv.gz` (flag `--long`) columns: 
  1. `#chrom` : Variant chromosome.
